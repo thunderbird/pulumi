@@ -152,6 +152,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         source_cidrs: list[str] = ['0.0.0.0/0'],
         user_data: str = None,
         vpc_id: str = None,
+        vpc_security_group_ids: list[str] = None,
         opts: pulumi.ResourceOptions = None,
         **kwargs
     ):
@@ -170,6 +171,9 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
                 instance.
             - user_data: Custom user data to launch the instance with.
             - vpc_id: The VPC to build this instance in.
+            - vpc_security_group_ids: If provided, sets the security groups for the instance.
+                Otherwise, a security group allowing only port 22 from the `source_cidrs` will be
+                created and used.
             - opts: Additional pulumi.ResourceOptions to apply to these resources.
             - kwargs: Any other keyword arguments which will be passed as inputs to the
                 ThunderbirdComponentResource superconstructor.
@@ -181,23 +185,27 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
             project,
             public_key=public_key).resources
 
-        self.resources['security_group_with_rules'] = tb_pulumi.network.SecurityGroupWithRules(f'{name}-sg',
-            project,
-            vpc_id=vpc_id,
-            rules={
-                'ingress': [{
-                    'cidr_blocks': source_cidrs,
-                    'description': 'SSH access',
-                    'protocol': 'tcp',
-                    'from_port': 22,
-                    'to_port': 22}],
-                'egress': [{
-                    'cidr_blocks': ['0.0.0.0/0'],
-                    'description': 'Allow all egress',
-                    'protocol': 'tcp',
-                    'from_port': 0,
-                    'to_port': 65535}]},
-            opts=pulumi.ResourceOptions(parent=self)).resources
+        if not vpc_security_group_ids:
+            self.resources['security_group_with_rules'] = tb_pulumi.network.SecurityGroupWithRules(f'{name}-sg',
+                project,
+                vpc_id=vpc_id,
+                rules={
+                    'ingress': [{
+                        'cidr_blocks': source_cidrs,
+                        'description': 'SSH access',
+                        'protocol': 'tcp',
+                        'from_port': 22,
+                        'to_port': 22}],
+                    'egress': [{
+                        'cidr_blocks': ['0.0.0.0/0'],
+                        'description': 'Allow all egress',
+                        'protocol': 'tcp',
+                        'from_port': 0,
+                        'to_port': 65535}]},
+                opts=pulumi.ResourceOptions(parent=self)).resources
+            sg_ids = [self.resources['security_group_with_rules']['sg'].id]
+        else:
+            sg_ids = vpc_security_group_ids
 
         instance_tags = {'Name': name}
         instance_tags.update(tb_pulumi.COMMON_TAGS)
@@ -215,9 +223,10 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
                 'volume_type': 'gp3'},
             subnet_id=subnet_id,
             user_data=user_data,
-            tags=instance_tags,
             volume_tags=self.tags,
-            vpc_security_group_ids=[self.resources['security_group_with_rules']['sg'].id])
+            vpc_security_group_ids=sg_ids,
+            tags=instance_tags,
+            opts=pulumi.ResourceOptions(parent=self))
 
         self.finish()
 

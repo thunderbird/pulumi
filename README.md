@@ -12,6 +12,27 @@ See the [Documentation](#documentation) section below for details on how to incl
 project and use each kind of resource.
 
 
+## Pulumi setup
+
+Our Pulumi code is developed against Python 3.12 or later. If this is not your default version, you'll need to manage your own virtual environment.
+
+Check your default version:
+
+```sh
+$ python -V
+Python 3.12.4
+```
+
+If you need a newer Python, [download and install it](https://www.python.org/downloads/). Then you'll have to set up the virtual environment yourself with something like this:
+
+```sh
+virtualenv -p /path/to/python3.12 venv
+./venv/bin/pip install -r requirements.txt
+```
+
+After this, `pulumi` commands should work. If 3.12 is your default version of Python, Pulumi should set up its own virtualenv, and you should not have to do this.
+
+
 ## Start a new Pulumi project
 
 ### S3 bucket

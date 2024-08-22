@@ -85,12 +85,13 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         # Set up an assume role policy
         arp = tb_pulumi.ASSUME_ROLE_POLICY.copy()
         arp['Statement'][0]['Principal']['Service'] = 'ecs-tasks.amazonaws.com'
+        arp = json.dumps(arp)
 
         # Create an IAM role for tasks to run as
         self.resources['task_role'] = aws.iam.Role(f'{name}-taskrole',
             name=name,
             description=f'Task execution role for {tb_pulumi.PROJECT}-{tb_pulumi.STACK}',
-            assume_role_policy=json.dumps(arp),
+            assume_role_policy=arp,
             managed_policy_arns=['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'],
             tags=self.tags,
             opts=pulumi.ResourceOptions(parent=self))
@@ -145,7 +146,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
 
         # Attach permissions to the role
         self.resources['role_attachments'] = [
-            aws.iam.PolicyAttachment(f'{name}-policy-logs',
+            aws.iam.PolicyAttachment(f'{name}-atch-policy-logs',
                 policy_arn=self.resources['policy_log_sending'].arn,
                 roles=[self.resources['task_role'].name],
                 opts=pulumi.ResourceOptions(
@@ -153,7 +154,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                     depends_on=[
                         self.resources['task_role'],
                         self.resources['policy_log_sending']])),
-            aws.iam.PolicyAttachment(f'{name}-policy-secrets',
+            aws.iam.PolicyAttachment(f'{name}-atch-policy-secrets',
                 policy_arn=self.resources['policy_exec'].arn,
                 roles=[self.resources['task_role'].name],
                 opts=pulumi.ResourceOptions(
@@ -367,9 +368,10 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
 
             # Build a listener for the target group
             self.resources['listeners'][svc_name] = aws.lb.Listener(f'{name}-listener-{svc_name}',
+                certificate_arn=svc['listener_cert_arn'] if 'listener_cert_arn' in svc else None,
                 load_balancer_arn=self.resources['albs'][svc_name].arn,
                 port=svc['listener_port'] if 'listener_port' in svc else svc['container_port'],
-                protocol='HTTP',
+                protocol=svc['listener_proto'] if 'listener_proto' in svc else 'HTTP',
                 default_actions=[{
                     'type': 'forward',
                     'targetGroupArn': self.resources['target_groups'][svc_name].arn
