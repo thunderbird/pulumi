@@ -6,6 +6,8 @@ import tb_pulumi
 import tb_pulumi.ec2
 import tb_pulumi.network
 
+from tb_pulumi.constants import SERVICE_PORTS
+
 
 class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
     '''Builds a group of RDS databases. Note that this does not build a "proper" cluster, but a
@@ -147,7 +149,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(parent=self))
 
         # Store the password in Secrets Manager
-        secret_fullname = f'{tb_pulumi.PROJECT}/{tb_pulumi.STACK}/{name}/root_password'
+        secret_fullname = f'{self.project.project}/{self.project.stack}/{name}/root_password'
         self.resources['secret'] = aws.secretsmanager.Secret(f'{name}-secret',
             opts=pulumi.ResourceOptions(parent=self),
             name=secret_fullname)
@@ -167,7 +169,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
 
         # If no port has been specified, try to look it up by the engine name
         if port is None:
-            port = tb_pulumi.SERVICE_PORTS.get(engine, None)
+            port = SERVICE_PORTS.get(engine, None)
             if port is None:
                 raise ValueError('Cannot determine the correct port to open')
 
@@ -208,7 +210,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             tags=self.tags)
 
         # Build the primary instance
-        instance_id = f'{tb_pulumi.PROJECT}-{tb_pulumi.STACK}-000'
+        instance_id = f'{self.project.name_prefix}-000'
         instance_tags = {'instanceId': instance_id}
         instance_tags.update(self.tags)
         primary = aws.rds.Instance(f'{name}-instance-{000}',
@@ -290,14 +292,14 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
 
         # Store some data as SSM params for later retrieval
         self.resources['ssm_param_port'] = self.ssm_param(f'{name}-ssm-port',
-            f'/{tb_pulumi.PROJECT}/{tb_pulumi.STACK}/db-port', port),
+            f'/{self.project.project}/{self.project.stack}/db-port', port),
         self.resources['ssm_param_db_name'] = self.ssm_param(f'{name}-ssm-dbname',
-            f'/{tb_pulumi.PROJECT}/{tb_pulumi.STACK}/db-name', db_name),
+            f'/{self.project.project}/{self.project.stack}/db-name', db_name),
         self.resources['ssm_param_db_write_host'] = self.ssm_param(f'{name}-ssm-dbwritehost',
-            f'/{tb_pulumi.PROJECT}/{tb_pulumi.STACK}/db-write-host', primary.address),
+            f'/{self.project.project}/{self.project.stack}/db-write-host', primary.address),
 
         # Figure out the IPs once the instances are ready and build a load balancer targeting them
-        port = tb_pulumi.SERVICE_PORTS.get(engine, 5432)
+        port = SERVICE_PORTS.get(engine, 5432)
         inst_addrs = [instance.address for instance in self.resources['instances']]
         pulumi.Output.all(*inst_addrs).apply(lambda addresses:
             self.load_balancer(name, project, port, subnets, vpc_cidr, *addresses))
@@ -329,7 +331,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 parent=self,
                 depends_on=[*self.resources['instances']])).resources
         self.resources['ssm_param_read_host']= self.ssm_param(f'{name}-ssm-dbreadhost',
-            f'/{tb_pulumi.PROJECT}/{tb_pulumi.STACK}/db-read-host',
+            f'/{self.project.project}/{self.project.stack}/db-read-host',
             self.resources['nlb']['nlb'].dns_name.apply(
                 lambda dns_name: dns_name))
 

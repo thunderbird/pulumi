@@ -82,10 +82,10 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
         # First build the secrets
         for secret_name in secret_names:
             # Pull the secret's value from Pulumi's encrypted state
-            secret_string = tb_pulumi.PULUMI_CONFIG.require_secret(secret_name)
+            secret_string = self.project.pulumi_config.require_secret(secret_name)
 
             # Declare a Secrets Manager Secret
-            secret_fullname = f'{tb_pulumi.PROJECT}/{tb_pulumi.STACK}/{secret_name}'
+            secret_fullname = f'{self.project.project}/{self.project.stack}/{secret_name}'
             secret = aws.secretsmanager.Secret(f'{name}-secret-{secret_name}',
                 opts=pulumi.ResourceOptions(parent=self),
                 name=secret_fullname)

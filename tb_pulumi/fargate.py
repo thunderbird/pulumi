@@ -3,6 +3,8 @@ import pulumi
 import pulumi_aws as aws
 import tb_pulumi
 
+from tb_pulumi.constants import ASSUME_ROLE_POLICY
+
 
 class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
     '''Builds a Fargate cluster running a variable number of tasks. Logs from these tasks will be
@@ -16,6 +18,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         desired_count: int = 1,
         ecr_resources: list = ['*'],
         enable_container_insights: bool = False,
+        health_check_grace_period_seconds: int = None,
         internal: bool = True,
         key_deletion_window_in_days: int = 7,
         security_groups: list[str] = [],
@@ -39,6 +42,9 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 you would like to restrict these permissions, supply this argument as a list of ARNs
                 as they would appear in an IAM Policy.
             - enable_container_insights: When True, enables advanced CloudWatch metrics collection.
+            - health_check_grace_period_seconds: Time to wait for a container to come online before
+                attempting health checks. This can be used to prevent accidental health check
+                failures.
             - internal: Whether traffic should be accepted from the Internet (False) or not (True)
             - key_deletion_window_in_days: Number of days after the KMS key is deleted that it will
                 be recoverable. If you need to forcibly delete a key, set this to 0.
@@ -83,14 +89,14 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(parent=self))
 
         # Set up an assume role policy
-        arp = tb_pulumi.ASSUME_ROLE_POLICY.copy()
+        arp = ASSUME_ROLE_POLICY.copy()
         arp['Statement'][0]['Principal']['Service'] = 'ecs-tasks.amazonaws.com'
         arp = json.dumps(arp)
 
         # Create an IAM role for tasks to run as
         self.resources['task_role'] = aws.iam.Role(f'{name}-taskrole',
             name=name,
-            description=f'Task execution role for {tb_pulumi.PROJECT}-{tb_pulumi.STACK}',
+            description=f'Task execution role for {self.project.name_prefix}',
             assume_role_policy=arp,
             managed_policy_arns=['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'],
             tags=self.tags,
@@ -119,8 +125,9 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 'Sid': 'AllowSecretsAccess',
                 'Effect': 'Allow',
                 'Action': 'secretsmanager:GetSecretValue',
-                'Resource': f'arn:aws:secretsmanager:{tb_pulumi.AWS_REGION}:{tb_pulumi.AWS_ACCOUNT_ID}:' \
-                    f'secret:{tb_pulumi.PROJECT}/{tb_pulumi.STACK}/*'
+                'Resource': f'arn:aws:secretsmanager:{self.project.aws_region}:' \
+                    f'{self.project.aws_account_id}:' \
+                    f'secret:{self.project.project}/{self.project.stack}/*'
             }, {
                 'Sid': 'AllowECRAccess',
                 'Effect': 'Allow',
@@ -136,16 +143,24 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 'Sid': 'AllowParametersAccess',
                 'Effect': 'Allow',
                 'Action': 'ssm:GetParameters',
-                'Resource': f'arn:aws:ssm:{tb_pulumi.AWS_REGION}:{tb_pulumi.AWS_ACCOUNT_ID}:' \
-                    f'parameter/{tb_pulumi.PROJECT}/{tb_pulumi.STACK}/*'}]})
+                'Resource': f'arn:aws:ssm:{self.project.aws_region}:{self.project.aws_account_id}:' \
+                    f'parameter/{self.project.project}/{self.project.stack}/*'}]})
         self.resources['policy_exec'] = aws.iam.Policy(f'{name}-policy-exec',
             name=f'{name}-exec',
-            description=f'Allows {tb_pulumi.PROJECT} tasks access to resources they need to run',
+            description=f'Allows {self.project.project} tasks access to resources they need to run',
             policy=doc,
             opts=pulumi.ResourceOptions(parent=self))
 
         # Attach permissions to the role
         self.resources['role_attachments'] = [
+            aws.iam.PolicyAttachment(f'{name}-atch-policy-exec',
+                policy_arn=self.resources['policy_exec'].arn,
+                roles=[self.resources['task_role'].name],
+                opts=pulumi.ResourceOptions(
+                    parent=self,
+                    depends_on=[
+                        self.resources['task_role'],
+                        self.resources['policy_exec']])),
             aws.iam.PolicyAttachment(f'{name}-atch-policy-logs',
                 policy_arn=self.resources['policy_log_sending'].arn,
                 roles=[self.resources['task_role'].name],
@@ -153,15 +168,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                     parent=self,
                     depends_on=[
                         self.resources['task_role'],
-                        self.resources['policy_log_sending']])),
-            aws.iam.PolicyAttachment(f'{name}-atch-policy-secrets',
-                policy_arn=self.resources['policy_exec'].arn,
-                roles=[self.resources['task_role'].name],
-                opts=pulumi.ResourceOptions(
-                    parent=self,
-                    depends_on=[
-                        self.resources['task_role'],
-                        self.resources['policy_exec']]))]
+                        self.resources['policy_log_sending']]))]
 
         # Fargate Cluster
         self.resources['cluster'] = aws.ecs.Cluster(f'{name}-cluster',
@@ -186,7 +193,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         # Prep the task definition
         self.resources['task_definition'] = pulumi.Output.all(
                 self.resources['log_group'].name,
-                tb_pulumi.AWS_REGION,
+                self.project.aws_region,
                 self.resources['task_role'].arn
             ).apply(lambda outputs: self.task_definition(
                 task_definition, family, outputs[0], outputs[1]))
@@ -216,6 +223,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             name=name,
             cluster=self.resources['cluster'].id,
             desired_count=desired_count,
+            health_check_grace_period_seconds=health_check_grace_period_seconds,
             launch_type='FARGATE',
             load_balancers=lb_configs,
             network_configuration={

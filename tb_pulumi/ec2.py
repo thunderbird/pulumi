@@ -8,6 +8,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 
+AMAZON_LINUX_AMI='ami-0427090fd1714168b'
+
+
 class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
     '''Create a Network Load Balancer.'''
 
@@ -109,8 +112,7 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
 
         # Add targets to the target group
         self.resources['target_group_attachments'] = []
-        idx = 0
-        for ip in ips:
+        for idx, ip in enumerate(ips):
             self.resources['target_group_attachments'].append(
                 aws.lb.TargetGroupAttachment(f'{name}-tga-{idx}',
                     target_group_arn=self.resources['target_group'].arn,
@@ -119,7 +121,6 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
                     opts=pulumi.ResourceOptions(
                         parent=self,
                         depends_on=[self.resources['target_group']])))
-            idx += 1
 
         # Build the listener, sending traffic to the target group
         self.resources['listener'] = aws.lb.Listener(f'{name}-listener',
@@ -146,7 +147,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         subnet_id: str,
-        ami: str = 'ami-0427090fd1714168b',  # Amazon Linux
+        ami: str = AMAZON_LINUX_AMI,
         kms_key_id: str = None,
         public_key: str = None,
         source_cidrs: list[str] = ['0.0.0.0/0'],
@@ -208,7 +209,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
             sg_ids = vpc_security_group_ids
 
         instance_tags = {'Name': name}
-        instance_tags.update(tb_pulumi.COMMON_TAGS)
+        instance_tags.update(self.project.common_tags)
         self.resources['instance'] = aws.ec2.Instance(f'{name}-instance',
             ami=ami,
             associate_public_ip_address=True,

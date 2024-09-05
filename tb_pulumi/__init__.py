@@ -4,55 +4,17 @@ to use this library, read the README: https://github.com/thunderbird/pulumi/blob
 
 import boto3
 import pulumi
+import typing
 import yaml
 
 from datetime import date
+from functools import cached_property
 from os import environ, getlogin
 from socket import gethostname
+from tb_pulumi.constants import DEFAULT_PROTECTED_STACKS
 
 
-# Internalize runtime information
-AWS_CLIENTS = {}
-AWS_SESSION = boto3.session.Session()
-AWS_ACCOUNT_ID = None
-AWS_REGION = None
-PROJECT = pulumi.get_project()
-PULUMI_CONFIG = pulumi.Config()
-STACK = pulumi.get_stack()
-
-# Make certain common data accessible through this module
-ASSUME_ROLE_POLICY={
-    'Version': '2012-10-17',
-    'Statement': [{
-        'Sid': '',
-        'Effect': 'Allow',
-        'Principal': {
-            'Service': None
-        },
-        'Action': 'sts:AssumeRole'
-    }]
-}
-COMMON_TAGS = {
-    'project': PROJECT,
-    'pulumi_last_run_date': str(date.today()),
-    'pulumi_last_run_by': f'{getlogin()}@{gethostname()}',
-    'pulumi_project': PROJECT,
-    'pulumi_stack': STACK}
-DEFAULT_PROTECTED_STACKS = [ 'prod' ]
-IAM_POLICY_DOCUMENT = {
-    'Version': '2012-10-17',
-    'Statement': [{
-        'Sid': 'DefaultSid',
-        'Effect': 'Allow'
-    }]}
-SERVICE_PORTS = {
-    'mariadb': 3306,
-    'mysql': 3306,
-    'postgres': 5432,
-}
-
-
-class ThunderbirdPulumiProject(object):
+class ThunderbirdPulumiProject:
     '''Manages Pulumi resources at Thunderbird. This class enforces some usage conventions that help
     keep us organized and consistent.
     '''
@@ -65,27 +27,38 @@ class ThunderbirdPulumiProject(object):
             - protected_stacks: List of stack names which should require explicit instruction to
             modify.
         '''
-        self.name_prefix = f'{PROJECT}-{STACK}'
+
+        # General runtime data
+        self.project = pulumi.get_project()
+        self.stack = pulumi.get_stack()
+        self.name_prefix = f'{self.project}-{self.stack}'
         self.protected_stacks = protected_stacks
+        self.pulumi_config = pulumi.Config()
         self.resources = {}
+        self.common_tags = {
+            'project': self.project,
+            'pulumi_last_run_by': f'{getlogin()}@{gethostname()}',
+            'pulumi_project': self.project,
+            'pulumi_stack': self.stack}
 
-        # Start with no config
-        self.__config = None
+        # AWS client setup
+        self.__aws_clients = {}
+        self.__aws_session = boto3.session.Session()
+        sts = self.get_aws_client('sts')
+        self.aws_account_id = sts.get_caller_identity()['Account']
+        self.aws_region = self.__aws_session.region_name
 
-    @property
+    def get_aws_client(self, service: str):
+        if service not in self.__aws_clients.keys():
+            self.__aws_clients[service] = self.__aws_session.client(service)
+
+        return self.__aws_clients[service]
+
+    @cached_property
     def config(self) -> dict:
         '''Provides read-only access to the project configuration'''
-        if not self.__config:
-            self.__config = self.__read_config()
 
-        return self.__config
-
-    def __read_config(self) -> dict:
-        '''Reads the YAML-formatted configuration file for the current Pulumi stack and returns its
-        contents as a dict.
-        '''
-
-        config_file = f'config.{STACK}.yaml'
+        config_file = f'config.{self.stack}.yaml'
         with open(config_file, 'r') as fh:
             return yaml.load(fh.read(), Loader=yaml.SafeLoader)
 
@@ -96,7 +69,7 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
     '''
 
     def __init__(self,
-        t: str,
+        pulumi_type: str,
         name: str,
         project: ThunderbirdPulumiProject,
         opts: pulumi.ResourceOptions = None,
@@ -104,7 +77,8 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
     ):
         '''Construct a ThunderbirdComponentResource.
 
-        - t: The "type" string of the component as described by Pulumi's docs here:
+        - pulumi_type: The "type" string (commonly referred to in docs as just "t") of the component
+            as described by Pulumi's docs here:
             https://www.pulumi.com/docs/concepts/resources/names/#types
         - name: A string identifying this set of resources.
         - project: The ThunderbirdPulumiProject this resource belongs to.
@@ -118,14 +92,17 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
         if self.protect_resources:
             pulumi.info(
                 f'Resource protection has been enabled on {name}. '
-                'To disable, export TBPULUMI_PROTECT_RESOURCES=False')
+                'To disable, export TBPULUMI_DISABLE_PROTECTION=True')
 
         # Merge provided opts with defaults before calling superconstructor
         default_opts = pulumi.ResourceOptions(protect=self.protect_resources)
         final_opts = default_opts.merge(opts)
-        super().__init__(t, name, None, opts=final_opts)
+        super().__init__(
+            t=pulumi_type,
+            name=name,
+            opts=final_opts)
 
-        self.tags = COMMON_TAGS.copy()
+        self.tags = self.project.common_tags.copy()
         self.tags.update(tags)
 
         self.resources = {}
@@ -147,36 +124,41 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
         '''Sets or unsets resource protection on the stack based on operating conditions.
         '''
 
-        if STACK not in self.project.protected_stacks:
+        if self.project.stack not in self.project.protected_stacks:
             protect = False
         else:
-            protect = False \
-                if environ.get('TBPULUMI_PROTECT_RESOURCES', 't').lower() in ['f', 'false', 'no' ] \
-                else True
+            protect = not env_var_is_true('TBPULUMI_DISABLE_PROTECTION')
 
         return protect
 
 
-def init():
-    '''Initializes some global AWS data'''
+def env_var_matches(
+    name: str,
+    matches: list[str],
+    default: bool = False
+) -> bool:
+    '''Determines if the value of the given environment variable is in the given list. Returns True
+    if it does, otherwise the `default` value. This is a case-insensitive check. Returns None if the
+    variable is unset.
 
-    sts = get_aws_client('sts')
-    aws_id = sts.get_caller_identity()
-
-    global AWS_ACCOUNT_ID
-    global AWS_REGION
-    AWS_ACCOUNT_ID = aws_id['Account']
-    AWS_REGION = AWS_SESSION.region_name
-
-def get_aws_client(service: str):
-    '''Creates and caches an AWS/boto3 client object, then returns it.
+        - name: The environment variable to check
+        - matches: A list of strings to match against
+        - default: Default value if the variable doesn't match
     '''
 
-    global AWS_CLIENTS
-    if service not in AWS_CLIENTS.keys():
-        AWS_CLIENTS[service] = AWS_SESSION.client(service)
+    # Convert to lowercase for case-insensitive matching
+    matches = [ match.lower() for match in matches ]
+    value = environ.get(name, None)
+    if value is None:
+        return None
+    if value.lower() in matches:
+        return True
+    return default
 
-    return AWS_CLIENTS[service]
+def env_var_is_true(name: str) -> bool:
+    '''Determines if the value of the given environment variable represents "True" in some way.
 
+        - name: The environment variable to check
+    '''
 
-init()
+    return env_var_matches(name, ['t', 'true', 'yes'], False)
