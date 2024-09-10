@@ -3,7 +3,10 @@ import pulumi
 import pulumi_aws as aws
 import tb_pulumi
 
-from tb_pulumi.constants import ASSUME_ROLE_POLICY
+from tb_pulumi.constants import (
+    ASSUME_ROLE_POLICY,
+    DEFAULT_AWS_SSL_POLICY
+)
 
 
 class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
@@ -374,16 +377,26 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
                 tags=svc_tags,
                 opts=pulumi.ResourceOptions(parent=self))
 
+            # Determine SSL settings based on other values
+            listener_proto = svc['listener_proto'] if 'listener_proto' in svc else 'HTTP'
+            ssl_policy = None
+            if 'ssl_policy' in svc:
+                ssl_policy = svc['ssl_policy']
+            else:
+                if listener_proto == 'HTTPS':
+                    ssl_policy = DEFAULT_AWS_SSL_POLICY
+
             # Build a listener for the target group
             self.resources['listeners'][svc_name] = aws.lb.Listener(f'{name}-listener-{svc_name}',
                 certificate_arn=svc['listener_cert_arn'] if 'listener_cert_arn' in svc else None,
-                load_balancer_arn=self.resources['albs'][svc_name].arn,
-                port=svc['listener_port'] if 'listener_port' in svc else svc['container_port'],
-                protocol=svc['listener_proto'] if 'listener_proto' in svc else 'HTTP',
                 default_actions=[{
                     'type': 'forward',
                     'targetGroupArn': self.resources['target_groups'][svc_name].arn
                 }],
+                load_balancer_arn=self.resources['albs'][svc_name].arn,
+                port=svc['listener_port'] if 'listener_port' in svc else svc['container_port'],
+                protocol=listener_proto,
+                ssl_policy=ssl_policy,
                 tags=svc_tags,
                 opts=pulumi.ResourceOptions(parent=self))
 

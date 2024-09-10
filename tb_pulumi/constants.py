@@ -14,8 +14,9 @@ ASSUME_ROLE_POLICY={
     }]
 }
 
-# Which Pulumi stacks should get resource protection
-DEFAULT_PROTECTED_STACKS = [ 'prod' ]
+# Global default values to fall back on
+DEFAULT_AWS_SSL_POLICY='ELBSecurityPolicy-2016-08'
+DEFAULT_PROTECTED_STACKS = [ 'prod' ] # Which Pulumi stacks should get resource protection
 
 # Policy document shell
 IAM_POLICY_DOCUMENT = {
