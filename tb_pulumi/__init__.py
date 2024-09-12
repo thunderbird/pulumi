@@ -46,6 +46,10 @@ class ThunderbirdPulumiProject:
         self.aws_region = self.__aws_session.region_name
 
     def get_aws_client(self, service: str):
+        """Retrieves an AWS client for the requested service, preferably from the cache.
+
+        - service: Name of the service as described in boto3 docs: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/index.html
+        """
         if service not in self.__aws_clients.keys():
             self.__aws_clients[service] = self.__aws_session.client(service)
 

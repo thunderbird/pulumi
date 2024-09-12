@@ -38,10 +38,9 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 one subnet to use.
 
         Keyword arguments:
-            - assign_public_ic: When True, containers will receive Internet-facing network
+            - assign_public_ip: When True, containers will receive Internet-facing network
                 interfaces. Must be enabled for Fargate-backed containers to talk out to the net.
             - desired_count: The number of containers the service should target to run.
-            - enable_container_insights: Whether or not to collect and log additional metrics.
             - ecr_resources: The containers will be granted permissions to pull images from ECR. If
                 you would like to restrict these permissions, supply this argument as a list of ARNs
                 as they would appear in an IAM Policy.
@@ -60,9 +59,17 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 specified in a container definition which can receive this traffic.
 
                 {'web_portal': {
-                    'listener_port': 80,
                     'container_port': 8080,
-                    'container_name': 'web_backend'}}
+                    'container_name': 'web_backend',
+                    'listener_cert_arn': 'arn:aws:acm:region:account:certificate/id',
+                    'listener_port': 80,
+                    'listener_proto': 'HTTPS',
+                    'name': 'Arbitrary name for the ALB; must be unique and no longer than 32 characters.',
+                    'health_check': {
+                        # Keys match parameters listed here:
+                        # https://www.pulumi.com/registry/packages/aws/api-docs/alb/targetgroup/#targetgrouphealthcheck
+                    }
+                }}
 
             - task_definition: A dict representing an ECS task definition.
             - opts: Additional pulumi.ResourceOptions to apply to these resources.
@@ -322,8 +329,6 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
     """Builds an ALB with all of its constituent components to serve traffic for a set of ECS
     services. ECS does not allow reuse of a single ALB with multiple listeners, so if there are
     multiple services, multiple ALBs will be constructed.
-
-    TODO: Support SSL options.
     """
 
     def __init__(
@@ -345,7 +350,7 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
             - subnets: A list of subnet resources (pulumi outputs) to attach the ALB to.
 
         Keyword arguments:
-            - internal: Whether traffic should be accepted from the Internet (False) or not (True)
+            - internal: Whether traffic should be accepted from the Internet (False) or not (True).
             - security_groups: A list of security group IDs to attach to the load balancer.
             - services: A dict defining the ports to use when routing requests to each service. The
                 keys should be the name of the service as described in a container definition. The
@@ -355,10 +360,17 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
                 are far too long and result in namespace collisions when automatically shortened.
 
                 {'web_portal': {
-                    'name': 'web_portal_backend_staging',
-                    'listener_port': 80,
                     'container_port': 8080,
-                    'container_name': 'web_backend'}}
+                    'container_name': 'web_backend',
+                    'listener_cert_arn': 'arn:aws:acm:region:account:certificate/id',
+                    'listener_port': 80,
+                    'listener_proto': 'HTTPS',
+                    'name': 'Arbitrary name for the ALB; must be unique and no longer than 32 characters.',
+                    'health_check': {
+                        # Keys match parameters listed here:
+                        # https://www.pulumi.com/registry/packages/aws/api-docs/alb/targetgroup/#targetgrouphealthcheck
+                    }
+                }}
 
             - opts: Additional pulumi.ResourceOptions to apply to these resources.
             - kwargs: Any other keyword arguments which will be passed as inputs to the

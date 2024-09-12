@@ -128,9 +128,3 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
         )
 
         self.finish()
-
-    def policy(self, name: str, *secret_arns) -> aws.iam.Policy:
-        """Declares a policy granting access to the secrets defined by this module.
-
-        - secret_arns - A tuple of ARNs to allow access to.
-        """
