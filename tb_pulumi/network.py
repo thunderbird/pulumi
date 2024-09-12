@@ -101,6 +101,15 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(
                     parent=self,
                     depends_on=self.resources['vpc']))
+            self.resources['subnet_ig_route'] = aws.ec2.Route(f'{name}-igroute',
+                route_table_id=self.resources['vpc'].default_route_table_id,
+                destination_cidr_block='0.0.0.0/0',
+                gateway_id=self.resources['internet_gateway'].id,
+                opts=pulumi.ResourceOptions(
+                    parent=self,
+                    depends_on=[
+                        self.resources['vpc'],
+                        self.resources['internet_gateway']]))
 
         if enable_nat_gateway:
             self.resources['nat_eip'] = aws.ec2.Eip(f'{name}-eip',
@@ -119,16 +128,6 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(
                     parent=self,
                     depends_on=self.resources['nat_eip']))
-            self.resources['subnet_ng_route'] = aws.ec2.Route(f'{name}-ngroute',
-                route_table_id=self.resources['vpc'].default_route_table_id,
-                destination_cidr_block='0.0.0.0/0',
-                nat_gateway_id=self.resources['nat_gateway'].id,
-                opts=pulumi.ResourceOptions(
-                    parent=self,
-                    depends_on=[
-                        self.resources['vpc'],
-                        self.resources['nat_gateway']]))
-
 
         # If we have to build endpoints, we have to have a security group to let local traffic in
         if len(endpoint_interfaces + endpoint_gateways) > 0:

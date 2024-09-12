@@ -18,6 +18,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         subnets: list[str],
+        assign_public_ip: bool = False,
         desired_count: int = 1,
         ecr_resources: list = ['*'],
         enable_container_insights: bool = False,
@@ -39,6 +40,8 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 one subnet to use.
 
         Keyword arguments:
+            - assign_public_ic: When True, containers will receive Internet-facing network
+                interfaces. Must be enabled for Fargate-backed containers to talk out to the net.
             - desired_count: The number of containers the service should target to run.
             - enable_container_insights: Whether or not to collect and log additional metrics.
             - ecr_resources: The containers will be granted permissions to pull images from ECR. If
@@ -231,7 +234,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             load_balancers=lb_configs,
             network_configuration={
                 'subnets': subnets,
-                'assign_public_ip': False,
+                'assign_public_ip': assign_public_ip,
                 'security_groups': security_groups
             },
             task_definition=self.resources['task_definition'],
@@ -342,6 +345,15 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
 
         # For each service...
         for svc_name, svc in services.items():
+            # Determine SSL settings based on other values
+            listener_proto = svc['listener_proto'] if 'listener_proto' in svc else 'HTTP'
+            ssl_policy = None
+            if 'ssl_policy' in svc:
+                ssl_policy = svc['ssl_policy']
+            else:
+                if listener_proto == 'HTTPS':
+                    ssl_policy = DEFAULT_AWS_SSL_POLICY
+
             # Add special tagging to these resources to identify the service they're built for
             svc_tags = {'service': svc_name}
             svc_tags.update(self.tags)
@@ -366,6 +378,7 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
                 # AWS imposes a 32-character limit on service names. Simply cropping the name length
                 # down is insufficient because it creates name conflicts. So these are explicitly
                 # named in our configs.
+                health_check=svc['health_check'] if 'health_check' in svc else None,
                 name=svc['name'],
                 port=svc['container_port'],
                 protocol='HTTP',
@@ -376,15 +389,6 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
                 ip_address_type='ipv4',
                 tags=svc_tags,
                 opts=pulumi.ResourceOptions(parent=self))
-
-            # Determine SSL settings based on other values
-            listener_proto = svc['listener_proto'] if 'listener_proto' in svc else 'HTTP'
-            ssl_policy = None
-            if 'ssl_policy' in svc:
-                ssl_policy = svc['ssl_policy']
-            else:
-                if listener_proto == 'HTTPS':
-                    ssl_policy = DEFAULT_AWS_SSL_POLICY
 
             # Build a listener for the target group
             self.resources['listeners'][svc_name] = aws.lb.Listener(f'{name}-listener-{svc_name}',
