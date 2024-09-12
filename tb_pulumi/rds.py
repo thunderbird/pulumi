@@ -10,11 +10,12 @@ from tb_pulumi.constants import SERVICE_PORTS
 
 
 class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
-    '''Builds a group of RDS databases. Note that this does not build a "proper" cluster, but a
+    """Builds a group of RDS databases. Note that this does not build a "proper" cluster, but a
     series of manually operated RDS instances with replication.
-    '''
+    """
 
-    def __init__(self,
+    def __init__(
+        self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         db_name: str,
@@ -48,9 +49,9 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         skip_final_snapshot: bool = False,
         storage_type: str = 'gp3',
         opts: pulumi.ResourceOptions = None,
-        **kwargs
+        **kwargs,
     ):
-        '''Construct an RdsDatabaseGroup, which builds a primary database and zero or more read
+        """Construct an RdsDatabaseGroup, which builds a primary database and zero or more read
         replicas. An NLB is created to spread load across the read replicas.
 
         Positional arguments:
@@ -133,12 +134,13 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             - kwargs: Key/value pairs describing additional arguments to be passed into *all* RDS
                 Instance declarations. Detail can be found here:
                 https://www.pulumi.com/registry/packages/aws/api-docs/rds/instance/#inputs
-        '''
+        """
 
         super().__init__('tb:rds:RdsDatabaseGroup', name, project, opts=opts)
 
         # Generate a random password
-        self.resources['password'] = pulumi_random.RandomPassword(f'{name}-password',
+        self.resources['password'] = pulumi_random.RandomPassword(
+            f'{name}-password',
             length=29,
             override_special=override_special,
             special=True,
@@ -146,20 +148,20 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             min_numeric=1,
             min_special=1,
             min_upper=1,
-            opts=pulumi.ResourceOptions(parent=self))
+            opts=pulumi.ResourceOptions(parent=self),
+        )
 
         # Store the password in Secrets Manager
         secret_fullname = f'{self.project.project}/{self.project.stack}/{name}/root_password'
-        self.resources['secret'] = aws.secretsmanager.Secret(f'{name}-secret',
-            opts=pulumi.ResourceOptions(parent=self),
-            name=secret_fullname)
+        self.resources['secret'] = aws.secretsmanager.Secret(
+            f'{name}-secret', opts=pulumi.ResourceOptions(parent=self), name=secret_fullname
+        )
         self.resources['secret_version'] = aws.secretsmanager.SecretVersion(
             f'{name}-secretversion',
             secret_id=self.resources['secret'].id,
             secret_string=self.resources['password'].result,
-            opts=pulumi.ResourceOptions(
-                parent=self,
-                depends_on=self.resources['password']))
+            opts=pulumi.ResourceOptions(parent=self, depends_on=self.resources['password']),
+        )
 
         # If no ingress CIDRs have been defined, find a reasonable default
         if sg_cidrs is None:
@@ -179,41 +181,53 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             project,
             vpc_id=vpc_id,
             rules={
-                'ingress': [{
-                    'cidr_blocks': cidrs,
-                    'description': 'Database access',
-                    'protocol': 'tcp',
-                    'from_port': port,
-                    'to_port': port}],
-                'egress': {}},
-            opts=pulumi.ResourceOptions(parent=self)).resources
+                'ingress': [
+                    {
+                        'cidr_blocks': cidrs,
+                        'description': 'Database access',
+                        'protocol': 'tcp',
+                        'from_port': port,
+                        'to_port': port,
+                    }
+                ],
+                'egress': {},
+            },
+            opts=pulumi.ResourceOptions(parent=self),
+        ).resources
 
         # Build a subnet group to launch instances in
-        self.resources['subnet_group'] = aws.rds.SubnetGroup(f'{name}-subnetgroup',
+        self.resources['subnet_group'] = aws.rds.SubnetGroup(
+            f'{name}-subnetgroup',
             name=name,
             subnet_ids=[subnet.id for subnet in subnets],
             tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self))
+            opts=pulumi.ResourceOptions(parent=self),
+        )
 
         # Build a parameter group
-        self.resources['parameter_group'] = aws.rds.ParameterGroup(f'{name}-parametergroup',
+        self.resources['parameter_group'] = aws.rds.ParameterGroup(
+            f'{name}-parametergroup',
             name=name,
             opts=pulumi.ResourceOptions(parent=self),
             family=parameter_group_family,
-            parameters=parameters)
+            parameters=parameters,
+        )
 
         # Build a KMS Key
-        self.resources['key'] = aws.kms.Key(f'{name}-storage',
+        self.resources['key'] = aws.kms.Key(
+            f'{name}-storage',
             opts=pulumi.ResourceOptions(parent=self),
             description=f'Key to encrypt database storage for {name}',
             deletion_window_in_days=7,
-            tags=self.tags)
+            tags=self.tags,
+        )
 
         # Build the primary instance
         instance_id = f'{self.project.name_prefix}-000'
         instance_tags = {'instanceId': instance_id}
         instance_tags.update(self.tags)
-        primary = aws.rds.Instance(f'{name}-instance-{000}',
+        primary = aws.rds.Instance(
+            f'{name}-instance-{000}',
             allocated_storage=allocated_storage,
             allow_major_version_upgrade=False,
             auto_minor_version_upgrade=auto_minor_version_upgrade,
@@ -232,8 +246,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             password=self.resources['password'].result,
             parameter_group_name=self.resources['parameter_group'].name,
             performance_insights_enabled=performance_insights_enabled,
-            performance_insights_kms_key_id=self.resources['key'].arn \
-                if performance_insights_enabled else None,
+            performance_insights_kms_key_id=self.resources['key'].arn if performance_insights_enabled else None,
             port=port,
             publicly_accessible=False,
             skip_final_snapshot=skip_final_snapshot,
@@ -248,64 +261,77 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                     self.resources['key'],
                     self.resources['parameter_group'],
                     self.resources['password'],
-                    self.resources['subnet_group']]),
-            **kwargs)
+                    self.resources['subnet_group'],
+                ],
+            ),
+            **kwargs,
+        )
 
         # Build replica instances in the cluster
         self.resources['instances'] = [primary]
         for idx in range(1, num_instances):  # Start at 1, taking the primary into account
             # Pad the index with zeroes to produce a 3-char string ID; set tags
             idx_str = str(idx).rjust(3, '0')
-            instance_id=f'{tb_pulumi.PROJECT}-{tb_pulumi.STACK}-{idx_str}'
+            instance_id = f'{tb_pulumi.PROJECT}-{tb_pulumi.STACK}-{idx_str}'
             instance_tags = {'instanceId': instance_id}
             instance_tags.update(self.tags)
 
-            self.resources['instances'].append(aws.rds.Instance(f'{name}-instance-{idx_str}',
-                allow_major_version_upgrade=False,
-                auto_minor_version_upgrade=auto_minor_version_upgrade,
-                backup_retention_period=backup_retention_period,
-                blue_green_update={'enabled': blue_green_update},
-                copy_tags_to_snapshot=True,
-                enabled_cloudwatch_logs_exports=enabled_instance_cloudwatch_logs_exports,
-                engine=engine,
-                engine_version=engine_version,
-                identifier=instance_id,
-                instance_class=instance_class,
-                kms_key_id=self.resources['key'].arn,
-                max_allocated_storage=max_allocated_storage,
-                parameter_group_name=self.resources['parameter_group'].name,
-                performance_insights_enabled=performance_insights_enabled,
-                performance_insights_kms_key_id=self.resources['key'].id \
-                    if performance_insights_enabled else None,
-                port=port,
-                publicly_accessible=False,
-                replicate_source_db=primary.identifier,
-                skip_final_snapshot=skip_final_snapshot,
-                storage_encrypted=True,
-                storage_type=storage_type,
-                vpc_security_group_ids=[self.resources['security_group_with_rules']['sg'].id],
-                tags=instance_tags,
-                opts=pulumi.ResourceOptions(
-                    parent=self,
-                    depends_on=[primary])),
-            **kwargs)
+            self.resources['instances'].append(
+                aws.rds.Instance(
+                    f'{name}-instance-{idx_str}',
+                    allow_major_version_upgrade=False,
+                    auto_minor_version_upgrade=auto_minor_version_upgrade,
+                    backup_retention_period=backup_retention_period,
+                    blue_green_update={'enabled': blue_green_update},
+                    copy_tags_to_snapshot=True,
+                    enabled_cloudwatch_logs_exports=enabled_instance_cloudwatch_logs_exports,
+                    engine=engine,
+                    engine_version=engine_version,
+                    identifier=instance_id,
+                    instance_class=instance_class,
+                    kms_key_id=self.resources['key'].arn,
+                    max_allocated_storage=max_allocated_storage,
+                    parameter_group_name=self.resources['parameter_group'].name,
+                    performance_insights_enabled=performance_insights_enabled,
+                    performance_insights_kms_key_id=self.resources['key'].id if performance_insights_enabled else None,
+                    port=port,
+                    publicly_accessible=False,
+                    replicate_source_db=primary.identifier,
+                    skip_final_snapshot=skip_final_snapshot,
+                    storage_encrypted=True,
+                    storage_type=storage_type,
+                    vpc_security_group_ids=[self.resources['security_group_with_rules']['sg'].id],
+                    tags=instance_tags,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[primary]),
+                ),
+                **kwargs,
+            )
 
         # Store some data as SSM params for later retrieval
-        self.resources['ssm_param_port'] = self.ssm_param(f'{name}-ssm-port',
-            f'/{self.project.project}/{self.project.stack}/db-port', port),
-        self.resources['ssm_param_db_name'] = self.ssm_param(f'{name}-ssm-dbname',
-            f'/{self.project.project}/{self.project.stack}/db-name', db_name),
-        self.resources['ssm_param_db_write_host'] = self.ssm_param(f'{name}-ssm-dbwritehost',
-            f'/{self.project.project}/{self.project.stack}/db-write-host', primary.address),
+        self.resources['ssm_param_port'] = (
+            self.ssm_param(f'{name}-ssm-port', f'/{self.project.project}/{self.project.stack}/db-port', port),
+        )
+        self.resources['ssm_param_db_name'] = (
+            self.ssm_param(f'{name}-ssm-dbname', f'/{self.project.project}/{self.project.stack}/db-name', db_name),
+        )
+        self.resources['ssm_param_db_write_host'] = (
+            self.ssm_param(
+                f'{name}-ssm-dbwritehost',
+                f'/{self.project.project}/{self.project.stack}/db-write-host',
+                primary.address,
+            ),
+        )
 
         # Figure out the IPs once the instances are ready and build a load balancer targeting them
         port = SERVICE_PORTS.get(engine, 5432)
         inst_addrs = [instance.address for instance in self.resources['instances']]
-        pulumi.Output.all(*inst_addrs).apply(lambda addresses:
-            self.load_balancer(name, project, port, subnets, vpc_cidr, *addresses))
+        pulumi.Output.all(*inst_addrs).apply(
+            lambda addresses: self.load_balancer(name, project, port, subnets, vpc_cidr, *addresses)
+        )
 
         if build_jumphost:
-            self.resources['jumphost'] = tb_pulumi.ec2.SshableInstance(f'{name}-jumphost',
+            self.resources['jumphost'] = tb_pulumi.ec2.SshableInstance(
+                f'{name}-jumphost',
                 project,
                 subnets[0].id,
                 kms_key_id=self.resources['key'].arn,
@@ -313,31 +339,31 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 source_cidrs=jumphost_source_cidrs,
                 user_data=jumphost_user_data,
                 vpc_id=vpc_id,
-                opts=pulumi.ResourceOptions(
-                    parent=self,
-                    depends_on=[self.resources['key']])).resources
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['key']]),
+            ).resources
 
         self.finish()
 
     def load_balancer(self, name, project, port, subnets, vpc_cidr, *addresses):
         # Build a load balancer
-        self.resources['nlb'] = tb_pulumi.ec2.NetworkLoadBalancer(f'{name}-nlb',
-            project, port, subnets, port,
+        self.resources['nlb'] = tb_pulumi.ec2.NetworkLoadBalancer(
+            f'{name}-nlb',
+            project,
+            port,
+            subnets,
+            port,
             ingress_cidrs=[vpc_cidr],
             internal=True,
             ips=[socket.gethostbyname(addr) for addr in addresses],
             security_group_description=f'Allow database traffic for {name}',
-            opts=pulumi.ResourceOptions(
-                parent=self,
-                depends_on=[*self.resources['instances']])).resources
-        self.resources['ssm_param_read_host']= self.ssm_param(f'{name}-ssm-dbreadhost',
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[*self.resources['instances']]),
+        ).resources
+        self.resources['ssm_param_read_host'] = self.ssm_param(
+            f'{name}-ssm-dbreadhost',
             f'/{self.project.project}/{self.project.stack}/db-read-host',
-            self.resources['nlb']['nlb'].dns_name.apply(
-                lambda dns_name: dns_name))
+            self.resources['nlb']['nlb'].dns_name.apply(lambda dns_name: dns_name),
+        )
 
     def ssm_param(self, name, param_name, value):
-        '''Build an SSM Parameter.'''
-        return aws.ssm.Parameter(name,
-            name=param_name,
-            type=aws.ssm.ParameterType.STRING,
-            value=value)
+        """Build an SSM Parameter."""
+        return aws.ssm.Parameter(name, name=param_name, type=aws.ssm.ParameterType.STRING, value=value)
