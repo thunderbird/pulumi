@@ -107,17 +107,6 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         arp['Statement'][0]['Principal']['Service'] = 'ecs-tasks.amazonaws.com'
         arp = json.dumps(arp)
 
-        # Create an IAM role for tasks to run as
-        self.resources['task_role'] = aws.iam.Role(
-            f'{name}-taskrole',
-            name=name,
-            description=f'Task execution role for {self.project.name_prefix}',
-            assume_role_policy=arp,
-            managed_policy_arns=['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'],
-            tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self),
-        )
-
         # IAM policy for shipping logs
         doc = self.resources['log_group'].arn.apply(
             lambda arn: json.dumps(
@@ -186,25 +175,20 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(parent=self),
         )
 
-        # Attach permissions to the role
-        self.resources['role_attachments'] = [
-            aws.iam.PolicyAttachment(
-                f'{name}-atch-policy-exec',
-                policy_arn=self.resources['policy_exec'].arn,
-                roles=[self.resources['task_role'].name],
-                opts=pulumi.ResourceOptions(
-                    parent=self, depends_on=[self.resources['task_role'], self.resources['policy_exec']]
-                ),
-            ),
-            aws.iam.PolicyAttachment(
-                f'{name}-atch-policy-logs',
-                policy_arn=self.resources['policy_log_sending'].arn,
-                roles=[self.resources['task_role'].name],
-                opts=pulumi.ResourceOptions(
-                    parent=self, depends_on=[self.resources['task_role'], self.resources['policy_log_sending']]
-                ),
-            ),
-        ]
+        # Create an IAM role for tasks to run as
+        self.resources['task_role'] = aws.iam.Role(
+            f'{name}-taskrole',
+            name=name,
+            description=f'Task execution role for {self.project.name_prefix}',
+            assume_role_policy=arp,
+            managed_policy_arns=[
+                'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
+                self.resources['policy_log_sending'],
+                self.resources['policy_exec'],
+            ],
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self),
+        )
 
         # Fargate Cluster
         self.resources['cluster'] = aws.ecs.Cluster(
