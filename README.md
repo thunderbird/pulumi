@@ -4,8 +4,8 @@ Common Pulumi elements for use in Thunderbird infrastructure development.
 
 ## Usage
 
-Typically, you want to implement the classes defined in these modules which extend the
-`ThunderbirdComponentResource` class. These represent common infrastructural patterns which you can
+Typically, you want to implement the classes defined in this module to define infrastructure
+resources to support your application. These represent common infrastructural patterns which you can
 customize to some degree.
 
 See the [Documentation](#documentation) section below for details on how to include this in your
@@ -58,7 +58,7 @@ what is set as your default for AWSCLI, be sure to `export AWS_REGION=us-east-1`
 you may need to do to override that.
 
 ```sh
-cd pulumi
+cd /path/to/pulumi/code
 pulumi login s3://$S3_BUCKET_NAME
 pulumi new aws-python
 ```
@@ -68,29 +68,18 @@ Follow the prompts to get everything named.
 
 ### Set up this module
 
-Add this repo as a submodule to your application's repo. The `-b` argument is optional, though you
-can use this to ensure your code is locked to a specific version of this module. Note that git only
-accepts branch names, and you cannot use things like tags or commit hashes for this function.
+Ensure your pulumi code directory contains a `requirements.txt` file with at least this repo listed:
 
-```sh
-# Run from the root directory of the repo
-git submodule add -b $BRANCH_NAME git@github.com:thunderbird/pulumi.git tb_pulumi
+```
+git+https://github.com/thunderbird/pulumi.git
 ```
 
-Create symlinks to the `tb_pulumi` module and its pip requirements:
-
-```sh
-cd pulumi
-ln -s ../tb_pulumi/tb_pulumi ./tb_pulumi
-ln -s ../tb_pulumi/requirements.txt ./requirements.txt
-```
-
-Commit these symlinks to your repo.
+You can pin your code to a specific version of this module by appending `@branch_name` to that.
 
 Pulumi will need these requirements installed. On your first run of a `pulumi preview` command (or
 some others), Pulumi will attempt to set up its working environment. If this fails, or you need to
-make adjustments later, you can assume Pulumi's virtual environment to perform pip changes. Assuming
-Pulumi's virtual environment lives at `venv`, run:
+make adjustments later, you can activate Pulumi's virtual environment to perform pip changes.
+Assuming Pulumi's virtual environment lives at `venv`, run:
 
 ```sh
 ./venv/bin/pip install -U -r requirements.txt
@@ -112,11 +101,9 @@ from tb_pulumi import (ec2, fargate, secrets)
 
 When you issue `pulumi` commands (like "up" and "preview" and so on), it looks for a `__main__.py`
 file in your current directory and executes the code in that file. To use this module, you'll import
-it into that file and complete a few steps, namely:
+it into that file and write up some code and configuration files. As a quickstart, you can copy
+`__main__.py.example` and `config.stack.yaml.example` into your repo and begin to tweak them.
 
- - Create a config file for your stack
- - Define a `ThunderbirdPulumiProject`
- - Declare some `ThunderbirdComponentResource`s
 
 #### Create a config file
 
@@ -141,7 +128,7 @@ but some conventions are recommended. Namely:
 
 #### Define a ThunderbirdPulumiProject
 
-In your `__main__.py` file, start with a simple skeleton:
+In your `__main__.py` file, start with a simple skeleton (or use `__main__.py.example` to start):
 
 ```python
 import tb_pulumi
@@ -165,55 +152,31 @@ by passing config options into the constructors for these classes.
 
 #### A brief example
 
-Consider a situation where we want to configure a VPC with two subnets in two different AZs. We
-might write a config file for our staging environment (`config.staging.yaml`) like so:
+You should be able to run through these steps to get a very simple working example:
 
-```yaml
----
-resources:
-  tb:network:MultiCidrVpc:
-    my_vpc:
-      cidr_block: 10.0.0.0/16
-      subnets:
-        us-east-1a:
-          - 10.0.100.0/24
-        us-east-1b:
-          - 10.0.101.0/24
-```
+  - Set up a pulumi project and a stack called "foobar".
+  - `cp __main__.py.example /my/project/__main__.py`
+  - `cp config.stack.yaml.example /my/project/config.foobar.yaml`
+  - Tweak the config as you see fit
 
-The full `__main__.py` file might look like this (perhaps with less commentary):
-
-```python
-import tb_pulumi  # Import the core library
-import tb_pulumi.network  # Import the network module
-
-project = tb_pulumi.ThunderbirdPulumiProject()  # Set up the project
-resources = project.config.get('resources', {}) # Put resources into a convenience variable
-my_vpc_opts = resources['tb:network:MultiCidrVpc']['my_vpc']  # Extract the data we care about
-my_vpc = tb_pulumi.network.MultiCidrVpc(  # Build a MultiCidrVpc
-    f'{project.name_prefix}-vpc',  # For consistent naming of resources, use project.name_prefix
-    project,  # Tell the component resource what project it belongs to
-    **my_vpc_opts)  # Unpack the configuration directly into the function call
-```
-
-A `pulumi up` would list out several resources to be built:
+A `pulumi preview` should list out a few resources to be built. Depending on how you've configured
+things, this could include:
 
   - A VPC
   - A subnet for each of the two CIDRs defined
-  - Route table/subnet associations
-  - An Internet gateway
-  - A NAT gateway
-
-Alterations can be made in the YAML file.
+  - Internet or NAT Gateways
+  - Routes
 
 
 ## Documentation
 <a name="documentation"></a>
 
 Documentation for this module is currently maintained through this readme and the commentary in the
-code. If you like, you can browse that commentary using pydoc. `cd` into this repo and run:
+code. If you like, you can browse that commentary using pydoc:
 
 ```sh
+virtualenv .venv
+pip install -r requirements.txt
 python -m pydoc -p 8080 .
 ```
 
