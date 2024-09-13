@@ -11,9 +11,11 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         cidr_block: str = '10.0.0.0/16',
+        egress_via_internet_gateway: bool = False,
+        egress_via_nat_gateway: bool = False,
         enable_dns_hostnames: bool = None,
-        enable_internet_gateway: bool = True,
-        enable_nat_gateway: bool = True,
+        enable_internet_gateway: bool = False,
+        enable_nat_gateway: bool = False,
         endpoint_gateways: list[str] = [],
         endpoint_interfaces: list[str] = [],
         subnets: dict = {},
@@ -28,6 +30,12 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
 
         Keyword arguments:
             - cidr_block: A CIDR describing the IP space of this VPC.
+            - egress_via_internet_gateway: When True, establish an outbound route to the Internet
+                via the Internet Gateway. Requires `enable_internet_gateway=True`. Conflicts with
+                `egress_via_nat_gateway=True`.
+            - egress_via_nat_gateway: When True, establish an outbound route to the Internet via
+                the NAT Gateway. Requires `enable_nat_gateway=True`. Conflicts with
+                `egress_via_internet_gateway=True`.
             - enable_dns_hostnames: When True, internal DNS mappings get built for IPs assigned
                 within the VPC. This is required for the use of certain other services like
                 load-balanced Fargate clusters.
@@ -107,15 +115,16 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 tags=ig_tags,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=self.resources['vpc']),
             )
-            self.resources['subnet_ig_route'] = aws.ec2.Route(
-                f'{name}-igroute',
-                route_table_id=self.resources['vpc'].default_route_table_id,
-                destination_cidr_block='0.0.0.0/0',
-                gateway_id=self.resources['internet_gateway'].id,
-                opts=pulumi.ResourceOptions(
-                    parent=self, depends_on=[self.resources['vpc'], self.resources['internet_gateway']]
-                ),
-            )
+            if egress_via_internet_gateway:
+                self.resources['subnet_ig_route'] = aws.ec2.Route(
+                    f'{name}-igroute',
+                    route_table_id=self.resources['vpc'].default_route_table_id,
+                    destination_cidr_block='0.0.0.0/0',
+                    gateway_id=self.resources['internet_gateway'].id,
+                    opts=pulumi.ResourceOptions(
+                        parent=self, depends_on=[self.resources['vpc'], self.resources['internet_gateway']]
+                    ),
+                )
 
         if enable_nat_gateway:
             self.resources['nat_eip'] = aws.ec2.Eip(
@@ -134,6 +143,17 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 tags=ng_tags,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=self.resources['nat_eip']),
             )
+            if egress_via_nat_gateway:
+                self.resources['subnet_ng_route'] = aws.ec2.Route(
+                    f'{name}-ngroute',
+                    route_table_id=self.resources['vpc'].default_route_table_id,
+                    destination_cidr_block='0.0.0.0/0',
+                    gateway_id=self.resources['nat_gateway'].id,
+                    opts=pulumi.ResourceOptions(
+                        parent=self, depends_on=[self.resources['vpc'], self.resources['nat_gateway']]
+                    ),
+                )
+
 
         # If we have to build endpoints, we have to have a security group to let local traffic in
         if len(endpoint_interfaces + endpoint_gateways) > 0:
