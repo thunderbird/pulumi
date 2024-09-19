@@ -1,6 +1,7 @@
 #!/bin/env python3
 
 import tb_pulumi
+import tb_pulumi.network
 
 
 # Create a project to aggregate resources. This will allow consistent tagging, resource protection,
