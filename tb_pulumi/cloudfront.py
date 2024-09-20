@@ -4,8 +4,6 @@ import tb_pulumi
 
 """TODO:
 
-  - S3 bucket for static assets
-    - tb-send-suite-staging-frontend
   - S3 bucket for CloudFront logs
     - tb-send-suite-staging-frontend-logs
     - With object-level ACLs on
@@ -53,5 +51,26 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             server_side_encryption_configuration={
                 'rule': {'applyServerSideEncryptionByDefault': {'sseAlgorithm': 'AES256'}, 'bucket_key_enabled': True}
             },
-            tags=self.tags
+            opts=pulumi.ResourceOptions(parent=self),
+            tags=self.tags,
         )
+
+        # S3 bucket to store access logs from CloudFront
+        self.resources['logging_bucket'] = aws.s3.Bucket(
+            f'{name}-loggingbucket',
+            bucket=f'{service_bucket_name}-logs',
+            server_side_encryption_configuration={
+                'rule': {'applyServerSideEncryptionByDefault': {'sseAlgorithm': 'AES256'}, 'bucket_key_enabled': True}
+            },
+            opts=pulumi.ResourceOptions(parent=self, ignore_changes=['acl', 'grants']),
+            tags=self.tags,
+        )
+
+        self.resources['logging_bucket_ownership'] = aws.s3.BucketOwnershipControls(
+            f'{name}-bucketownership',
+            bucket=self.resources['logging_bucket'].id,
+            rule={'object_ownership': 'BucketOwnerPreferred'},
+            opts=pulumi.ResourceOptions(parent=self,),
+        )
+
+        self.finish()
