@@ -191,7 +191,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
                 ThunderbirdComponentResource superconstructor.
         """
 
-        super().__init__('tb:ec2:SshableInstance', name, project, opts=opts, **kwargs)
+        super().__init__('tb:ec2:SshableInstance', name=name, project=project, opts=opts, **kwargs)
 
         self.resources['keypair'] = SshKeyPair(f'{name}-keypair', project, public_key=public_key).resources
 
