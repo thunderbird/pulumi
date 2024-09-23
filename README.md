@@ -1,6 +1,134 @@
 # pulumi
 
-Common Pulumi elements for use in Thunderbird infrastructure development.
+Use pulumi to deploy infrastructure for Thunderbird projects.
+
+## Deploying your project
+
+
+### First-time setup
+
+
+#### Build and tag the image
+
+```
+docker build -f backend/Dockerfile -t assist --platform linux/amd64  ./backend
+docker tag assist:latest 768512802988.dkr.ecr.us-east-2.amazonaws.com/assist:prealpha-01
+```
+
+##### Note:
+Our account id is `768512802988` and you should use that as a prefix for `dkr.ecr.us-east-2.amazonaws.com`
+
+
+#### Create the ECR
+
+Log into the console and create the repo here (clicking the `Create repository` button): https://us-east-2.console.aws.amazon.com/ecr/private-registry/repositories?region=us-east-2
+
+This example uses the `us-east-2` region. Yours may be different.
+
+#### Create Access Key in AWS Console
+
+In AWS Console, go to menu in upper right and click "security credentials"
+
+Create an Access Key. Save the Key ID and Secret to 1pass in the Services vault.
+
+#### Configure aws cli and grant docker credentials to upload to ECR
+
+```sh
+aws configure
+aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 768512802988.dkr.ecr.us-east-2.amazonaws.com
+```
+
+#### Push the image to ECR
+
+```sh
+docker push 768512802988.dkr.ecr.us-east-2.amazonaws.com/assist:prealpha-01
+```
+
+
+#### Install the `pulumi` command line tool.
+
+```sh
+curl -fsSL https://get.pulumi.com | sh
+```
+If using a shell other than bash/zsh, add `~/.pulumi/bin` to your `$PATH`
+
+
+#### Create an S3 bucket in the AWS console, using the most secure settings (which should be the default)
+- Make sure to name as follows: `tb-$PROJECT_NAME-pulumi`
+- Ensure your `AWS_REGION` env variable is set to the same as your S3 bucket.
+
+#### Create a new Pulumi project in your code repo.
+
+For example, for Assist:
+- `mkdir ~/Projects/assist/pulumi`
+- `cd ~/Projects/assist/pulumi`
+- `pulumi login s3://$S3_BUCKET_NAME`
+- `pulumi new aws-python`
+
+
+#### Copy the example `__main__.py` and `config.<stack>.yaml` files into your repo's `pulumi` directory.
+
+#### Customize the `__main__.py` and `config.<stack>.yaml` files to match your project.
+
+#### Create and add secrets to your Pulumi project.
+
+```sh
+pulumi config set --secret aws:accessKey $AWS_ACCESS_KEY_ID
+```
+
+
+
+Run `pulumi up` to put the secrets in AWS Secrets Manager
+Afterwards, get the ARNs for your secrets and put them in your `config.<stack>.yaml` file.
+
+Add references to the secrets in your `config.<stack>.yaml` file.
+
+```yaml
+tb:secrets:PulumiSecretsManager:
+  pulumi:
+    secret_names:
+      - fireworks-api-key
+      - fxa-client-id
+      - fxa-secret
+```
+
+Add mappings in the `task_definition` for your service under `tb:fargate:FargateClusterWithLogging`. Use the ARNs from the previous step.
+
+```yaml
+secrets:
+  - name: FIREWORKS_API_KEY
+    valueFrom: arn:aws:secretsmanager:us-east-2:768512802988:secret:assist/staging/fireworks-api-key-naLT3u
+  - name: FXA_CLIENT_ID
+    valueFrom: arn:aws:secretsmanager:us-east-2:768512802988:secret:assist/staging/fxa-client-id-E5L9m8
+  - name: FXA_CLIENT_SECRET
+    valueFrom: arn:aws:secretsmanager:us-east-2:768512802988:secret:assist/staging/fxa-secret-vLxi8v
+```
+
+
+### Subsequent deployments
+
+You will probably need to log in to ECR:
+```sh
+aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 768512802988.dkr.ecr.us-east-2.amazonaws.com
+```
+
+Once you are logged in, build, tag, and push the image to ECR:
+
+```sh
+docker build -f backend/Dockerfile -t assist --platform linux/amd64  ./backend
+docker tag assist:latest 768512802988.dkr.ecr.us-east-2.amazonaws.com/assist:prealpha-01
+docker push 768512802988.dkr.ecr.us-east-2.amazonaws.com/assist:prealpha-01
+```
+
+Finally, deploy your changes:
+
+```sh
+pulumi up
+```
+
+# Developing with Pulumi
+
+This repo contains Pulumi elements for use in Thunderbird infrastructure development.
 
 ## Usage
 
