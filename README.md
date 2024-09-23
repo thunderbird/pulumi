@@ -112,13 +112,16 @@ You will probably need to log in to ECR:
 aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 768512802988.dkr.ecr.us-east-2.amazonaws.com
 ```
 
-Once you are logged in, build, tag, and push the image to ECR:
+Once you are logged in, build, tag, and push the image to ECR.
 
+**Make sure to use a new tag for the image.**
 ```sh
 docker build -f backend/Dockerfile -t assist --platform linux/amd64  ./backend
 docker tag assist:latest 768512802988.dkr.ecr.us-east-2.amazonaws.com/assist:prealpha-01
 docker push 768512802988.dkr.ecr.us-east-2.amazonaws.com/assist:prealpha-01
 ```
+
+Update your `config.<stack>.yaml` file with the new image tag.
 
 Finally, deploy your changes:
 
