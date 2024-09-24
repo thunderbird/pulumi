@@ -154,7 +154,6 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                     ),
                 )
 
-
         # If we have to build endpoints, we have to have a security group to let local traffic in
         if len(endpoint_interfaces + endpoint_gateways) > 0:
             self.resources['endpoint_sg'] = tb_pulumi.network.SecurityGroupWithRules(
