@@ -1,3 +1,7 @@
+"""Infrastructural patterns related to
+`AWS CloudFront <https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html>`_.
+"""
+
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
@@ -9,7 +13,40 @@ ORIGIN_REQUEST_POLICY_ID_ALLVIEWER = '216adef6-5c7f-47e4-b989-5492eafa07d3'  # "
 
 
 class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
-    """Serve the static contents of an S3 bucket over a CloudFront Distribution."""
+    """Serve the static contents of an S3 bucket over a CloudFront Distribution.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param certificate_arn: The ARN of the ACM certificate used for TLS in this distribution.
+    :type certificate_arn: str
+
+    :param service_bucket_name: The name of the S3 bucket to store the static content in. This must be globally unique
+        within the entire S3 ecosystem.
+    :type service_bucket_name: str
+
+    :param behaviors: The default behavior of the CF distribution will always be to look in the S3 bucket. Any other
+        behaviors should be defined as an entry in this list. These should be `DistributionOrderedCacheBehavior
+        <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorderedcachebehavior>`_
+        objects. Defaults to [].
+    :type behaviors: list[dict], optional
+
+    :param distribution: Additional parameters to pass to the `aws.cloudfront.Distribution constructor
+        <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution>`_. Defaults to {}.
+    :type distribution: dict, optional
+
+    :param origins: List of `DistributionOrigin
+        <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorigin>`_ objects to
+        add. This list should not include any references to the S3 bucket, which is managed by this module. Defaults to
+        [].
+    :type origins: list[dict], optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+    """
 
     def __init__(
         self,
@@ -23,29 +60,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """Construct a CloudFrontS3Service.
-
-        Positional arguments:
-            - name: A string identifying this set of resources.
-            - project: The ThunderbirdPulumiProject to add these resources to.
-            - certificate_arn: The ARN of the ACM certificate used for TLS in this distribution.
-            - service_bucket_name: The name of the S3 bucket to store the static content in. This must be globally
-                unique within the entire S3 ecosystem.
-
-        Keyword arguments:
-            - behaviors: The default behavior of the CF distribution will always be to look in the S3 bucket. Any other
-                behaviors should be defined as an entry in this list. These should be DistributionOrderedCacheBehavior
-                objects. Ref: https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorderedcachebehavior
-            - distribution: Additional parameters to pass to the `aws.cloudfront.Distribution` constructor. Ref:
-                https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution
-            - origins: List of DistributionOrigin objects to add. This list should not include any references to the S3
-                bucket, which is managed by this module. Ref:
-                https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorigin
-            - opts: Additional pulumi.ResourceOptions to apply to these resources.
-            - kwargs: Any other keyword arguments which will be passed as inputs to the
-                `tb_pulumi.ThunderbirdComponentResource` constructor.
-        """
-
         super().__init__('tb:cloudfront:CloudFrontS3Service', name=name, project=project, opts=opts)
 
         # The function supports supplying the bucket policy at this time, but we have to have the CF distro built first.

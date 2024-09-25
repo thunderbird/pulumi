@@ -1,3 +1,7 @@
+docs/_build
+docs/_doctrees
+docs/_static
+docs/_templates
 *.pyc
 __pycache__
 venv/

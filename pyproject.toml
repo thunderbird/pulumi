@@ -12,6 +12,14 @@ issues = "https://github.com/thunderbird/pulumi/issues"
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
 
+[project.optional-dependencies]
+dev = [
+    "furo",
+    "insegel",
+    "ruff",
+    "sphinx"
+]
+
 # Ruff
 [tool.ruff]
 line-length = 120

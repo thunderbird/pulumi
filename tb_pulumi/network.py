@@ -1,10 +1,69 @@
+"""Infrastructural patterns related to networking."""
+
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
 
 
 class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
-    """Builds a VPC with configurable network space."""
+    """Builds a VPC with configurable network space.
+
+        :param name: A string identifying this set of resources.
+        :type name: str
+
+        :param project: The ThunderbirdPulumiProject to add these resources to.
+        :type project: tb_pulumi.ThunderbirdPulumiProject
+
+        :param cidr_block: A CIDR describing the IP space of this VPC. Defaults to '10.0.0.0/16'.
+        :type cidr_block: str, optional
+
+        :param egress_via_internet_gateway: When True, establish an outbound route to the Internet via the Internet
+            Gateway. Requires ``enable_internet_gateway=True``. Conflicts with ``egress_via_nat_gateway=True``.
+            Defaults to False.
+        :type egress_via_internet_gateway: bool, optional
+
+        :param egress_via_nat_gateway: When True, establish an outbound route to the Internet via the NAT Gateway.
+            Requires ``enable_nat_gateway=True``. Conflicts with ``egress_via_internet_gateway=True``. Defaults to
+            False.
+        :type egress_via_nat_gateway: bool, optional
+
+        :param enable_dns_hostnames: When True, internal DNS mappings get built for IPs assigned within the VPC. This is
+            required for the use of certain other services like load-balanced Fargate clusters. Defaults to None.
+        :type enable_dns_hostnames: bool, optional
+
+        :param enable_internet_gateway: Build an IGW will to allow traffic outbond to the Internet. Defaults to False.
+        :type enable_internet_gateway: bool, optional
+
+        :param enable_nat_gateway: Build a NAT Gateway to route inbound traffic. Defaults to False.
+        :type enable_nat_gateway: bool, optional
+
+        :param endpoint_gateways: List of public-facing AWS services (such as S3) to create VPC gateways to. Defaults to
+            [].
+        :type endpoint_gateways: list[str], optional
+
+        :param endpoint_interfaces: List of AWS services to create VPC Interface endpoints for. These must match service
+            names listed `here
+            <https://docs.aws.amazon.com/vpc/latest/privatelink/aws-services-privatelink-support.html>`_ **Do not** list
+            the full qualifying name, only the service name portion. f/ex, do not use
+            ``com.amazonaws.us-east-1.secretsmanager``, only use ``secretsmanager``. Defaults to [].
+        :type endpoint_interfaces: list[str], optional
+
+        :param subnets: A dict where the keys are the names of AWS Availability Zones in which to build subnets and the
+            values are lists of CIDRs describing valid subsets of IPs in the VPC ``cidr_block`` to build in that AZ.
+            f/ex:
+            ::
+                { 'us-east-1': ['10.0.100.0/24'],
+                  'us-east-2': ['10.0.101.0/24', '10.0.102.0/24'] }
+
+            Defaults to {}.
+        :type subnets: dict, optional
+
+        :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+        :type opts: pulumi.ResourceOptions, optional
+
+        :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+            superconstructor.
+    """
 
     def __init__(
         self,
@@ -22,44 +81,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """Construct a MultiCidrVpc resource.
-
-        Positional arguments:
-            - name: A string identifying this set of resources.
-            - project: The ThunderbirdPulumiProject to add these resources to.
-
-        Keyword arguments:
-            - cidr_block: A CIDR describing the IP space of this VPC.
-            - egress_via_internet_gateway: When True, establish an outbound route to the Internet
-                via the Internet Gateway. Requires `enable_internet_gateway=True`. Conflicts with
-                `egress_via_nat_gateway=True`.
-            - egress_via_nat_gateway: When True, establish an outbound route to the Internet via
-                the NAT Gateway. Requires `enable_nat_gateway=True`. Conflicts with
-                `egress_via_internet_gateway=True`.
-            - enable_dns_hostnames: When True, internal DNS mappings get built for IPs assigned
-                within the VPC. This is required for the use of certain other services like
-                load-balanced Fargate clusters.
-            - enable_internet_gateway: Build an IGW will to allow traffic outbond to the Internet.
-            - enable_nat_gateway: Build a NAT Gateway to route inbound traffic.
-            - endpoint_gateways: List of public-facing AWS services (such as S3) to create VPC
-                gateways to.
-            - endpoint_interfaces: List of AWS services to create VPC Interface endpoints for. These
-                must match service names listed here:
-                https://docs.aws.amazon.com/vpc/latest/privatelink/aws-services-privatelink-support.html)
-                **Do not** list the full qualifying name, only the service name portion. f/ex, do
-                not use "com.amazonaws.us-east-1.secretsmanager", only use "secretsmanager".
-            - subnets: A dict where the keys are the names of AWS Availability Zones in which to
-                build subnets and the values are lists of CIDRs describing valid subsets of IPs in
-                the VPC `cidr_block` to build in that AZ. f/ex:
-
-                {
-                    'us-east-1': ['10.0.100.0/24'],
-                    'us-east-2': ['10.0.101.0/24', '10.0.102.0/24']
-                }
-
-            - opts: Additional pulumi.ResourceOptions to apply to these resources.
-            - kwargs: Any other keyword arguments which will be passed as inputs to the
-                ThunderbirdComponentResource superconstructor.
+        """
         """
 
         super().__init__('tb:network:MultiCidrVpc', name, project, opts=opts, **kwargs)
@@ -222,7 +244,39 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
 
 
 class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
-    """Builds a security group and sets rules for it."""
+    """Builds a security group and sets rules for it.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param rules: A dict describing in/egress rules of the following construction:
+        ::
+            {
+                'ingress': [{
+                    # Valid inputs to the SecurityGroupRule resource go here. Ref:
+                    # https://www.pulumi.com/registry/packages/aws/api-docs/ec2/securitygrouprule/#inputs
+                }],
+                'egress': [{
+                    # The same inputs are valid here
+                }]
+            }
+
+        Defaults to {}.
+    :type rules: dict, optional
+
+    :param vpc_id: ID of the VPC this security group should belong to. When not set, defaults to the region's default
+        VPC. Defaults to None.
+    :type vpc_id: str, optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+        superconstructor.
+    """
 
     def __init__(
         self,
@@ -233,30 +287,7 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """Construct a SecurityGroupWithRules resource.
-
-        Positional arguments:
-            - name: A string identifying this set of resources.
-            - project: The ThunderbirdPulumiProject to add these resources to.
-
-        Keyword arguments:
-            - rules: A dict describing in/egress rules of the following construction:
-
-                {
-                    'ingress': [{
-                        # Valid inputs to the SecurityGroupRule resource go here. Ref:
-                        # https://www.pulumi.com/registry/packages/aws/api-docs/ec2/securitygrouprule/#inputs
-                    }],
-                    'egress': [{
-                        # The same inputs are valid here
-                    }]
-                }
-
-            - vpc_id: ID of the VPC this security group should belong to. When not set, defaults to
-                the region's default VPC.
-            - opts: Additional pulumi.ResourceOptions to apply to these resources.
-            - kwargs: Any other keyword arguments which will be passed as inputs to the
-                ThunderbirdComponentResource superconstructor.
+        """
         """
 
         super().__init__('tb:network:SecurityGroupWithRules', name, project, opts=opts, **kwargs)
