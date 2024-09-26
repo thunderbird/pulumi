@@ -12,4 +12,5 @@ infrastructure as code tool.
    :caption: Contents:
 
    ./getting-started
+   ./patterns
    ./modules

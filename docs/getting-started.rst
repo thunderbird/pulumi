@@ -233,6 +233,10 @@ So you want to develop a new pattern to stamp out? Here's what you'll need to do
 Troubleshooting
 ---------------
 
+
+Pythonic problems
+^^^^^^^^^^^^^^^^^
+
 This Pulumi code is developed against Python 3.12 or later. If this is not your default version, you'll need to manage
 your own virtual environment.
 
@@ -251,3 +255,12 @@ the virtual environment yourself with something like this:
 
 After this, ``pulumi`` commands should work. If 3.12 is your default version of Python, Pulumi should set up its own
 virtualenv, and you should not have to do this.
+
+
+Shells other than Bash
+^^^^^^^^^^^^^^^^^^^^^^
+
+Setup instructions in these docs are designed for use with the Bourne Again SHell (Bash). Pulumi also seems to make some
+assumptions like this when it installs itself. Pulumi will install itself into a hidden folder in your home directory:
+``~/.pulumi/bin``. You may need to add this to your ``$PATH`` to avoid having to make the explicit reference with every
+``pulumi`` command.

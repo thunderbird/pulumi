@@ -14,46 +14,45 @@ AMAZON_LINUX_AMI = 'ami-0427090fd1714168b' #: AMI for Amazon Linux
 
 
 class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
-    """Construct a NetworkLoadBalancer to route TCP traffic to a collection of backends. This
-        targets backend services by IP address, connecting a frontend listening port to a
-        backend port on the round-robin load balanced targets.
+    """Construct a NetworkLoadBalancer to route TCP traffic to a collection of backends. This targets backend services
+    by IP address, connecting a frontend listening port to a backend port on the round-robin load balanced targets.
 
-        :param name: A string identifying this set of resources.
-        :type name: str
+    :param name: A string identifying this set of resources.
+    :type name: str
 
-        :param project: The ThunderbirdPulumiProject to add these resources to.
-        :type project: tb_pulumi.ThunderbirdPulumiProject
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
 
-        :param listener_port: The port that the load balancer should accept traffic on.
-        :type listener_port: int
+    :param listener_port: The port that the load balancer should accept traffic on.
+    :type listener_port: int
 
-        :param subnets: List of subnet resource outputs. The NLB will be built in these network spaces, and in the VPC
-            of the first subnet listed. All subnets must reside in the same VPC.
-        :type subnets: list[str]
+    :param subnets: List of subnet resource outputs. The NLB will be built in these network spaces, and in the VPC
+        of the first subnet listed. All subnets must reside in the same VPC.
+    :type subnets: list[str]
 
-        :param target_port: The port to route to on the backends.
-        :type target_port: int
+    :param target_port: The port to route to on the backends.
+    :type target_port: int
 
-        :param ingress_cidrs: List of CIDR blocks to allow ingress to the NLB from. If not provided, traffic to the
-            listener_port will be allowed from anywhere. Defaults to None.
-        :type ingress_cidrs: list[str], optional
+    :param ingress_cidrs: List of CIDR blocks to allow ingress to the NLB from. If not provided, traffic to the
+        listener_port will be allowed from anywhere. Defaults to None.
+    :type ingress_cidrs: list[str], optional
 
-        :param internal: When True (default), ingress is restricted to traffic sourced within the VPC. When False, the
-            NLB gets a public IP to listen on. Defaults to True.
-        :type internal: bool, optional
+    :param internal: When True (default), ingress is restricted to traffic sourced within the VPC. When False, the
+        NLB gets a public IP to listen on. Defaults to True.
+    :type internal: bool, optional
 
-        :param ips: List of IP addresses to balance load between. Defaults to [].
-        :type ips: list[str], optional
+    :param ips: List of IP addresses to balance load between. Defaults to [].
+    :type ips: list[str], optional
 
-        :param security_group_description: Text to use for the security group's description field. Defaults to None.
-        :type security_group_description: str, optional
+    :param security_group_description: Text to use for the security group's description field. Defaults to None.
+    :type security_group_description: str, optional
 
-        :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
-        :type opts: pulumi.ResourceOptions, optional
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
 
-        :param kwargs: Any other keyword arguments which will be passed as inputs to the LoadBalancer resource. A full
-            listing of options is found `here
-            <https://www.pulumi.com/registry/packages/aws/api-docs/alb/loadbalancer/#inputs>`_.
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the LoadBalancer resource. A full
+        listing of options is found `here
+        <https://www.pulumi.com/registry/packages/aws/api-docs/alb/loadbalancer/#inputs>`_.
     """
 
 
