@@ -31,7 +31,7 @@ The `Troubleshooting`_ section has some details on how to work through some issu
 Quickstart
 ----------
 
-After ensuring you meet the above prerequisites, run the `quickstart.sh` script, adjusting the following command to
+After ensuring you meet the above prerequisites, run the ``quickstart.sh`` script, adjusting the following command to
 refer to your particular project details:
 ::
 
@@ -51,7 +51,7 @@ This will...
 The output should look something like this:
 ::
 
-  Previewing update (staging):
+  Previewing update (mystack):
        Type                              Name                                 Plan
    +   pulumi:pulumi:Stack               myproject-mystack                    create
    +   ├─ tb:network:MultiCidrVpc        myproject-mystack-vpc                create
@@ -143,10 +143,10 @@ Create a config file
 
 It is assumed that a config file will exist at ``config.$STACK.yaml`` where ``$STACK`` is the currently selected Pulumi
 stack. This file must contain a mapping of names of config settings to their desired values. Currently, only one such
-setting is recognized. That is ``resources``.
+setting is formally recognized. That is ``resources``.
 
-This is a mostly arbitary mapping that you will have to interpret on your own (more on that later), but some conventions
-are recommended. Namely:
+This is a mostly arbitary mapping that you will have to interpret on your own. This allows for flexibility, but we
+recommend some conventions here. Namely:
 
 * ``resources`` should be a mapping where the keys are the Pulumi type-strings for the resources they are configuring.
   For example, if you want to build a VPC with several subnets, you might use the ``tb_pulumi.network.MultiCidrVpc``
@@ -180,25 +180,8 @@ infrastructure projects, the resources available in this module all extend a cus
 ``ThunderbirdComponentResource``. If you have followed the conventions outlined so far, it should be easy to stamp out
 common patterns with them by passing config options into the constructors for these classes.
 
-
-A brief example
-"""""""""""""""
-
-You should be able to run through these steps to get a very simple working example:
-
-* Set up a pulumi project and a stack called ``foobar``.
-* ``cp __main__.py.example /my/project/__main__.py``
-* ``cp config.stack.yaml.example /my/project/config.foobar.yaml``
-* Tweak the config as you see fit
-
-A ``pulumi preview`` should list out a few resources to be built. Depending on how you've configured things, this could
-include:
-
-* A VPC
-* A subnet for each of the two CIDRs defined
-* Internet or NAT Gateways
-* Routes
-
+.. note::
+   The `Quickstart`_ section provides a working minimal example of code that follows these patterns.
 
 Implementing ThunderbirdComponentResources
 """"""""""""""""""""""""""""""""""""""""""

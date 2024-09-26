@@ -28,7 +28,8 @@ Project patterns
 The idea is to reduce most infrastructural changes to YAML file tweaks, requiring no code inspection or debugging for
 most changes. Python gives us the ``**kwargs`` method of using ``dict`` types to supply arguments to function calls. The
 :py:class:`tb_pulumi.ThunderbirdPulumiProject` class gives us access to these YAML files' contents as a ``dict``.
-This enables a simple pattern of reading the config and arbitrarily passing its contents into these modules.
+This enables a simple pattern of reading the config and arbitrarily passing its contents into these classes'
+constructors.
 
 .. note::
    It may be best to review the sample `configuration
