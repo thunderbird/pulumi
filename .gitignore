@@ -1,7 +1,9 @@
+build
 docs/_build
 docs/_doctrees
 docs/_static
 docs/_templates
+*.egg-info
 *.pyc
 __pycache__
 venv/

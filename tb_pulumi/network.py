@@ -52,6 +52,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
             values are lists of CIDRs describing valid subsets of IPs in the VPC ``cidr_block`` to build in that AZ.
             f/ex:
             ::
+
                 { 'us-east-1': ['10.0.100.0/24'],
                   'us-east-2': ['10.0.101.0/24', '10.0.102.0/24'] }
 
@@ -254,6 +255,7 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
 
     :param rules: A dict describing in/egress rules of the following construction:
         ::
+
             {
                 'ingress': [{
                     # Valid inputs to the SecurityGroupRule resource go here. Ref:
