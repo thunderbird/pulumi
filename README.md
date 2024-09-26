@@ -18,3 +18,5 @@ cd docs
 make clean html
 firefox _build/html/index.html
 ```
+
+If you prefer a dark theme, ``export TBPULUMI_DARK_MODE=yes`` before running ``make clean html``.
