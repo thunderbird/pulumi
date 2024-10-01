@@ -118,7 +118,8 @@ activate Pulumi's virtual environment to perform pip changes. Assuming Pulumi's 
 run:
 ::
 
-  ./venv/bin/pip install -U -r requirements.txt
+  source ./venv/bin/activate
+  pip install -U -r requirements.txt
 
 You can now develop Python Pulumi code in that directory, referring to this module with imports such as these:
 ::
