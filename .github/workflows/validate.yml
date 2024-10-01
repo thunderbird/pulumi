@@ -38,6 +38,8 @@ jobs:
 
   # This job detects what version is listed in pyproject.toml and determines if a branch exists for that version yet.
   detect-versions:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.lint == 'true'
     runs-on: ubuntu-latest
     outputs:
       branch-exists: ${{ steps.branch-exists.outputs.exists }}
