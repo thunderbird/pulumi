@@ -90,7 +90,6 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-
         super().__init__('tb:secrets:PulumiSecretsManager', name, project, opts=opts, **kwargs)
         self.resources['secrets'] = []
         self.resources['versions'] = []

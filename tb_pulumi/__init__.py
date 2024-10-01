@@ -23,14 +23,14 @@ class ThunderbirdPulumiProject:
 
     def __init__(self, protected_stacks: list[str] = DEFAULT_PROTECTED_STACKS):
         # General runtime data
-        self.project: str = pulumi.get_project() #: Name of the Pulumi project
-        self.stack: str = pulumi.get_stack() #: Name of the Pulumi stack
-        self.name_prefix: str = f'{self.project}-{self.stack}' #: Convenience prefix for naming resources consistently
+        self.project: str = pulumi.get_project()  #: Name of the Pulumi project
+        self.stack: str = pulumi.get_stack()  #: Name of the Pulumi stack
+        self.name_prefix: str = f'{self.project}-{self.stack}'  #: Convenience prefix for naming resources consistently
         self.protected_stacks: list[str] = protected_stacks
         #: Pulumi configuration data referencing Pulumi.stack.yaml
         self.pulumi_config: pulumi.config.Config = pulumi.Config()
-        self.resources: dict = {} #: Pulumi Resource objects managed by this project
-        self.common_tags: dict = { #: Tags to apply to all taggable resources
+        self.resources: dict = {}  #: Pulumi Resource objects managed by this project
+        self.common_tags: dict = {  #: Tags to apply to all taggable resources
             'project': self.project,
             'pulumi_last_run_by': f'{getlogin()}@{gethostname()}',
             'pulumi_project': self.project,
@@ -101,8 +101,8 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
     ):
-        self.name: str = name #: Identifier for this set of resources.
-        self.project: ThunderbirdPulumiProject = project #: Project this resource is a member of.
+        self.name: str = name  #: Identifier for this set of resources.
+        self.project: ThunderbirdPulumiProject = project  #: Project this resource is a member of.
 
         if self.protect_resources:
             pulumi.info(
@@ -115,10 +115,10 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
         final_opts = default_opts.merge(opts)
         super().__init__(t=pulumi_type, name=name, opts=final_opts)
 
-        self.tags: dict = self.project.common_tags.copy() #: Tags to apply to all taggable resources
+        self.tags: dict = self.project.common_tags.copy()  #: Tags to apply to all taggable resources
         self.tags.update(tags)
 
-        self.resources: dict = {} #: Resources which are members of this ComponentResource.
+        self.resources: dict = {}  #: Resources which are members of this ComponentResource.
 
     def finish(self):
         """Registers outputs based on the contents of `self.resources` and adds those resources to

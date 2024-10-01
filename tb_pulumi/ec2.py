@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 
-AMAZON_LINUX_AMI = 'ami-0427090fd1714168b' #: AMI for Amazon Linux
+AMAZON_LINUX_AMI = 'ami-0427090fd1714168b'  #: AMI for Amazon Linux
 
 
 class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
@@ -54,7 +54,6 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         listing of options is found `here
         <https://www.pulumi.com/registry/packages/aws/api-docs/alb/loadbalancer/#inputs>`_.
     """
-
 
     def __init__(
         self,
@@ -370,7 +369,7 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
         self.finish()
 
 
-def generate_ssh_keypair(key_size: int=4096) -> (str, str):
+def generate_ssh_keypair(key_size: int = 4096) -> (str, str):
     """Returns plaintext representations of a private and public RSA key for use in SSH authentication.
 
     :param key_size: Byte length of the private key. Defaults to 4096.
