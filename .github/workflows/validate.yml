@@ -1,0 +1,97 @@
+---
+# These jobs are run anytime a PR is opened against the main branch. In brief, to get a PR merged, you must:
+#   - Update the version number in pyproject.toml
+#   - Not have any linting issues (run `ruff format`)
+
+name: validate
+
+concurrency:
+  group: validate
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+
+  # This job detects which parts of the repo have been changed, setting future jobs up for conditional behavior.
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      lint: ${{ steps.check.outputs.lint }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: check
+        with:
+          filters: |
+            lint:
+              - 'tb_pulumi/**'
+              - 'pyproject.toml'
+
+  # This job detects what version is listed in pyproject.toml and determines if a branch exists for that version yet.
+  detect-versions:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.lint == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      branch-exists: ${{ steps.branch-exists.outputs.exists }}
+      version: v${{ steps.version.outputs.value }}
+    steps:
+      # Detect version from pyproject.toml
+      - uses: actions/checkout@v4
+      - uses: SebRollen/toml-action@v1.2.0
+        id: version
+        with:
+          file: './pyproject.toml'
+          field: project.version
+      - uses: GuillaumeFalourd/branch-exists@v1
+        id: branch-exists
+        with:
+          branch: v${{ steps.version.outputs.value }}
+
+  # Fail on version collision. Every change to code requires an update to the version number.
+  version-collision:
+    needs: detect-versions
+    runs-on: ubuntu-latest
+    if: needs.detect-versions.outputs.branch-exists == 'true'
+    steps:
+      - name: "Error: version collision"
+        run: exit 1
+
+  # Run Ruff, our linter, against tb_pulumi. Fail if files are not formatted properly.
+  lint:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.lint == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Quick lint with Ruff
+        uses: chartboost/ruff-action@v1
+        with:
+          src: './tb_pulumi'
+          args: 'format --check'
+
+  # If the PR gets merged (which implies the branch does not exist), cut a new version branch.
+  merge:
+    needs: detect-versions
+    if: github.event.pull_request.merged == true && needs.detect-versions.outputs.branch-exists == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create a new version branch
+        uses: peterjgrainger/action-create-branch@v2.2.0
+        with:
+          branch: ${{ needs.detect-versions.outputs.version }}
+          sha: ${GITHUB_SHA}
