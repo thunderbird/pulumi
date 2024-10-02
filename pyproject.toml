@@ -1,6 +1,6 @@
 [project]
 name = "tb_pulumi"
-version = "0.0.3-jungtest0"
+version = "0.0.3-jungtest1"
 description = "Framework and patterns for using Pulumi at Thunderbird"
 requires-python = ">3.12"
 dynamic = ["dependencies"]
