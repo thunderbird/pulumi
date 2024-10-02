@@ -16,7 +16,8 @@ on:
       - main-copy
     types:
       - opened
-      - syncronized
+      - edited
+      - synchronize
       - closed
 
 permissions:
@@ -92,7 +93,7 @@ jobs:
       - name: Debug
         uses: mxschmitt/action-tmate@v3
 
-  # If the PR gets merged (whichsyncronizehe branch does not exist), cut a new version branch.
+  # When the PR gets merged, cut a new version branch.
   merge:
     needs: detect-versions
     if: github.event.pull_request.merged == true && needs.detect-versions.outputs.branch-exists == 'false'
