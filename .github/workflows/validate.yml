@@ -92,9 +92,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Debug
-        uses: mxschmitt/action-tmate@v3
-
   # When the PR gets merged, cut a new version branch.
   merge:
     needs: detect-versions
@@ -104,11 +101,16 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Create a new version branch
-        uses: peterjgrainger/action-create-branch@v2.2.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          branch: ${{ needs.detect-versions.outputs.version }}
-          sha: ${GITHUB_SHA}
+          fetch-depth: 0
+
+      - name: Debug
+        uses: mxschmitt/action-tmate@v3
+
+      # - name: Create a new version branch
+      #   uses: peterjgrainger/action-create-branch@v2.2.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     branch: ${{ needs.detect-versions.outputs.version }}
+      #     sha: ${GITHUB_SHA}
