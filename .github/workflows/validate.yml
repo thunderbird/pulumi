@@ -10,10 +10,14 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  push:
+    branches:
+      - main-copy
+
   pull_request:
     branches:
-      - 'main'
-      - 'main-copy'
+      - main
+      - main-copy
 
 permissions:
   contents: read
@@ -81,17 +85,10 @@ jobs:
           src: './tb_pulumi'
           args: 'format --check'
 
-  debug:
-    needs: detect-versions
-    runs-on: ubuntu-latest
-    steps:
-      - name: Debug
-        uses: mxschmitt/action-tmate@v3
-
   # If the PR gets merged (which implies the branch does not exist), cut a new version branch.
   merge:
     needs: detect-versions
-    if: github.event.pull_request.merged == true && needs.detect-versions.outputs.branch-exists == 'false'
+    if: github.event.action == 'push' && needs.detect-versions.outputs.branch-exists == 'false'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -103,3 +100,6 @@ jobs:
         with:
           branch: ${{ needs.detect-versions.outputs.version }}
           sha: ${GITHUB_SHA}
+
+      - name: Debug
+        uses: mxschmitt/action-tmate@v3
