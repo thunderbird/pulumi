@@ -1,3 +1,6 @@
+"""Infrastructural patterns related to `AWS Fargate
+<https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html>`_."""
+
 import json
 import pulumi
 import pulumi_aws as aws
@@ -9,6 +12,77 @@ from tb_pulumi.constants import ASSUME_ROLE_POLICY, DEFAULT_AWS_SSL_POLICY
 class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
     """Builds a Fargate cluster running a variable number of tasks. Logs from these tasks will be
     sent to CloudWatch.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param subnets: A list of subnet IDs to build Fargate containers on. There must be at least one subnet to use.
+    :type subnets: list[str]
+
+    :param assign_public_ip: When True, containers will receive Internet-facing network interfaces. Must be enabled for
+        Fargate-backed containers to talk out to the net. Defaults to False.
+    :type assign_public_ip: bool, optional
+
+    :param desired_count: The number of containers the service should target to run. Defaults to 1.
+    :type desired_count: int, optional
+
+    :param ecr_resources: The containers will be granted permissions to pull images from ECR. If you would like to
+        restrict these permissions, supply this argument as a list of ARNs as they would appear in an IAM Policy.
+        Defaults to ['*'].
+    :type ecr_resources: list, optional
+
+    :param enable_container_insights: When True, enables advanced CloudWatch metrics collection. Defaults to False.
+    :type enable_container_insights: bool, optional
+
+    :param health_check_grace_period_seconds: Time to wait for a container to come online before attempting health
+        checks. This can be used to prevent accidental health check failures. Defaults to None.
+    :type health_check_grace_period_seconds: int, optional
+
+    :param internal: Whether traffic should be accepted from the Internet (False) or not (True). Defaults to True.
+    :type internal: bool, optional
+
+    :param key_deletion_window_in_days: Number of days after the KMS key is deleted that it will be recoverable. If you
+        need to forcibly delete a key, set this to 0. Defaults to 7.
+    :type key_deletion_window_in_days: int, optional
+
+    :param security_groups: A list of security group IDs to attach to the load balancer. Defaults to [].
+    :type security_groups: list[str], optional
+
+    :param services: A dict defining the ports to use when routing requests to each service. The keys should be the name
+        of the service as described in a container definition. The values should be dicts supporting the options shown
+        below. If no ``listenter_port`` is specified, the ``container_port`` will be used. The ``container_name`` is the
+        name of a container as specified in a container definition which can receive this traffic.
+        ::
+
+                {'web_portal': {
+                    'container_port': 8080,
+                    'container_name': 'web_backend',
+                    'listener_cert_arn': 'arn:aws:acm:region:account:certificate/id',
+                    'listener_port': 443,
+                    'listener_proto': 'HTTPS',
+                    'name': 'Arbitrary name for the ALB; must be unique and no longer than 32 characters.',
+                    'health_check': {
+                        # Keys match parameters listed here:
+                        # https://www.pulumi.com/registry/packages/aws/api-docs/alb/targetgroup/#targetgrouphealthcheck
+                    }
+                }}
+
+        Defaults to {}.
+    :type services: dict, optional
+
+    :param task_definition: A dict representing an ECS task definition. Defaults to {}.
+    :type task_definition: dict, optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+        superconstructor.
+
+    :raises IndexError: Thrown if the list of `subnets` is empty.
     """
 
     def __init__(
@@ -29,54 +103,6 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """Construct a FargateClusterWithLogging.
-
-        Positional arguments:
-            - name: A string identifying this set of resources.
-            - project: The ThunderbirdPulumiProject to add these resources to.
-            - subnets: A list of subnet IDs to build Fargate containers on. There must be at least
-                one subnet to use.
-
-        Keyword arguments:
-            - assign_public_ip: When True, containers will receive Internet-facing network
-                interfaces. Must be enabled for Fargate-backed containers to talk out to the net.
-            - desired_count: The number of containers the service should target to run.
-            - ecr_resources: The containers will be granted permissions to pull images from ECR. If
-                you would like to restrict these permissions, supply this argument as a list of ARNs
-                as they would appear in an IAM Policy.
-            - enable_container_insights: When True, enables advanced CloudWatch metrics collection.
-            - health_check_grace_period_seconds: Time to wait for a container to come online before
-                attempting health checks. This can be used to prevent accidental health check
-                failures.
-            - internal: Whether traffic should be accepted from the Internet (False) or not (True)
-            - key_deletion_window_in_days: Number of days after the KMS key is deleted that it will
-                be recoverable. If you need to forcibly delete a key, set this to 0.
-            - security_groups: A list of security group IDs to attach to the load balancer.
-            - services: A dict defining the ports to use when routing requests to each service. The keys
-                should be the name of the service as described in a container definition. The values
-                should be dicts supporting the options shown below. If no listenter_port is specified,
-                the container_port will be used. The container_name is the name of a container as
-                specified in a container definition which can receive this traffic.
-
-                {'web_portal': {
-                    'container_port': 8080,
-                    'container_name': 'web_backend',
-                    'listener_cert_arn': 'arn:aws:acm:region:account:certificate/id',
-                    'listener_port': 80,
-                    'listener_proto': 'HTTPS',
-                    'name': 'Arbitrary name for the ALB; must be unique and no longer than 32 characters.',
-                    'health_check': {
-                        # Keys match parameters listed here:
-                        # https://www.pulumi.com/registry/packages/aws/api-docs/alb/targetgroup/#targetgrouphealthcheck
-                    }
-                }}
-
-            - task_definition: A dict representing an ECS task definition.
-            - opts: Additional pulumi.ResourceOptions to apply to these resources.
-            - kwargs: Any other keyword arguments which will be passed as inputs to the
-                ThunderbirdComponentResource superconstructor.
-        """
-
         if len(subnets) < 1:
             raise IndexError('You must provide at least one subnet.')
 
@@ -313,6 +339,49 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
     """Builds an ALB with all of its constituent components to serve traffic for a set of ECS
     services. ECS does not allow reuse of a single ALB with multiple listeners, so if there are
     multiple services, multiple ALBs will be constructed.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param subnets: A list of subnet resources (pulumi outputs) to attach the ALB to.
+    :type subnets: list[pulumi.Output]
+
+    :param internal: Whether traffic should be accepted from the Internet (False) or not (True). Defaults to True.
+    :type internal: bool, optional
+
+    :param security_groups: A list of security group IDs to attach to the load balancer. Defaults to [].
+    :type security_groups: list[str], optional
+
+    :param services: A dict defining the ports to use when routing requests to each service. The keys should be the name
+        of the service as described in a container definition. The values should be dicts supporting the options shown
+        below. If no ``listenter_port`` is specified, the ``container_port`` will be used. The ``container_name`` is the
+        name of a container as specified in a container definition which can receive this traffic.
+        ::
+
+                {'web_portal': {
+                    'container_port': 8080,
+                    'container_name': 'web_backend',
+                    'listener_cert_arn': 'arn:aws:acm:region:account:certificate/id',
+                    'listener_port': 443,
+                    'listener_proto': 'HTTPS',
+                    'name': 'Arbitrary name for the ALB; must be unique and no longer than 32 characters.',
+                    'health_check': {
+                        # Keys match parameters listed here:
+                        # https://www.pulumi.com/registry/packages/aws/api-docs/alb/targetgroup/#targetgrouphealthcheck
+                    }
+                }}
+
+        Defaults to {}.
+    :type services: dict, optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+        superconstructor.
     """
 
     def __init__(
@@ -326,41 +395,6 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """Construct an ApplicationLoadBalancer.
-
-        Positional arguments:
-            - name: A string identifying this set of resources.
-            - project: The ThunderbirdPulumiProject to add these resources to.
-            - subnets: A list of subnet resources (pulumi outputs) to attach the ALB to.
-
-        Keyword arguments:
-            - internal: Whether traffic should be accepted from the Internet (False) or not (True).
-            - security_groups: A list of security group IDs to attach to the load balancer.
-            - services: A dict defining the ports to use when routing requests to each service. The
-                keys should be the name of the service as described in a container definition. The
-                values should be dicts supporting the options shown below. If no listenter_port is
-                specified, the container_port will be used. The name field is mandatory because we
-                have to get around a 32-character limit for naming things, and the generated names
-                are far too long and result in namespace collisions when automatically shortened.
-
-                {'web_portal': {
-                    'container_port': 8080,
-                    'container_name': 'web_backend',
-                    'listener_cert_arn': 'arn:aws:acm:region:account:certificate/id',
-                    'listener_port': 80,
-                    'listener_proto': 'HTTPS',
-                    'name': 'Arbitrary name for the ALB; must be unique and no longer than 32 characters.',
-                    'health_check': {
-                        # Keys match parameters listed here:
-                        # https://www.pulumi.com/registry/packages/aws/api-docs/alb/targetgroup/#targetgrouphealthcheck
-                    }
-                }}
-
-            - opts: Additional pulumi.ResourceOptions to apply to these resources.
-            - kwargs: Any other keyword arguments which will be passed as inputs to the
-                ThunderbirdComponentResource superconstructor.
-        """
-
         super().__init__('tb:fargate:FargateServiceAlb', name, project, opts=opts, **kwargs)
 
         # We'll track these per-service

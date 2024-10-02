@@ -1,6 +1,6 @@
 [project]
 name = "tb_pulumi"
-version = "0.0.2"
+version = "0.0.3"
 description = "Framework and patterns for using Pulumi at Thunderbird"
 requires-python = ">3.12"
 dynamic = ["dependencies"]
@@ -11,6 +11,14 @@ issues = "https://github.com/thunderbird/pulumi/issues"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
+
+[project.optional-dependencies]
+dev = [
+    "furo",
+    "insegel",
+    "ruff",
+    "sphinx"
+]
 
 # Ruff
 [tool.ruff]

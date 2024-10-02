@@ -1,3 +1,5 @@
+"""Infrastructural patterns related to `AWS EC2 <https://docs.aws.amazon.com/ec2/>`_."""
+
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
@@ -8,11 +10,50 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 
-AMAZON_LINUX_AMI = 'ami-0427090fd1714168b'
+AMAZON_LINUX_AMI = 'ami-0427090fd1714168b'  #: AMI for Amazon Linux
 
 
 class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
-    """Create a Network Load Balancer."""
+    """Construct a NetworkLoadBalancer to route TCP traffic to a collection of backends. This targets backend services
+    by IP address, connecting a frontend listening port to a backend port on the round-robin load balanced targets.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param listener_port: The port that the load balancer should accept traffic on.
+    :type listener_port: int
+
+    :param subnets: List of subnet resource outputs. The NLB will be built in these network spaces, and in the VPC
+        of the first subnet listed. All subnets must reside in the same VPC.
+    :type subnets: list[str]
+
+    :param target_port: The port to route to on the backends.
+    :type target_port: int
+
+    :param ingress_cidrs: List of CIDR blocks to allow ingress to the NLB from. If not provided, traffic to the
+        listener_port will be allowed from anywhere. Defaults to None.
+    :type ingress_cidrs: list[str], optional
+
+    :param internal: When True (default), ingress is restricted to traffic sourced within the VPC. When False, the
+        NLB gets a public IP to listen on. Defaults to True.
+    :type internal: bool, optional
+
+    :param ips: List of IP addresses to balance load between. Defaults to [].
+    :type ips: list[str], optional
+
+    :param security_group_description: Text to use for the security group's description field. Defaults to None.
+    :type security_group_description: str, optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the LoadBalancer resource. A full
+        listing of options is found `here
+        <https://www.pulumi.com/registry/packages/aws/api-docs/alb/loadbalancer/#inputs>`_.
+    """
 
     def __init__(
         self,
@@ -28,32 +69,6 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """Construct a NetworkLoadBalancer to route TCP traffic to a collection of backends. This
-            targets backend services by IP address, connecting a frontend listening port to a
-            backend port on the round-robin load balanced targets.
-
-        Positional arguments:
-            - name: A string identifying this set of resources.
-            - project: The ThunderbirdPulumiProject to add these resources to.
-            - listener_port: The port that the load balancer should accept traffic on.
-            - subnets: List of subnet resource outputs. The NLB will be built in these network
-                spaces, and in the VPC of the first subnet listed (they must all be in the same
-                VPC).
-            - target_port: The port to route to on the backends.
-
-        Keyword arguments:
-            - ingress_cidrs: List of CIDR blocks to allow ingress to the NLB from. If not provided,
-                traffic to the listener_port will be allowed from anywhere.
-            - internal: When True (default), ingress is restricted to traffic sourced within the
-                VPC. When False, the NLB gets a public IP to listen on.
-            - ips: List of IP addresses to balance load between.
-            - security_group_description: Text to use for the security group's description field.
-            - opts: Additional pulumi.ResourceOptions to apply to these resources.
-            - kwargs: Any other keyword arguments which will be passed as inputs to the LoadBalancer
-                resource. A full listing of options is found here:
-                https://www.pulumi.com/registry/packages/aws/api-docs/alb/loadbalancer/#inputs
-        """
-
         super().__init__('tb:ec2:NetworkLoadBalancer', name, project, opts=opts)
 
         # Build a security group that allows ingress on our listener port
@@ -151,7 +166,46 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
 
 
 class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
-    """Builds an EC2 instance which can be accessed with SSH from somewhere on the Internet."""
+    """Builds an EC2 instance which can be accessed with SSH from somewhere on the Internet.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param subnet_id: The ID of the subnet to build the instance in.
+    :type subnet_id: str
+
+    :param ami: ID of the AMI to build the instance with. Defaults to {AMAZON_LINUX_AMI}.
+    :type ami: str, optional
+
+    :param kms_key_id: ID of the KMS key for encrypting all database storage. Defaults to None.
+    :type kms_key_id: str, optional
+
+    :param public_key: The RSA public key used for SSH authentication. Defaults to None.
+    :type public_key: str, optional
+
+    :param source_cidrs: List of CIDRs which should be allowed to open SSH connections to the instance. Defaults to
+        ['0.0.0.0/0'].
+    :type source_cidrs: list[str], optional
+
+    :param user_data: Custom user data to launch the instance with. Defaults to None.
+    :type user_data: str, optional
+
+    :param vpc_id: The VPC to build this instance in. Defaults to None.
+    :type vpc_id: str, optional
+
+    :param vpc_security_group_ids: If provided, sets the security groups for the instance. Otherwise, a security group
+        allowing only port 22 from the `source_cidrs` will be created and used. Defaults to None.
+    :type vpc_security_group_ids: list[str], optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+        superconstructor.
+    """
 
     def __init__(
         self,
@@ -168,29 +222,6 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """Construct an SshableInstance.
-
-        Positional arguments:
-            - name: A string identifying this set of resources.
-            - project: The ThunderbirdPulumiProject to add these resources to.
-            - subnet_id: The ID of the subnet to build the instance in.
-
-        Keyword arguments:
-            - ami: ID of the AMI to build the instance with. Defaults to Amazon Linux 2023.
-            - kms_key_id: ID of the KMS key for encrypting all database storage.
-            - public_key: The RSA public key used for SSH authentication.
-            - source_cidrs: List of CIDRs which should be allowed to open SSH connections to the
-                instance.
-            - user_data: Custom user data to launch the instance with.
-            - vpc_id: The VPC to build this instance in.
-            - vpc_security_group_ids: If provided, sets the security groups for the instance.
-                Otherwise, a security group allowing only port 22 from the `source_cidrs` will be
-                created and used.
-            - opts: Additional pulumi.ResourceOptions to apply to these resources.
-            - kwargs: Any other keyword arguments which will be passed as inputs to the
-                ThunderbirdComponentResource superconstructor.
-        """
-
         super().__init__('tb:ec2:SshableInstance', name=name, project=project, opts=opts, **kwargs)
 
         self.resources['keypair'] = SshKeyPair(f'{name}-keypair', project, public_key=public_key).resources
@@ -251,12 +282,35 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
 class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
     """Builds an SSH keypair and stores its values in Secrets Manager.
 
-    NOTE: This should typically be used by specifying the public_key. If you do not, Pulumi will
-    generate a new key for you. However, at the moment, it appears there's no way to have Pulumi
-    generate a private key ONE TIME and ONLY ONE TIME. Each `pulumi up/preview` command generates a
-    new keypair, which generates new secret versions (and if this is attached to an instance
-    downstream, it triggers the recreation of that instance). This is otherwise good code that will
-    correctly build these resources.
+    You should usually specify the ``public_key`` when using this module. If you do not, Pulumi will generate a new key
+    for you. However, at the moment, it appears there's no way to have Pulumi generate a private key ONE TIME and ONLY
+    ONE TIME. Each ``pulumi up/preview`` command generates a new keypair, which generates new secret versions (and if
+    this is attached to an instance downstream, it triggers the recreation of that instance).
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param key_size: Byte length of the private key to generate. Only used if public_key is not supplied. Defaults to
+        4096.
+    :type key_size: int, optional
+
+    :param public_key: RSA public key to stash in the KeyPair. It is highly recommended that you always provide this.
+        That is, you should usually generate a keypair on your local machine (``ssh-keygen -t rsa -b 4096``) and provide
+        that public key to this resource. Defaults to None.
+    :type public_key: str, optional
+
+    :param secret_name: A slash ("/") delimited name to give the Secrets Manager secret. If not supplied, one will be
+        generated based on `name`. Only used if public_key is not provided. Defaults to 'keypair'.
+    :type secret_name: str, optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+        superconstructor.
     """
 
     def __init__(
@@ -269,26 +323,6 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """Construct an SshKeyPair.
-
-        Positional arguments:
-            - name: A string identifying this set of resources.
-            - project: The ThunderbirdPulumiProject to add these resources to.
-
-        Keyword arguments:
-            - key_size: Byte length of the private key to generate. Only used if public_key is not
-                supplied.
-            - public_key: RSA public key to stash in the KeyPair. It is highly recommended that you
-                always provide this. That is, you should usually generate a keypair on your local
-                machine (ssh-keygen -t rsa -b 4096) and provide that public key to this resource.
-            - secret_name: A slash ("/") delimited name to give the Secrets Manager secret. If not
-                supplied, one will be generated based on `name`. Only used if public_key is not
-                provided.
-            - opts: Additional pulumi.ResourceOptions to apply to these resources.
-            - kwargs: Any other keyword arguments which will be passed as inputs to the
-                ThunderbirdComponentResource superconstructor.
-        """
-
         super().__init__('tb:ec2:SshKeyPair', name, project, opts=opts, **kwargs)
 
         if not public_key:
@@ -335,11 +369,14 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
         self.finish()
 
 
-def generate_ssh_keypair(key_size=4096) -> (str, str):
-    """Returns plaintext representations of a private and public RSA key for use in SSH
-    authentication.
+def generate_ssh_keypair(key_size: int = 4096) -> (str, str):
+    """Returns plaintext representations of a private and public RSA key for use in SSH authentication.
 
-        - key_size: Byte length of the private key.
+    :param key_size: Byte length of the private key. Defaults to 4096.
+    :type key_size: int
+
+    :return: Tuple in this form: ``(private_key, public_key)``
+    :rtype: tuple[str, str]
     """
 
     # Ref: https://cryptography.io/en/latest/hazmat/primitives/asymmetric/rsa/#module-cryptography.hazmat.primitives.asymmetric.rsa

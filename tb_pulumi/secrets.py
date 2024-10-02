@@ -1,3 +1,6 @@
+"""Infrastructural patterns related to `AWS Secrets Manager
+<https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html>`_."""
+
 import json
 import pulumi
 import pulumi_aws as aws
@@ -6,7 +9,28 @@ import typing
 
 
 class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
-    """Stores a value as a Secrets Manager secret."""
+    """Stores a value as a Secrets Manager secret.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: ThunderbirdPulumiProject
+
+    :param secret_name: A slash ("/") delimited name for the secret in AWS. The last segment of this will be used as the
+        "short name" for abbreviated references.
+    :type name: str
+
+    :param secret_value: The secret data to store. This should be a string or some other type that can be serialized
+        with `str()`.
+    :type name: Any
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+        superconstructor.
+    """
 
     def __init__(
         self,
@@ -17,22 +41,6 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """Construct a SecretsManagerSecret.
-
-        Positional arguments:
-            - name: A string identifying this set of resources.
-            - project: The ThunderbirdPulumiProject to add these resources to.
-
-        Keyword arguments:
-            - secret_name: A slash ("/") delimited name for the secret in AWS. The last segment of
-                this will be used as the "short name" for abbreviated references.
-            - secret_value: The secret data to store. This should be a string or some other type
-                that can be serialized with `str()`.
-            - opts: Additional pulumi.ResourceOptions to apply to these resources.
-            - kwargs: Any other keyword arguments which will be passed as inputs to the
-                ThunderbirdComponentResource superconstructor.
-        """
-
         super().__init__('tb:secrets:SecretsManagerSecret', name, project, opts=opts, **kwargs)
 
         short_name = secret_name.split('/')[-1]
@@ -51,7 +59,28 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
 
 
 class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
-    """Builds a set of AWS SecretsManager Secrets based on specific secrets in Pulumi's config."""
+    """Builds a set of AWS SecretsManager Secrets based on specific secrets in Pulumi's config.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: ThunderbirdPulumiProject
+
+    :param secret_names: A list of secrets as they are known to Pulumi. To get a list of valid values, run
+        ``pulumi config``. For more info on Pulumi secrets, see
+        `Working with Secrets <https://www.pulumi.com/learn/building-with-pulumi/secrets/>`_.
+    :type secret_names: list[str], optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources.
+    :type opts: pulumi.ResourceOptions, optional
+
+        - kwargs: Any other keyword arguments which will be passed as inputs to the
+            ThunderbirdComponentResource superconstructor.
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+        superconstructor.
+    """
 
     def __init__(
         self,
@@ -61,21 +90,6 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """Construct a PulumiSecretsManager resource.
-
-        Positional arguments:
-            - name: A string identifying this set of resources.
-            - project: The ThunderbirdPulumiProject to add these resources to.
-
-        Keyword arguments
-            - secret_names: A list of secrets as they are known to Pulumi. To get a list of valid
-                values, run `pulumi config | grep 'secret' | cut -d ' ' -f1`. For more info on
-                Pulumi secrets, see: https://www.pulumi.com/learn/building-with-pulumi/secrets/
-            - opts: Additional pulumi.ResourceOptions to apply to these resources.
-            - kwargs: Any other keyword arguments which will be passed as inputs to the
-                ThunderbirdComponentResource superconstructor.
-        """
-
         super().__init__('tb:secrets:PulumiSecretsManager', name, project, opts=opts, **kwargs)
         self.resources['secrets'] = []
         self.resources['versions'] = []
