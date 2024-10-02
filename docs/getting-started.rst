@@ -156,7 +156,8 @@ recommend some conventions here. Namely:
   pattern are configurable. The keys here should be arbitrary but unique identifiers for the resources being configured.
   F/ex: ``backend`` or ``api``.
 * The values these keys map to should be a mapping where the keys are valid configuration options for the resources
-  being built. The full listing of these values can be found by browsing the documentation.
+  being built. The full listing of these values can be found by browsing the documentation. A barebones example can be
+  found in our `configuration example <https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example>`_.
 
 
 Define a ThunderbirdPulumiProject
