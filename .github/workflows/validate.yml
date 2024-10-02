@@ -12,8 +12,13 @@ concurrency:
 on:
   pull_request:
     branches:
-      - 'main'
-      - 'main-copy'
+      - main
+      - main-copy
+    types:
+      - opened
+      - edited
+      - synchronize
+      - closed
 
 permissions:
   contents: read
@@ -88,7 +93,7 @@ jobs:
       - name: Debug
         uses: mxschmitt/action-tmate@v3
 
-  # If the PR gets merged (which implies the branch does not exist), cut a new version branch.
+  # When the PR gets merged, cut a new version branch.
   merge:
     needs: detect-versions
     if: github.event.pull_request.merged == true && needs.detect-versions.outputs.branch-exists == 'false'
