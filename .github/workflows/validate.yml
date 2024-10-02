@@ -90,6 +90,8 @@ jobs:
     needs: detect-versions
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Debug
         uses: mxschmitt/action-tmate@v3
 
