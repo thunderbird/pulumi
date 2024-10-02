@@ -86,12 +86,12 @@ jobs:
           src: './tb_pulumi'
           args: 'format --check'
 
-  # debug:
-  #   needs: detect-versions
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Debug
-  #       uses: mxschmitt/action-tmate@v3
+  debug:
+    needs: detect-versions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug
+        uses: mxschmitt/action-tmate@v3
 
   # When the PR gets merged, cut a new version branch.
   merge:
