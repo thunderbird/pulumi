@@ -95,20 +95,23 @@ jobs:
           src: './tb_pulumi'
           args: 'format --check'
 
-  # When the PR gets merged, cut a new version branch.
-  merge:
-    needs: detect-versions
-    if: github.event.pull_request.merged == true && needs.detect-versions.outputs.branch-exists == 'false'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
+  # The below code is commented out because it works, except for a Github auth issue.
+  # Ref: https://github.com/orgs/community/discussions/13836
 
-      - name: Create a new version branch
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          git checkout -b ${{ needs.detect-versions.outputs.version }}
-          git push -u origin ${{ needs.detect-versions.outputs.version }}
+  # When the PR gets merged, cut a new version branch.
+  # merge:
+  #   needs: detect-versions
+  #   if: github.event.pull_request.merged == true && needs.detect-versions.outputs.branch-exists == 'false'
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: write
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Create a new version branch
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       shell: bash
+  #       run: |
+  #         git checkout -b ${{ needs.detect-versions.outputs.version }}
+  #         git push -u origin ${{ needs.detect-versions.outputs.version }}
