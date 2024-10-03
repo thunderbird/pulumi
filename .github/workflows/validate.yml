@@ -12,7 +12,13 @@ concurrency:
 on:
   pull_request:
     branches:
-      - 'main'
+      - main
+      - main-copy
+    types:
+      - opened
+      - edited
+      - synchronize
+      - closed
 
 permissions:
   contents: read
@@ -80,7 +86,13 @@ jobs:
           src: './tb_pulumi'
           args: 'format --check'
 
-  # If the PR gets merged (which implies the branch does not exist), cut a new version branch.
+  debug:
+    needs: detect-versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+  # When the PR gets merged, cut a new version branch.
   merge:
     needs: detect-versions
     if: github.event.pull_request.merged == true && needs.detect-versions.outputs.branch-exists == 'false'
@@ -89,9 +101,16 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Debug
+        uses: mxschmitt/action-tmate@v3
 
       - name: Create a new version branch
-        uses: peterjgrainger/action-create-branch@v2.2.0
-        with:
-          branch: ${{ needs.detect-versions.outputs.version }}
-          sha: ${GITHUB_SHA}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          git checkout -b ${{ needs.detect-versions.outputs.version }}
+          git push -u origin ${{ needs.detect-versions.outputs.version }}
