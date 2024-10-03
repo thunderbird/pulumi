@@ -1,7 +1,12 @@
 ---
-# These jobs are run anytime a PR is opened against the main branch. In brief, to get a PR merged, you must:
-#   - Update the version number in pyproject.toml
-#   - Not have any linting issues (run `ruff format`)
+# The general flow of this is like so:
+#
+# - When a PR is opened against `main`, or if that PR changes:
+#   - Figure out if any code changes have been made
+#   - Require a version number change
+#   - Require that the code pass Ruff tests
+# - When the PR gets merged:
+#   - Create a new branch matching the version number
 
 name: validate
 
@@ -12,7 +17,12 @@ concurrency:
 on:
   pull_request:
     branches:
-      - 'main'
+      - main
+    types:
+      - opened
+      - edited
+      - synchronize
+      - closed
 
 permissions:
   contents: read
@@ -66,7 +76,7 @@ jobs:
       - name: "Error: version collision"
         run: exit 1
 
-  # Run Ruff, our linter, against tb_pulumi. Fail if files are not formatted properly.
+  # Run Ruff against tb_pulumi. Fail on format errors or failed sanity checks.
   lint:
     needs: detect-changes
     runs-on: ubuntu-latest
@@ -74,13 +84,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Quick lint with Ruff
+      - name: Run Ruff syntax checks
+        uses: chartboost/ruff-action@v1
+        with:
+          src: './tb_pulumi'
+
+      - name: Run Ruff linter
         uses: chartboost/ruff-action@v1
         with:
           src: './tb_pulumi'
           args: 'format --check'
 
-  # If the PR gets merged (which implies the branch does not exist), cut a new version branch.
+  # When the PR gets merged, cut a new version branch.
   merge:
     needs: detect-versions
     if: github.event.pull_request.merged == true && needs.detect-versions.outputs.branch-exists == 'false'
@@ -91,7 +106,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Create a new version branch
-        uses: peterjgrainger/action-create-branch@v2.2.0
-        with:
-          branch: ${{ needs.detect-versions.outputs.version }}
-          sha: ${GITHUB_SHA}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          git checkout -b ${{ needs.detect-versions.outputs.version }}
+          git push -u origin ${{ needs.detect-versions.outputs.version }}
