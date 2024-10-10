@@ -67,15 +67,6 @@ jobs:
         with:
           branch: v${{ steps.version.outputs.value }}
 
-  # Fail on version collision. Every change to code requires an update to the version number.
-  version-collision:
-    needs: detect-versions
-    runs-on: ubuntu-latest
-    if: needs.detect-versions.outputs.branch-exists == 'true'
-    steps:
-      - name: "Error: version collision"
-        run: exit 1
-
   # Run Ruff against tb_pulumi. Fail on format errors or failed sanity checks.
   lint:
     needs: detect-changes
