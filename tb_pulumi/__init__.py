@@ -30,7 +30,7 @@ class ThunderbirdPulumiProject:
         #: Pulumi configuration data referencing Pulumi.stack.yaml
         self.pulumi_config: pulumi.config.Config = pulumi.Config()
         self.resources: dict = {}  #: Pulumi Resource objects managed by this project
-        
+
         # Some machines can't run a getlogin(), which is the preferred method, but we support some others
         try:
             username = getlogin()
