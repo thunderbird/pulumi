@@ -78,14 +78,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         self.resources['logging_bucket'] = aws.s3.Bucket(
             f'{name}-loggingbucket',
             bucket=f'{service_bucket_name}-logs',
-            grants=[
-                {
-                    'permissions': ['FULL_CONTROL'],
-                    'type': 'CanonicalUser',
-                    'id': aws.s3.get_canonical_user_id().id,
-                    'uri': '',
-                }
-            ],
             server_side_encryption_configuration={
                 'rule': {'applyServerSideEncryptionByDefault': {'sseAlgorithm': 'AES256'}, 'bucket_key_enabled': True}
             },
@@ -98,6 +90,22 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             bucket=self.resources['logging_bucket'].id,
             rule={'object_ownership': 'BucketOwnerPreferred'},
             opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['logging_bucket']]),
+        )
+
+        canonical_user = aws.s3.get_canonical_user_id().id
+        self.resources['logging_bucket_acl'] = aws.s3.BucketAclV2(
+            f'{name}-bucketacl',
+            bucket=self.resources['logging_bucket'].id,
+            access_control_policy={
+                'grants': [
+                    {
+                        'grantee': {'type': 'CanonicalUser', 'id': canonical_user},
+                        'permission': 'FULL_CONTROL',
+                    }
+                ],
+                'owner': {'id': canonical_user},
+            },
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['logging_bucket_ownership']]),
         )
 
         # Create an Origin Access Control to use when CloudFront talks to S3

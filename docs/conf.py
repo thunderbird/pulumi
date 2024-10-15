@@ -22,13 +22,12 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
-
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'insegel' # Clean black-on-white theme
+html_theme = 'insegel'  # Clean black-on-white theme
 if os.environ.get('TBPULUMI_DARK_MODE', False):
-    html_theme = 'furo' # Dark theme, easy on the eyes
+    html_theme = 'furo'  # Dark theme, easy on the eyes
 
 # -- Override path to read our docstrings
 sys.path.insert(0, os.path.abspath('..'))
