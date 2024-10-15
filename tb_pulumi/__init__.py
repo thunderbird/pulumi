@@ -7,7 +7,7 @@ import pulumi
 import yaml
 
 from functools import cached_property
-from os import environ, getlogin
+from os import environ, getlogin, path
 from socket import gethostname
 from tb_pulumi.constants import DEFAULT_PROTECTED_STACKS
 
@@ -30,9 +30,24 @@ class ThunderbirdPulumiProject:
         #: Pulumi configuration data referencing Pulumi.stack.yaml
         self.pulumi_config: pulumi.config.Config = pulumi.Config()
         self.resources: dict = {}  #: Pulumi Resource objects managed by this project
+
+        # Some machines can't run a getlogin(), which is the preferred method, but we support some others
+        try:
+            username = getlogin()
+        except OSError:
+            homepath = path.expanduser('~')
+            unix_style = homepath.split('/')
+            win_style = homepath.split('\\')
+            if len(unix_style) > 1:
+                username = unix_style[-1]
+            elif len(win_style) > 1:
+                username = win_style[-1]
+            else:
+                username = 'unknown'
+
         self.common_tags: dict = {  #: Tags to apply to all taggable resources
             'project': self.project,
-            'pulumi_last_run_by': f'{getlogin()}@{gethostname()}',
+            'pulumi_last_run_by': f'{username}@{gethostname()}',
             'pulumi_project': self.project,
             'pulumi_stack': self.stack,
         }
