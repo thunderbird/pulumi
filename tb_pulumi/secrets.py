@@ -44,18 +44,18 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
         super().__init__('tb:secrets:SecretsManagerSecret', name, project, opts=opts, **kwargs)
 
         short_name = secret_name.split('/')[-1]
-        self.resources['secret'] = aws.secretsmanager.Secret(
+        secret = aws.secretsmanager.Secret(
             f'{name}-secret-{short_name}', opts=pulumi.ResourceOptions(parent=self), name=secret_name
         )
 
-        self.resources['version'] = aws.secretsmanager.SecretVersion(
+        version = aws.secretsmanager.SecretVersion(
             f'{name}-secretversion-{short_name}',
-            secret_id=self.resources['secret'].id,
+            secret_id=secret.id,
             secret_string=secret_value,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['secret']]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[secret]),
         )
 
-        self.finish()
+        self.finish(outputs={'secret_id': secret.id}, resources={'secret': secret, 'version': version})
 
 
 class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
@@ -91,8 +91,8 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
         **kwargs,
     ):
         super().__init__('tb:secrets:PulumiSecretsManager', name, project, opts=opts, **kwargs)
-        self.resources['secrets'] = []
-        self.resources['versions'] = []
+        secrets = []
+        versions = []
 
         # First build the secrets
         for secret_name in secret_names:
@@ -104,10 +104,10 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
             secret = aws.secretsmanager.Secret(
                 f'{name}-secret-{secret_name}', opts=pulumi.ResourceOptions(parent=self), name=secret_fullname
             )
-            self.resources['secrets'].append(secret)
+            secrets.append(secret)
 
             # Populate its value
-            self.resources['versions'].append(
+            versions.append(
                 aws.secretsmanager.SecretVersion(
                     f'{name}-secretversion-{secret_name}',
                     opts=pulumi.ResourceOptions(parent=self),
@@ -117,7 +117,7 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
             )
 
         # Then create an IAM policy allowing access to them
-        secret_arns = [secret.arn for secret in self.resources['secrets']]
+        secret_arns = [secret.arn for secret in secrets]
         policy = pulumi.Output.all(*secret_arns).apply(
             lambda secret_arns: json.dumps(
                 {
@@ -133,7 +133,7 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
                 }
             )
         )
-        self.resources['policy'] = aws.iam.Policy(
+        policy = aws.iam.Policy(
             f'{name}-policy',
             opts=pulumi.ResourceOptions(parent=self),
             name=name,
@@ -141,4 +141,7 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
             policy=policy,
         )
 
-        self.finish()
+        self.finish(
+            outputs={'policy_id': policy.policy_id, 'secret_ids': [secret.id for secret in secrets]},
+            resources={'secrets': secrets, 'versions': versions, 'policy': policy},
+        )

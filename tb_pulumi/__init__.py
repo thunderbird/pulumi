@@ -10,6 +10,7 @@ from functools import cached_property
 from os import environ, getlogin, path
 from socket import gethostname
 from tb_pulumi.constants import DEFAULT_PROTECTED_STACKS
+from typing import Any
 
 
 class ThunderbirdPulumiProject:
@@ -135,15 +136,19 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
 
         self.resources: dict = {}  #: Resources which are members of this ComponentResource.
 
-    def finish(self):
-        """Registers outputs based on the contents of `self.resources` and adds those resources to
-        the project's internal tracking. Each implementation of this class should call this function
-        at the end of its ``__init__`` function.
+    def finish(self, outputs: dict[str, Any], resources: dict[str, pulumi.Resource | list[pulumi.Resource]]):
+        """Registers the provided ``outputs`` as Pulumi outputs for the module. Also stores the mapping of ``resources``
+        internally as the ``resources`` member where they it be acted on collectively by a ``ThunderbirdPulumiProject``.
+        Any implementation of this class should call this function at the end of its ``__init__`` function to ensure its
+        state is properly represented.
+
+        Values in ``resources`` should be either a Resource or derivative (such as a ThunderbirdComponentResource) or a
+        list of such.
         """
 
         # Register outputs both with the ThunderbirdPulumiProject and Pulumi itself
-        self.project.resources[self.name] = self.resources
-        self.register_outputs({k: self.resources[k] for k in self.resources.keys()})
+        self.resources = resources
+        self.register_outputs(outputs)
 
     @property
     def protect_resources(self) -> bool:

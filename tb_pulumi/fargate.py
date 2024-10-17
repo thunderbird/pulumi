@@ -112,7 +112,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         # Key to encrypt logs
         log_key_tags = {'Name': f'{name}-fargate-logs'}
         log_key_tags.update(self.tags)
-        self.resources['log_key'] = aws.kms.Key(
+        log_key = aws.kms.Key(
             f'{name}-logging',
             description=f'Key to encrypt logs for {name}',
             deletion_window_in_days=key_deletion_window_in_days,
@@ -121,7 +121,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Log group
-        self.resources['log_group'] = aws.cloudwatch.LogGroup(
+        log_group = aws.cloudwatch.LogGroup(
             f'{name}-fargate-logs',
             name=f'{name}-fargate-logs',
             tags=self.tags,
@@ -134,7 +134,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         arp = json.dumps(arp)
 
         # IAM policy for shipping logs
-        doc = self.resources['log_group'].arn.apply(
+        doc = log_group.arn.apply(
             lambda arn: json.dumps(
                 {
                     'Version': '2012-10-17',
@@ -149,12 +149,12 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 }
             )
         )
-        self.resources['policy_log_sending'] = aws.iam.Policy(
+        policy_log_sending = aws.iam.Policy(
             f'{name}-policy-logs',
             name=f'{name}-logging',
             description='Allows Fargate tasks to log to their log group',
             policy=doc,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['log_group']]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[log_group]),
         )
 
         # IAM policy for accessing container dependencies
@@ -193,7 +193,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 ],
             }
         )
-        self.resources['policy_exec'] = aws.iam.Policy(
+        policy_exec = aws.iam.Policy(
             f'{name}-policy-exec',
             name=f'{name}-exec',
             description=f'Allows {self.project.project} tasks access to resources they need to run',
@@ -202,34 +202,32 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Create an IAM role for tasks to run as
-        self.resources['task_role'] = aws.iam.Role(
+        task_role = aws.iam.Role(
             f'{name}-taskrole',
             name=name,
             description=f'Task execution role for {self.project.name_prefix}',
             assume_role_policy=arp,
             managed_policy_arns=[
                 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
-                self.resources['policy_log_sending'],
-                self.resources['policy_exec'],
+                policy_log_sending,
+                policy_exec,
             ],
             tags=self.tags,
             opts=pulumi.ResourceOptions(parent=self),
         )
 
         # Fargate Cluster
-        self.resources['cluster'] = aws.ecs.Cluster(
+        cluster = aws.ecs.Cluster(
             f'{name}-cluster',
-            opts=pulumi.ResourceOptions(
-                parent=self, depends_on=[self.resources['log_key'], self.resources['log_group']]
-            ),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[log_key, log_group]),
             name=name,
             configuration={
                 'executeCommandConfiguration': {
-                    'kmsKeyId': self.resources['log_key'].arn,
+                    'kmsKeyId': log_key.arn,
                     'logging': 'OVERRIDE',
                     'logConfiguration': {
                         'cloudWatchEncryptionEnabled': True,
-                        'cloudWatchLogGroupName': self.resources['log_group'].name,
+                        'cloudWatchLogGroupName': log_group.name,
                     },
                 }
             },
@@ -238,13 +236,23 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Prep the task definition
-        self.resources['task_definition'] = pulumi.Output.all(
-            self.resources['log_group'].name, self.project.aws_region, self.resources['task_role'].arn
-        ).apply(lambda outputs: self.task_definition(task_definition, family, outputs[0], outputs[1]))
+        task_definition_res = pulumi.Output.all(
+            log_group.name,
+            self.project.aws_region,
+            task_role.arn,
+        ).apply(
+            lambda outputs: self.task_definition(
+                task_def=task_definition,
+                family=family,
+                log_group_name=outputs[0],
+                aws_region=outputs[1],
+                task_role_arn=outputs[2],
+            )
+        )
 
         # Build ALBs and related resources to route traffic to our services
         fsalb_name = f'{name}-fargateservicealb'
-        self.resources['fargate_service_alb'] = FargateServiceAlb(
+        fargate_service_alb = FargateServiceAlb(
             fsalb_name,
             project,
             subnets=subnets,
@@ -252,13 +260,13 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             security_groups=security_groups,
             services=services,
             opts=pulumi.ResourceOptions(parent=self),
-        ).resources
+        )
 
         # We only need one Fargate Service config, but that might have multiple load balancer
         # configs. Build those now.
         lb_configs = [
             {
-                'targetGroupArn': self.resources['fargate_service_alb']['target_groups'][svc_name].arn,
+                'targetGroupArn': fargate_service_alb.resources['target_groups'][svc_name].arn,
                 'containerName': svc['container_name'],
                 'containerPort': svc['container_port'],
             }
@@ -266,10 +274,10 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         ]
 
         # Fargate Service
-        self.resources['service'] = aws.ecs.Service(
+        service = aws.ecs.Service(
             f'{name}-service',
             name=name,
-            cluster=self.resources['cluster'].id,
+            cluster=cluster.id,
             desired_count=desired_count,
             health_check_grace_period_seconds=health_check_grace_period_seconds,
             launch_type='FARGATE',
@@ -279,28 +287,51 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 'assign_public_ip': assign_public_ip,
                 'security_groups': security_groups,
             },
-            task_definition=self.resources['task_definition'],
+            task_definition=task_definition_res,
             tags=self.tags,
-            opts=pulumi.ResourceOptions(
-                parent=self, depends_on=[self.resources['cluster'], self.resources['task_definition']]
-            ),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[cluster, task_definition_res]),
         )
 
-        self.finish()
+        self.finish(
+            outputs={
+                'cluster_id': cluster.id,
+                'service_id': service.id,
+            },
+            resources={
+                'cluster': cluster,
+                'log_group': log_group,
+                'log_key': log_key,
+                'fargate_service_alb': fargate_service_alb,
+                'policy_exec': policy_exec,
+                'policy_log_sending': policy_log_sending,
+                'service': service,
+                'task_role': task_role,
+                'task_definition': task_definition_res,
+            },
+        )
 
     def task_definition(
-        self,
-        task_def: dict,
-        family: str,
-        log_group_name: str,
-        aws_region: str,
+        self, task_def: dict, family: str, log_group_name: str, aws_region: str, task_role_arn: str
     ) -> aws.ecs.TaskDefinition:
         """Returns an ECS task definition resource.
 
-        - task_def: A dict defining the task definition template which needs modification.
-        - family: A unique name for the task definition.
-        - log_group_name: Name of the log group to ship logs to.
-        - aws_region: AWS region to build in.
+        :param task_def: A dict defining the task definition template which needs modification.
+        :type task_def: dict
+
+        :param family: A unique name for the task definition.
+        :type family: str
+
+        :param log_group_name: Name of the log group to ship logs to.
+        :type log_group_name: str
+
+        :param aws_region: AWS region to build in.
+        :type aws_region: str
+
+        :param task_role_arn: ARN of the IAM role the task will run as.
+        :type task_role_arn: str
+
+        :return: A TaskDefinition Resource
+        :rtype: aws.ecs.TaskDefinition
         """
 
         for cont_name, cont_def in task_def['container_definitions'].items():
@@ -322,17 +353,19 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
 
         task_def.update(
             {
-                'execution_role_arn': self.resources['task_role'].arn,
+                'execution_role_arn': task_role_arn,
                 'family': family,
                 'container_definitions': json.dumps(cont_defs),
             }
         )
 
-        return aws.ecs.TaskDefinition(
+        task_def_res = aws.ecs.TaskDefinition(
             f'{family}-taskdef',
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['log_group']]),
+            opts=pulumi.ResourceOptions(parent=self),
             **task_def,
         )
+
+        return task_def_res
 
 
 class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
@@ -398,9 +431,9 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
         super().__init__('tb:fargate:FargateServiceAlb', name, project, opts=opts, **kwargs)
 
         # We'll track these per-service
-        self.resources['albs'] = {}
-        self.resources['listeners'] = {}
-        self.resources['target_groups'] = {}
+        albs = {}
+        listeners = {}
+        target_groups = {}
 
         # For each service...
         for svc_name, svc in services.items():
@@ -419,7 +452,7 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
 
             # Build the load balancer first; we'll need it for everything else
             # TODO: Support access logging; AWS only supports S3 buckets, not apparently CloudWatch
-            self.resources['albs'][svc_name] = aws.lb.LoadBalancer(
+            albs[svc_name] = aws.lb.LoadBalancer(
                 f'{name}-alb-{svc_name}',
                 # AWS imposes a 32-character limit on service names. Simply cropping the name length
                 # down is insufficient because it creates name conflicts. So these are explicitly
@@ -435,7 +468,7 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
 
             # Build a target group
             tg_name = f'{name}-targetgroup-{svc_name}'
-            self.resources['target_groups'][svc_name] = aws.alb.TargetGroup(
+            target_groups[svc_name] = aws.alb.TargetGroup(
                 tg_name,
                 # AWS imposes a 32-character limit on service names. Simply cropping the name length
                 # down is insufficient because it creates name conflicts. So these are explicitly
@@ -454,11 +487,11 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
             )
 
             # Build a listener for the target group
-            self.resources['listeners'][svc_name] = aws.lb.Listener(
+            listeners[svc_name] = aws.lb.Listener(
                 f'{name}-listener-{svc_name}',
                 certificate_arn=svc['listener_cert_arn'] if 'listener_cert_arn' in svc else None,
-                default_actions=[{'type': 'forward', 'targetGroupArn': self.resources['target_groups'][svc_name].arn}],
-                load_balancer_arn=self.resources['albs'][svc_name].arn,
+                default_actions=[{'type': 'forward', 'targetGroupArn': target_groups[svc_name].arn}],
+                load_balancer_arn=albs[svc_name].arn,
                 port=svc['listener_port'] if 'listener_port' in svc else svc['container_port'],
                 protocol=listener_proto,
                 ssl_policy=ssl_policy,
@@ -466,4 +499,4 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self),
             )
 
-        self.finish()
+        self.finish(outputs={}, resources={'albs': albs, 'listeners': listeners, 'target_groups': target_groups})
