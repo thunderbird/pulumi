@@ -346,4 +346,3 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
                 'sg': sg,
             },
         )
-
