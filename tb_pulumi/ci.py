@@ -13,7 +13,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         active_stack: str = 'staging',
         enable_ecr_image_push: bool = False,
-        ecr_repository: str = None,
+        ecr_repositories: str = None,
         enable_fargate_deployments: str = None,
         fargate_clusters: str = None,
         fargate_task_role_arns: str = None,
@@ -51,7 +51,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[access_key]),
             )
 
-            ecr_image_push_policy = None
             if enable_ecr_image_push:
                 policy_dict = {
                     'Version': '2012-10-17',
@@ -70,7 +69,8 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                                 'ecr:PutImage',
                             ],
                             'Resource': [
-                                f'arn:aws:ecr:{project.aws_region}:{project.aws_account_id}:repository/{ecr_repository}'
+                                f'arn:aws:ecr:{project.aws_region}:{project.aws_account_id}:repository/{repo}'
+                                for repo in ecr_repositories
                             ],
                         },
                         {
@@ -104,7 +104,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                             'Sid': 'PutObjects',
                             'Effect': 'Allow',
                             'Action': ['s3:PutObject'],
-                            'Resource': [f'arn:aws:s3:::{bucket}/*' for bucket in s3_upload_buckets]
+                            'Resource': [f'arn:aws:s3:::{bucket}/*' for bucket in s3_upload_buckets],
                         }
                     ],
                 }
@@ -158,8 +158,10 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 ecs_write_resources = []
                 for cluster in fargate_clusters:
                     ecs_write_resources.append(f'arn:aws:ecs:{project.aws_region}:{project.aws_account_id}:*/{cluster}')
-                    ecs_write_resources.append(f'arn:aws:ecs:{project.aws_region}:{project.aws_account_id}:*/{cluster}/*')
-                
+                    ecs_write_resources.append(
+                        f'arn:aws:ecs:{project.aws_region}:{project.aws_account_id}:*/{cluster}/*'
+                    )
+
                 policy_dict = {
                     'Version': '2012-10-17',
                     'Statement': [
@@ -167,13 +169,16 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                             'Sid': 'EcsWriteAccess',
                             'Effect': 'Allow',
                             'Action': ['ecs:*'],
-                            'Resource': ecs_write_resources
+                            'Resource': ecs_write_resources,
                         },
                         {
                             'Sid': 'RegisterTaskDef',
                             'Effect': 'Allow',
                             'Action': ['ecs:RegisterTaskDefinition'],
-                            'Resource': [f'arn:aws:ecs:{project.aws_region}:{project.aws_account_id}:task-definition/{cluster}' for cluster in fargate_clusters]
+                            'Resource': [
+                                f'arn:aws:ecs:{project.aws_region}:{project.aws_account_id}:task-definition/{cluster}'
+                                for cluster in fargate_clusters
+                            ],
                         },
                         {
                             'Sid': 'GlobalObjectReadAccess',
@@ -192,14 +197,14 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                             'Effect': 'Allow',
                             'Action': ['iam:PassRole'],
                             'Resource': fargate_task_role_arns,
-                        }
-                    ]
+                        },
+                    ],
                 }
                 policy_json = json.dumps(policy_dict)
                 fargate_deployment_policy = aws.iam.Policy(
                     f'{name}-policy-fargatedeploy',
                     name=f'{name}-ci-s3-fargatedeploy',
-                    description=f'Allows CI automation for {project.project} to deploy images to Fargate clusters.',
+                    description=f'Allggows CI automation for {project.project} to deploy images to Fargate clusters.',
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
                 )
@@ -209,9 +214,33 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     policy_arn=fargate_deployment_policy.arn,
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[fargate_deployment_policy, user]),
                 )
+            self.finish(
+                outputs={'user_name': user.name},
+                resources={
+                    'user': user,
+                    'access_key': access_key,
+                    'secret': secret,
+                    'ecr_image_push_policy': ecr_image_push_policy if enable_ecr_image_push else None,
+                    's3_upload_policy': s3_upload_policy if enable_s3_bucket_upload else None,
+                    's3_full_access_policy': s3_full_access_policy if enable_full_s3_access else None,
+                    'fargate_deployment_policy': fargate_deployment_policy if enable_fargate_deployments else None,
+                },
+            )
         else:
             msg = (
                 f'The current stack is "{project.stack}", but CI components are associated with the'
                 + f'"{active_stack}" stack. These resources will be skipped on this run.'
             )
             pulumi.info(msg)
+            self.finish(
+                outputs={'user_name': None},
+                resources={
+                    'user': None,
+                    'access_key': None,
+                    'secret': None,
+                    'ecr_image_push_policy': None,
+                    's3_upload_policy': None,
+                    's3_full_access_policy': None,
+                    'fargate_deployment_policy': None,
+                },
+            )
