@@ -37,7 +37,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
             access_key = aws.iam.AccessKey(
                 f'{name}-accesskey',
                 user=user.name,
-                tags=self.tags,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
             )
 
@@ -49,6 +48,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     {'aws_access_key_id': access_key.id, 'aws_secret_access_key': access_key.secret}
                 ),
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[access_key]),
+                tags=self.tags
             )
 
             if enable_ecr_image_push:
