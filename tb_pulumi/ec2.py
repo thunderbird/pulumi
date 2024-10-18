@@ -72,7 +72,7 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         super().__init__('tb:ec2:NetworkLoadBalancer', name, project, opts=opts)
 
         # Build a security group that allows ingress on our listener port
-        self.resources['security_group_with_rules'] = tb_pulumi.network.SecurityGroupWithRules(
+        security_group_with_rules = tb_pulumi.network.SecurityGroupWithRules(
             f'{name}-sg',
             project,
             vpc_id=subnets[0].vpc_id,
@@ -98,24 +98,24 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
             },
             tags=self.tags,
             opts=pulumi.ResourceOptions(parent=self),
-        ).resources
+        )
 
         # Build the load balancer first, as other resources must be attached to it later
-        self.resources['nlb'] = aws.alb.LoadBalancer(
+        nlb = aws.alb.LoadBalancer(
             f'{name}-nlb',
             enable_cross_zone_load_balancing=True,
             internal=internal,
             load_balancer_type='network',
             name=name,
-            security_groups=[self.resources['security_group_with_rules']['sg']],
+            security_groups=[security_group_with_rules.resources['sg']],
             subnets=[subnet.id for subnet in subnets],
             tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['security_group_with_rules']['sg']]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[security_group_with_rules.resources['sg']]),
             **kwargs,
         )
 
         # Build and attach a target group
-        self.resources['target_group'] = aws.lb.TargetGroup(
+        target_group = aws.lb.TargetGroup(
             f'{name}-targetgroup',
             health_check={
                 'enabled': True,
@@ -133,36 +133,43 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
             target_type='ip',
             vpc_id=subnets[0].vpc_id,
             tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['nlb']]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[nlb]),
         )
 
         # Add targets to the target group
-        self.resources['target_group_attachments'] = []
+        target_group_attachments = []
         for idx, ip in enumerate(ips):
-            self.resources['target_group_attachments'].append(
+            target_group_attachments.append(
                 aws.lb.TargetGroupAttachment(
                     f'{name}-tga-{idx}',
-                    target_group_arn=self.resources['target_group'].arn,
+                    target_group_arn=target_group.arn,
                     target_id=ip,
                     port=target_port,
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['target_group']]),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[target_group]),
                 )
             )
 
         # Build the listener, sending traffic to the target group
-        self.resources['listener'] = aws.lb.Listener(
+        listener = aws.lb.Listener(
             f'{name}-listener',
-            default_actions=[{'type': 'forward', 'target_group_arn': self.resources['target_group'].arn}],
-            load_balancer_arn=self.resources['nlb'].arn,
+            default_actions=[{'type': 'forward', 'target_group_arn': target_group.arn}],
+            load_balancer_arn=nlb.arn,
             port=listener_port,
             protocol='TCP',
             tags=self.tags,
-            opts=pulumi.ResourceOptions(
-                parent=self, depends_on=[self.resources['nlb'], self.resources['target_group']]
-            ),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[nlb, target_group]),
         )
 
-        self.finish()
+        self.finish(
+            outputs={'dns_name': nlb.dns_name},
+            resources={
+                'security_group_with_rules': security_group_with_rules,
+                'nlb': nlb,
+                'target_group': target_group,
+                'target_group_attachments': target_group_attachments,
+                'listener': listener,
+            },
+        )
 
 
 class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
@@ -224,10 +231,10 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
     ):
         super().__init__('tb:ec2:SshableInstance', name=name, project=project, opts=opts, **kwargs)
 
-        self.resources['keypair'] = SshKeyPair(f'{name}-keypair', project, public_key=public_key).resources
+        keypair = SshKeyPair(f'{name}-keypair', project, public_key=public_key)
 
         if not vpc_security_group_ids:
-            self.resources['security_group_with_rules'] = tb_pulumi.network.SecurityGroupWithRules(
+            security_group_with_rules = tb_pulumi.network.SecurityGroupWithRules(
                 f'{name}-sg',
                 project,
                 vpc_id=vpc_id,
@@ -252,21 +259,21 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
                     ],
                 },
                 opts=pulumi.ResourceOptions(parent=self),
-            ).resources
-            sg_ids = [self.resources['security_group_with_rules']['sg'].id]
+            )
+            sg_ids = [security_group_with_rules.resources['sg'].id]
         else:
             sg_ids = vpc_security_group_ids
 
         instance_tags = {'Name': name}
         instance_tags.update(self.project.common_tags)
-        self.resources['instance'] = aws.ec2.Instance(
+        instance = aws.ec2.Instance(
             f'{name}-instance',
             ami=ami,
             associate_public_ip_address=True,
             disable_api_stop=False,  # Jump hosts should never contain live services or
             disable_api_termination=False,  # be the source of data; they don't need protection.
             instance_type='t3.micro',
-            key_name=self.resources['keypair']['keypair'].key_name,
+            key_name=keypair.resources['keypair'].key_name,
             root_block_device={'encrypted': True, 'kms_key_id': kms_key_id, 'volume_size': 10, 'volume_type': 'gp3'},
             subnet_id=subnet_id,
             user_data=user_data,
@@ -276,7 +283,17 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(parent=self),
         )
 
-        self.finish()
+        self.finish(
+            outputs={
+                'instance_dns': instance.public_dns,
+                'instance_ip': instance.public_ip,
+            },
+            resources={
+                'instance': instance,
+                'keypair': keypair,
+                'security_group': security_group_with_rules,
+            },
+        )
 
 
 class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
@@ -326,13 +343,13 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
         super().__init__('tb:ec2:SshKeyPair', name, project, opts=opts, **kwargs)
 
         if not public_key:
-            self.resources['private_key'], self.resources['public_key'] = generate_ssh_keypair(key_size=key_size)
-            self.resources['keypair'] = aws.ec2.KeyPair(
+            private_key, public_key = generate_ssh_keypair(key_size=key_size)
+            keypair = aws.ec2.KeyPair(
                 f'{name}-keypair',
                 key_name=name,
                 public_key=self.resources['public_key'],
                 tags=self.tags,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['private_key']]),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[private_key]),
             )
 
             if secret_name is not None:
@@ -343,22 +360,22 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
             priv_secret = f'{prefix}/private_key'
             pub_secret = f'{prefix}/public_key'
 
-            self.resources['private_key_secret'] = tb_pulumi.secrets.SecretsManagerSecret(
+            private_key_secret = tb_pulumi.secrets.SecretsManagerSecret(
                 f'{name}/privatekey',
                 project,
                 secret_name=priv_secret,
                 secret_value=self.resources['private_key'],
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['private_key']]),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[private_key]),
             )
-            self.resources['public_key_secret'] = tb_pulumi.secrets.SecretsManagerSecret(
+            public_key_secret = tb_pulumi.secrets.SecretsManagerSecret(
                 f'{name}/publickey',
                 project,
                 secret_name=pub_secret,
                 secret_value=self.resources['public_key'],
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['public_key']]),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[public_key]),
             )
         else:
-            self.resources['keypair'] = aws.ec2.KeyPair(
+            keypair = aws.ec2.KeyPair(
                 f'{name}-keypair',
                 key_name=name,
                 public_key=public_key,
@@ -366,7 +383,15 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self),
             )
 
-        self.finish()
+        self.finish(
+            outputs={'keypair': keypair.id},
+            resources={
+                'private_key': private_key if not public_key else None,
+                'keypair': keypair,
+                'private_key_secret': private_key_secret if not public_key else None,
+                'public_key_secret': public_key_secret if not public_key else None,
+            },
+        )
 
 
 def generate_ssh_keypair(key_size: int = 4096) -> (str, str):

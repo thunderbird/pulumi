@@ -89,7 +89,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         # Build a VPC
         vpc_tags = {'Name': name}
         vpc_tags.update(self.tags)
-        self.resources['vpc'] = aws.ec2.Vpc(
+        vpc = aws.ec2.Vpc(
             name,
             opts=pulumi.ResourceOptions(parent=self),
             cidr_block=cidr_block,
@@ -98,31 +98,31 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Build subnets in that VPC
-        self.resources['subnets'] = []
+        subnet_rs = []
         for idx, subnet in enumerate(subnets.items()):
             az, cidrs = subnet
             for cidr in cidrs:
                 subnet_resname = f'{name}-subnet-{idx}'
                 subnet_tags = {'Name': subnet_resname}
                 subnet_tags.update(self.tags)
-                self.resources['subnets'].append(
+                subnet_rs.append(
                     aws.ec2.Subnet(
                         subnet_resname,
                         availability_zone=az,
                         cidr_block=cidr,
                         tags=subnet_tags,
-                        vpc_id=self.resources['vpc'].id,
-                        opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['vpc']]),
+                        vpc_id=vpc.id,
+                        opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
                     )
                 )
 
         # Associate the VPC's default route table to all of the subnets
-        self.resources['route_table_subnet_associations'] = []
-        for idx, subnet in enumerate(self.resources['subnets']):
-            self.resources['route_table_subnet_associations'].append(
+        route_table_subnet_associations = []
+        for idx, subnet in enumerate(subnet_rs):
+            route_table_subnet_associations.append(
                 aws.ec2.RouteTableAssociation(
                     f'{name}-subnetassoc-{idx}',
-                    route_table_id=self.resources['vpc'].default_route_table_id,
+                    route_table_id=vpc.default_route_table_id,
                     subnet_id=subnet.id,
                 )
             )
@@ -131,57 +131,53 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         if enable_internet_gateway:
             ig_tags = {'Name': name}
             ig_tags.update(self.tags)
-            self.resources['internet_gateway'] = aws.ec2.InternetGateway(
+            internet_gateway = aws.ec2.InternetGateway(
                 f'{name}-ig',
-                vpc_id=self.resources['vpc'].id,
+                vpc_id=vpc.id,
                 tags=ig_tags,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=self.resources['vpc']),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=vpc),
             )
             if egress_via_internet_gateway:
-                self.resources['subnet_ig_route'] = aws.ec2.Route(
+                subnet_ig_route = aws.ec2.Route(
                     f'{name}-igroute',
-                    route_table_id=self.resources['vpc'].default_route_table_id,
+                    route_table_id=vpc.default_route_table_id,
                     destination_cidr_block='0.0.0.0/0',
-                    gateway_id=self.resources['internet_gateway'].id,
-                    opts=pulumi.ResourceOptions(
-                        parent=self, depends_on=[self.resources['vpc'], self.resources['internet_gateway']]
-                    ),
+                    gateway_id=internet_gateway.id,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, internet_gateway]),
                 )
 
         if enable_nat_gateway:
-            self.resources['nat_eip'] = aws.ec2.Eip(
+            nat_eip = aws.ec2.Eip(
                 f'{name}-eip',
                 domain='vpc',
                 public_ipv4_pool='amazon',
                 network_border_group=self.project.aws_region,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=self.resources['vpc']),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=vpc),
             )
             ng_tags = {'Name': name}
             ng_tags.update(self.tags)
-            self.resources['nat_gateway'] = aws.ec2.NatGateway(
+            nat_gateway = aws.ec2.NatGateway(
                 f'{name}-nat',
-                allocation_id=self.resources['nat_eip'].allocation_id,
-                subnet_id=self.resources['subnets'][0].id,
+                allocation_id=nat_eip.allocation_id,
+                subnet_id=subnets[0].id,
                 tags=ng_tags,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=self.resources['nat_eip']),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=nat_eip),
             )
             if egress_via_nat_gateway:
-                self.resources['subnet_ng_route'] = aws.ec2.Route(
+                subnet_ng_route = aws.ec2.Route(
                     f'{name}-ngroute',
-                    route_table_id=self.resources['vpc'].default_route_table_id,
+                    route_table_id=vpc.default_route_table_id,
                     destination_cidr_block='0.0.0.0/0',
-                    gateway_id=self.resources['nat_gateway'].id,
-                    opts=pulumi.ResourceOptions(
-                        parent=self, depends_on=[self.resources['vpc'], self.resources['nat_gateway']]
-                    ),
+                    gateway_id=nat_gateway.id,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, nat_gateway]),
                 )
 
         # If we have to build endpoints, we have to have a security group to let local traffic in
         if len(endpoint_interfaces + endpoint_gateways) > 0:
-            self.resources['endpoint_sg'] = tb_pulumi.network.SecurityGroupWithRules(
+            endpoint_sg = tb_pulumi.network.SecurityGroupWithRules(
                 f'{name}-endpoint-sg',
                 project,
-                vpc_id=self.resources['vpc'].id,
+                vpc_id=vpc.id,
                 rules={
                     'ingress': [
                         {
@@ -204,43 +200,57 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 },
                 opts=pulumi.ResourceOptions(parent=self),
                 tags=self.tags,
-            ).resources
+            )
 
-        self.resources['interfaces'] = []
+        interfaces = []
         for svc in endpoint_interfaces:
-            self.resources['interfaces'].append(
+            interfaces.append(
                 aws.ec2.VpcEndpoint(
                     f'{name}-interface-{svc}',
                     private_dns_enabled=True,
                     service_name=f'com.amazonaws.{self.project.aws_region}.{svc}',
-                    security_group_ids=[self.resources['endpoint_sg']['sg'].id],
-                    subnet_ids=[subnet.id for subnet in self.resources['subnets']],
+                    security_group_ids=[endpoint_sg.resources['sg'].id],
+                    subnet_ids=[subnet.id for subnet in subnet_rs],
                     vpc_endpoint_type='Interface',
-                    vpc_id=self.resources['vpc'].id,
+                    vpc_id=vpc.id,
                     tags=self.tags,
-                    opts=pulumi.ResourceOptions(
-                        parent=self, depends_on=[*self.resources['subnets'], self.resources['endpoint_sg']['sg']]
-                    ),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[*subnet_rs, endpoint_sg.resources['sg']]),
                 )
             )
 
-        self.resources['gateways'] = []
+        gateways = []
         for svc in endpoint_gateways:
-            self.resources['gateways'].append(
+            gateways.append(
                 aws.ec2.VpcEndpoint(
                     f'{name}-gateway-{svc}',
-                    route_table_ids=[self.resources['vpc'].default_route_table_id],
+                    route_table_ids=[vpc.default_route_table_id],
                     service_name=f'com.amazonaws.{self.project.aws_region}.{svc}',
                     vpc_endpoint_type='Gateway',
-                    vpc_id=self.resources['vpc'].id,
+                    vpc_id=vpc.id,
                     tags=self.tags,
-                    opts=pulumi.ResourceOptions(
-                        parent=self, depends_on=[*self.resources['subnets'], self.resources['endpoint_sg']['sg']]
-                    ),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[*subnet_rs, endpoint_sg.resources['sg']]),
                 )
             )
 
-        self.finish()
+        self.finish(
+            outputs={
+                'subnets': [subnet.id for subnet in subnet_rs],
+                'vpc': vpc.id,
+            },
+            resources={
+                'endpoint_sg': endpoint_sg if len(endpoint_interfaces + endpoint_gateways) > 0 else None,
+                'gateways': gateways,
+                'interfaces': interfaces,
+                'internet_gateway': internet_gateway if enable_internet_gateway else None,
+                'nat_eip': nat_eip if enable_nat_gateway else None,
+                'nat_gateway': nat_gateway if enable_nat_gateway else None,
+                'route_table_subnet_associations': route_table_subnet_associations,
+                'subnets': subnet_rs,
+                'subnet_ig_route': subnet_ig_route if enable_internet_gateway and egress_via_internet_gateway else None,
+                'subnet_ng_route': subnet_ng_route if enable_nat_gateway and egress_via_nat_gateway else None,
+                'vpc': vpc,
+            },
+        )
 
 
 class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
@@ -293,7 +303,7 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         super().__init__('tb:network:SecurityGroupWithRules', name, project, opts=opts, **kwargs)
 
         # Build a security group in the provided VPC
-        self.resources['sg'] = aws.ec2.SecurityGroup(
+        sg = aws.ec2.SecurityGroup(
             f'{name}-sg',
             opts=pulumi.ResourceOptions(parent=self),
             name=name,
@@ -303,29 +313,36 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Set up security group rules for that SG
-        self.resources['ingress_rules'] = []
-        self.resources['egress_rules'] = []
+        ingress_rules = []
+        egress_rules = []
 
         ingress_ruledefs = rules['ingress']
         for rule in ingress_ruledefs:
-            rule.update({'type': 'ingress', 'security_group_id': self.resources['sg'].id})
-            self.resources['ingress_rules'].append(
+            rule.update({'type': 'ingress', 'security_group_id': sg.id})
+            ingress_rules.append(
                 aws.ec2.SecurityGroupRule(
                     f'{name}-ingress-{rule['to_port']}',
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['sg']]),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[sg]),
                     **rule,
                 )
             )
 
         egress_ruledefs = rules['egress']
         for rule in egress_ruledefs:
-            rule.update({'type': 'egress', 'security_group_id': self.resources['sg'].id})
-            self.resources['egress_rules'].append(
+            rule.update({'type': 'egress', 'security_group_id': sg.id})
+            egress_rules.append(
                 aws.ec2.SecurityGroupRule(
                     f'{name}-egress-{rule['to_port']}',
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['sg']]),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[sg]),
                     **rule,
                 )
             )
 
-        self.finish()
+        self.finish(
+            outputs={'sg': sg.id},
+            resources={
+                'egress_rules': egress_rules,
+                'ingress_rules': ingress_rules,
+                'sg': sg,
+            },
+        )
