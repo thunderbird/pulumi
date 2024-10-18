@@ -40,15 +40,16 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
             )
 
+            secret_value = pulumi.Output.all(id=access_key.id, secret=access_key.secret).apply(
+                lambda args: json.dumps({'aws_access_key_id': args['id'], 'aws_secret_access_key': args['secret']})
+            )
             secret = tb_pulumi.secrets.SecretsManagerSecret(
                 f'{name}-secret-accesskey',
                 project=project,
                 secret_name=f'{project.project}/{project.stack}/ci-access-keys',
-                secret_value=json.dumps(
-                    {'aws_access_key_id': access_key.id, 'aws_secret_access_key': access_key.secret}
-                ),
+                secret_value=secret_value,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[access_key]),
-                tags=self.tags
+                tags=self.tags,
             )
 
             if enable_ecr_image_push:
@@ -241,6 +242,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     'ecr_image_push_policy': None,
                     's3_upload_policy': None,
                     's3_full_access_policy': None,
-                    'fargate_deployment_policy': None
-                }
+                    'fargate_deployment_policy': None,
+                },
             )
