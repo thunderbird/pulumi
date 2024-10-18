@@ -241,6 +241,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     'ecr_image_push_policy': None,
                     's3_upload_policy': None,
                     's3_full_access_policy': None,
-                    'fargate_deployment_policy': None,
-                },
+                    'fargate_deployment_policy': None
+                }
             )
