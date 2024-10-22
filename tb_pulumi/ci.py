@@ -93,7 +93,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
 
                 # Ignore unused variable rules for attachments like this using "noqa" statements for rule F841.
                 # Ref: https://docs.astral.sh/ruff/rules/unused-variable/
-                ecr_image_push_policy_attachment = aws.iam.PolicyAttachment( # noqa: F841
+                ecr_image_push_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
                     f'{name}-polatt-ecrpush',
                     users=[user],
                     policy_arn=ecr_image_push_policy.arn,
@@ -120,7 +120,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
                 )
-                s3_upload_policy_attachment = aws.iam.PolicyAttachment( # noqa: F841
+                s3_upload_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
                     f'{name}-polatt-s3upload',
                     users=[user],
                     policy_arn=s3_upload_policy.arn,
@@ -151,7 +151,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
                 )
-                s3_full_access_policy_attachment = aws.iam.PolicyAttachment( # noqa: F841
+                s3_full_access_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
                     f'{name}-polatt-s3fullaccess',
                     users=[user],
                     policy_arn=s3_full_access_policy.arn,
