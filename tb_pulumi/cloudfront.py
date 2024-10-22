@@ -64,7 +64,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
 
         # The function supports supplying the bucket policy at this time, but we have to have the CF distro built first.
         # For this reason, we build the bucket without the policy and attach the policy later on.
-        self.resources['service_bucket'] = aws.s3.Bucket(
+        service_bucket = aws.s3.Bucket(
             f'{name}-servicebucket',
             bucket=service_bucket_name,
             server_side_encryption_configuration={
@@ -75,7 +75,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # S3 bucket to store access logs from CloudFront
-        self.resources['logging_bucket'] = aws.s3.Bucket(
+        logging_bucket = aws.s3.Bucket(
             f'{name}-loggingbucket',
             bucket=f'{service_bucket_name}-logs',
             server_side_encryption_configuration={
@@ -85,17 +85,17 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             tags=self.tags,
         )
 
-        self.resources['logging_bucket_ownership'] = aws.s3.BucketOwnershipControls(
+        logging_bucket_ownership = aws.s3.BucketOwnershipControls(
             f'{name}-bucketownership',
-            bucket=self.resources['logging_bucket'].id,
+            bucket=logging_bucket.id,
             rule={'object_ownership': 'BucketOwnerPreferred'},
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['logging_bucket']]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket]),
         )
 
         canonical_user = aws.s3.get_canonical_user_id().id
-        self.resources['logging_bucket_acl'] = aws.s3.BucketAclV2(
+        logging_bucket_acl = aws.s3.BucketAclV2(
             f'{name}-bucketacl',
-            bucket=self.resources['logging_bucket'].id,
+            bucket=logging_bucket.id,
             access_control_policy={
                 'grants': [
                     {
@@ -105,18 +105,18 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
                 ],
                 'owner': {'id': canonical_user},
             },
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['logging_bucket_ownership']]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket_ownership]),
         )
 
         # Create an Origin Access Control to use when CloudFront talks to S3
-        self.resources['oac'] = aws.cloudfront.OriginAccessControl(
+        oac = aws.cloudfront.OriginAccessControl(
             f'{name}-oac',
             origin_access_control_origin_type='s3',
             signing_behavior='always',
             signing_protocol='sigv4',
             description=f'Serve {service_bucket_name} contents via CDN',
             name=service_bucket_name,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[self.resources['service_bucket']]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[service_bucket]),
         )
 
         # Define the S3 DistributionOrigin and set up the distribution
@@ -126,19 +126,19 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         s3_origin = {
             'domain_name': bucket_regional_domain_name,
             'origin_id': bucket_regional_domain_name,
-            'origin_access_control_id': self.resources['oac'].id,
+            'origin_access_control_id': oac.id,
         }
         all_origins = [s3_origin]
         all_origins.extend(origins)
 
         # Merge logging settings from the config file with this generated bucket name
-        logging_config = {'bucket': self.resources['logging_bucket'].bucket_domain_name}
+        logging_config = {'bucket': logging_bucket.bucket_domain_name}
         if 'logging_config' in distribution:
             logging_config.update(distribution['logging_config'])
             # Consume this now so it doesn't create kwarg problems later
             del distribution['logging_config']
 
-        self.resources['cloudfront_distribution'] = aws.cloudfront.Distribution(
+        cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
             default_cache_behavior={
                 'allowed_methods': ['HEAD', 'DELETE', 'POST', 'GET', 'OPTIONS', 'PUT', 'PATCH'],
@@ -177,19 +177,34 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
                     'Principal': {'Service': 'cloudfront.amazonaws.com'},
                     'Action': 's3:GetObject',
                     'Resource': f'arn:aws:s3:::{service_bucket_name}/*',
-                    'Condition': {'StringEquals': {'AWS:SourceArn': self.resources['cloudfront_distribution'].arn}},
+                    'Condition': {'StringEquals': {'AWS:SourceArn': cloudfront_distribution.arn}},
                 }
             ],
         }
 
-        self.resources['service_bucket_policy'] = aws.s3.BucketPolicy(
+        service_bucket_policy = aws.s3.BucketPolicy(
             f'{name}-bucketpolicy-service',
-            bucket=self.resources['service_bucket'],
+            bucket=service_bucket,
             policy=bucket_policy,
             opts=pulumi.ResourceOptions(
                 parent=self,
-                depends_on=[self.resources['service_bucket'], self.resources['cloudfront_distribution']],
+                depends_on=[service_bucket, cloudfront_distribution],
             ),
         )
 
-        self.finish()
+        self.finish(
+            outputs={
+                'service_bucket': service_bucket.id,
+                'logging_bucket': logging_bucket.id,
+                'cloudfront_domain': cloudfront_distribution.domain_name,
+            },
+            resources={
+                'service_bucket': service_bucket,
+                'logging_bucket': logging_bucket,
+                'logging_bucket_ownership': logging_bucket_ownership,
+                'logging_bucket_acl': logging_bucket_acl,
+                'origin_access_control': oac,
+                'cloudfront_distribution': cloudfront_distribution,
+                'service_bucket_policy': service_bucket_policy,
+            },
+        )

@@ -210,9 +210,9 @@ So you want to develop a new pattern to stamp out? Here's what you'll need to do
     * The class should extend ``tb_pulumi.ThunderbirdComponentResource``.
     * The class should call its superconstructor in the following way:
         * ``super().__init__(typestring, name, project, opts=opts)``
-    * Any resources you create should always be assigned a key in ``self.resources``.
     * Any resources you create must have the ``parent=self`` ``pulumi.ResourceOption`` set.
-    * At the end of the ``__init__`` function, you must call ``self.finish()``
+    * At the end of the ``__init__`` function, you must call ``self.finish()``, passing in a dictionary of ``outputs``
+      and one of ``resources`` (see :py:meth:`tb_pulumi.ThunderbirdComponentResource.finish`).
 
 
 Troubleshooting
