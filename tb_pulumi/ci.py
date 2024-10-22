@@ -90,7 +90,10 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
                 )
-                ecr_image_push_policy_attachment = aws.iam.PolicyAttachment(
+
+                # Ignore unused variable rules for attachments like this using "noqa" statements for rule F841.
+                # Ref: https://docs.astral.sh/ruff/rules/unused-variable/
+                ecr_image_push_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
                     f'{name}-polatt-ecrpush',
                     users=[user],
                     policy_arn=ecr_image_push_policy.arn,
@@ -117,7 +120,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
                 )
-                s3_upload_policy_attachment = aws.iam.PolicyAttachment(
+                s3_upload_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
                     f'{name}-polatt-s3upload',
                     users=[user],
                     policy_arn=s3_upload_policy.arn,
@@ -148,7 +151,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
                 )
-                s3_full_access_policy_attachment = aws.iam.PolicyAttachment(
+                s3_full_access_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
                     f'{name}-polatt-s3fullaccess',
                     users=[user],
                     policy_arn=s3_full_access_policy.arn,
@@ -209,7 +212,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
                 )
-                fargate_deployment_policy_attachment = aws.iam.PolicyAttachment(
+                fargate_deployment_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
                     f'{name}-polatt-fargatedeploy',
                     users=[user],
                     policy_arn=fargate_deployment_policy.arn,
@@ -243,11 +246,5 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     's3_upload_policy': None,
                     's3_full_access_policy': None,
                     'fargate_deployment_policy': None,
-                    'iam_policy_attachments': [
-                        ecr_image_push_policy_attachment,
-                        s3_upload_policy_attachment,
-                        s3_full_access_policy_attachment,
-                        fargate_deployment_policy_attachment,
-                    ],
                 },
             )
