@@ -49,7 +49,7 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
         )
 
         version = aws.secretsmanager.SecretVersion(
-            f'{name}-secretversion-{short_name}',
+            f'{name}-secretversion',
             secret_id=secret.id,
             secret_string=secret_value,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[secret]),
@@ -101,7 +101,7 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
             # Use our module to build a secret
             secret_fullname = f'{self.project.project}/{self.project.stack}/{secret_name}'
             secret = SecretsManagerSecret(
-                name=f'{name}-secret-{secret_name}',
+                name=f'{name}-{secret_name}',
                 project=self.project,
                 secret_name=secret_fullname,
                 secret_value=secret_string,
