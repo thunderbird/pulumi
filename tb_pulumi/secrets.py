@@ -106,7 +106,7 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
                 secret_name=secret_fullname,
                 secret_value=secret_string,
                 opts=pulumi.ResourceOptions(parent=self),
-                **kwargs
+                **kwargs,
             )
             secrets.append(secret)
 
