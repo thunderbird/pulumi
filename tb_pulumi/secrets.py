@@ -45,7 +45,7 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
 
         short_name = secret_name.split('/')[-1]
         secret = aws.secretsmanager.Secret(
-            f'{name}-secret-{short_name}', opts=pulumi.ResourceOptions(parent=self), name=secret_name, **kwargs
+            f'{name}-secret', opts=pulumi.ResourceOptions(parent=self), name=secret_name, **kwargs
         )
 
         version = aws.secretsmanager.SecretVersion(
