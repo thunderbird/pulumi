@@ -38,6 +38,11 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution>`_. Defaults to {}.
     :type distribution: dict, optional
 
+    :param forcibly_destroy_buckets: When True, the service bucket and logging bucket will both be forcibly emptied -
+        all their contents **destroyed beyond recovery** - when the bucket resource is destroyed. This is dangerous, as
+        it bypasses protections against data loss. Only enable this for volatile environments. Defaults to False.
+    :type forcibly_destroy_buckets bool, optional
+
     :param origins: List of `DistributionOrigin
         <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorigin>`_ objects to
         add. This list should not include any references to the S3 bucket, which is managed by this module. Defaults to
@@ -56,6 +61,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         service_bucket_name: str,
         behaviors: list[dict] = [],
         distribution: dict = {},
+        forcibly_destroy_buckets: bool = False,
         origins: list[dict] = [],
         opts: pulumi.ResourceOptions = None,
         **kwargs,
@@ -67,6 +73,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         service_bucket = aws.s3.Bucket(
             f'{name}-servicebucket',
             bucket=service_bucket_name,
+            force_destroy=forcibly_destroy_buckets,
             server_side_encryption_configuration={
                 'rule': {'applyServerSideEncryptionByDefault': {'sseAlgorithm': 'AES256'}, 'bucket_key_enabled': True}
             },
@@ -78,6 +85,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         logging_bucket = aws.s3.Bucket(
             f'{name}-loggingbucket',
             bucket=f'{service_bucket_name}-logs',
+            force_destroy=forcibly_destroy_buckets,
             server_side_encryption_configuration={
                 'rule': {'applyServerSideEncryptionByDefault': {'sseAlgorithm': 'AES256'}, 'bucket_key_enabled': True}
             },

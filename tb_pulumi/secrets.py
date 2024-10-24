@@ -28,8 +28,8 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
-    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
-        superconstructor.
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ``aws.secretsmanager.Secret``
+        resource.
     """
 
     def __init__(
@@ -41,15 +41,14 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        super().__init__('tb:secrets:SecretsManagerSecret', name, project, opts=opts, **kwargs)
+        super().__init__('tb:secrets:SecretsManagerSecret', name, project, opts=opts)
 
-        short_name = secret_name.split('/')[-1]
         secret = aws.secretsmanager.Secret(
-            f'{name}-secret-{short_name}', opts=pulumi.ResourceOptions(parent=self), name=secret_name
+            f'{name}-secret', opts=pulumi.ResourceOptions(parent=self), name=secret_name, **kwargs
         )
 
         version = aws.secretsmanager.SecretVersion(
-            f'{name}-secretversion-{short_name}',
+            f'{name}-secretversion',
             secret_id=secret.id,
             secret_string=secret_value,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[secret]),
@@ -78,8 +77,8 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
         - kwargs: Any other keyword arguments which will be passed as inputs to the
             ThunderbirdComponentResource superconstructor.
 
-    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
-        superconstructor.
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ``aws.secretsmanager.Secret``
+        resource.
     """
 
     def __init__(
@@ -90,34 +89,28 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        super().__init__('tb:secrets:PulumiSecretsManager', name, project, opts=opts, **kwargs)
+        super().__init__('tb:secrets:PulumiSecretsManager', name, project, opts=opts)
         secrets = []
-        versions = []
 
         # First build the secrets
         for secret_name in secret_names:
             # Pull the secret's value from Pulumi's encrypted state
             secret_string = self.project.pulumi_config.require_secret(secret_name)
 
-            # Declare a Secrets Manager Secret
+            # Use our module to build a secret
             secret_fullname = f'{self.project.project}/{self.project.stack}/{secret_name}'
-            secret = aws.secretsmanager.Secret(
-                f'{name}-secret-{secret_name}', opts=pulumi.ResourceOptions(parent=self), name=secret_fullname
+            secret = SecretsManagerSecret(
+                name=f'{name}-{secret_name}',
+                project=self.project,
+                secret_name=secret_fullname,
+                secret_value=secret_string,
+                opts=pulumi.ResourceOptions(parent=self),
+                **kwargs,
             )
             secrets.append(secret)
 
-            # Populate its value
-            versions.append(
-                aws.secretsmanager.SecretVersion(
-                    f'{name}-secretversion-{secret_name}',
-                    opts=pulumi.ResourceOptions(parent=self),
-                    secret_id=secret.id,
-                    secret_string=secret_string,
-                )
-            )
-
         # Then create an IAM policy allowing access to them
-        secret_arns = [secret.arn for secret in secrets]
+        secret_arns = [secret.resources['secret'].arn for secret in secrets]
         policy = pulumi.Output.all(*secret_arns).apply(
             lambda secret_arns: json.dumps(
                 {
@@ -143,5 +136,5 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
 
         self.finish(
             outputs={'policy_id': policy.policy_id, 'secret_ids': [secret.id for secret in secrets]},
-            resources={'secrets': secrets, 'versions': versions, 'policy': policy},
+            resources={'secrets': secrets, 'policy': policy},
         )
