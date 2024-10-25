@@ -1,5 +1,17 @@
 # tb_pulumi Changelog
 
+## v0.0.5
+
+  - Added feature to `CloudFrontS3Service`s where S3 buckets can be forcibly destroyed, even if they contain objects.
+  - The `secrets` module has been refactored in two ways:
+    1.  The `SecretsManagerSecrets` class now passes all extra keyword arguments into the `Secret` resource, allowing
+        for configuration of other inputs of that resource.
+    2.  The `PulumiSecretsManager` class no longer manages its own `Secret` and `SecretVersion` resources, relying
+        instead on the `SecretsManagerSecrets` class to better organize things. **This particular change may present
+        challenges at the time your Pulumi code is upgraded to v0.0.5, as it will cause a recreation of all secrets
+        managed through this module. This will result in new ARNs which you will have to update anywhere they are used.
+  - These features both serve to make destroying and rebuilding stacks less painful.
+
 ## v0.0.4
 
   - Resolved issues related to S3 bucket permissions which were preventing clean environment builds from scratch ([Issue #21](https://github.com/thunderbird/pulumi/issues/21)).
