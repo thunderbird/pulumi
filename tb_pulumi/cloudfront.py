@@ -2,6 +2,7 @@
 `AWS CloudFront <https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html>`_.
 """
 
+import json
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
@@ -200,6 +201,29 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             ),
         )
 
+        # Create a policy allowing cache invalidation of this distro
+        invalidation_policydoc = {
+            'Version': '2008-10-17',
+            'Id': 'CacheInvalidation',
+            'Statement': [
+                {
+                    'Sid': 'InvalidateDistroCache',
+                    'Effect': 'Allow',
+                    'Action': ['cloudfront:CreateInvalidation'],
+                    'Resource': [cloudfront_distribution.arn]
+                }
+            ]
+        }
+        invalidation_policydoc_json = json.dumps(invalidation_policydoc)
+
+        invalidation_policy = aws.iam.Policy(
+            f'{name}-policy-invalidation',
+            name=f'{name}-cache-invalidation',
+            description=f'Allows for the invalidation of CDN cache for CloudFront distribution {name}',
+            policy=invalidation_policydoc_json,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[cloudfront_distribution])
+        )
+
         self.finish(
             outputs={
                 'service_bucket': service_bucket.id,
@@ -214,5 +238,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
                 'origin_access_control': oac,
                 'cloudfront_distribution': cloudfront_distribution,
                 'service_bucket_policy': service_bucket_policy,
+                'invalidation_policy': invalidation_policy
             },
         )

@@ -176,11 +176,17 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                             'Resource': ecs_write_resources,
                         },
                         {
+                            'Sid': 'DescribeTaskDefs',
+                            'Effect': 'Allow',
+                            'Action': ['ecs:DescribeTaskDefinition'],
+                            'Resource': ['*']
+                        },
+                        {
                             'Sid': 'RegisterTaskDef',
                             'Effect': 'Allow',
                             'Action': ['ecs:RegisterTaskDefinition'],
                             'Resource': [
-                                f'arn:aws:ecs:{project.aws_region}:{project.aws_account_id}:task-definition/{cluster}'
+                                f'arn:aws:ecs:{project.aws_region}:{project.aws_account_id}:task-definition/{cluster}:*'
                                 for cluster in fargate_clusters
                             ],
                         },
