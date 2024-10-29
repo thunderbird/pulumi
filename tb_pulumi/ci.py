@@ -245,7 +245,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                             'Sid': 'DescribeTaskDefs',
                             'Effect': 'Allow',
                             'Action': ['ecs:DescribeTaskDefinition'],
-                            'Resource': ['*']
+                            'Resource': ['*'],
                         },
                         {
                             'Sid': 'RegisterTaskDef',
@@ -297,7 +297,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                         f'{name}-polatt-additional-{idx}',
                         users=[user],
                         policy_arn=policy,
-                        opts=pulumi.ResourceOptions(parent=self, depends_on=[user])
+                        opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
                     )
 
             self.finish(

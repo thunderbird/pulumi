@@ -202,19 +202,21 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Create a policy allowing cache invalidation of this distro
-        invalidation_policy_json = cloudfront_distribution.arn.apply(lambda distro_arn:
-            json.dumps({
-                'Version': '2012-10-17',
-                'Id': 'CacheInvalidation',
-                'Statement': [
-                    {
-                        'Sid': 'InvalidateDistroCache',
-                        'Effect': 'Allow',
-                        'Action': ['cloudfront:CreateInvalidation'],
-                        'Resource': [distro_arn]
-                    }
-                ]
-            })
+        invalidation_policy_json = cloudfront_distribution.arn.apply(
+            lambda distro_arn: json.dumps(
+                {
+                    'Version': '2012-10-17',
+                    'Id': 'CacheInvalidation',
+                    'Statement': [
+                        {
+                            'Sid': 'InvalidateDistroCache',
+                            'Effect': 'Allow',
+                            'Action': ['cloudfront:CreateInvalidation'],
+                            'Resource': [distro_arn],
+                        }
+                    ],
+                }
+            )
         )
 
         invalidation_policy = aws.iam.Policy(
@@ -222,7 +224,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             name=f'{name}-cache-invalidation',
             description=f'Allows for the invalidation of CDN cache for CloudFront distribution {name}',
             policy=invalidation_policy_json,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[cloudfront_distribution])
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[cloudfront_distribution]),
         )
 
         self.finish(
@@ -239,6 +241,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
                 'origin_access_control': oac,
                 'cloudfront_distribution': cloudfront_distribution,
                 'service_bucket_policy': service_bucket_policy,
-                'invalidation_policy': invalidation_policy
+                'invalidation_policy': invalidation_policy,
             },
         )
