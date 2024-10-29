@@ -5,6 +5,7 @@ tb_pulumi
    :maxdepth: 4
 
    tb_pulumi
+   ci
    cloudfront
    constants
    ec2

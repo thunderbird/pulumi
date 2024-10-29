@@ -11,10 +11,11 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
-        active_stack: str = 'staging',
+        active_stack: str = 'stage',
+        additional_policies: list[str] = [],
         enable_ecr_image_push: bool = False,
-        ecr_repositories: str = None,
-        enable_fargate_deployments: str = None,
+        ecr_repositories: list[str] = None,
+        enable_fargate_deployments: str = False,
         fargate_clusters: str = None,
         fargate_task_role_arns: str = None,
         enable_full_s3_access: bool = False,
@@ -24,6 +25,71 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
+        """Creates an IAM user, then creates a keypair for it. The keypair data is stored in Secrets Manager. Several
+        options, documented below, exist to provide some common permission sets for build and deployment patterns used
+        in these modules. Additional policies can be added arbitrarily to expand these permissions.
+
+        Because CI processes affect resources built across multiple environments (which can also be interpreted as
+        multiple Pulumi stacks), these items are only created in a single stack.
+
+        :param name: Name of the IAM user to create.
+        :type name: str
+
+        :param project: The ThunderbirdPulumiProject to add these resources to.
+        :type project: tb_pulumi.ThunderbirdPulumiProject
+
+        :param active_stack: The name of the stack to manage these single-stack resources in. Defaults to 'stage'.
+            You should always set this to a stack you expect to be a permanent fixture in your infrastructure.
+        :type active_stack: str, optional
+
+        :param additional_policies: List of ARNs of IAM policies to additionally attach to the user. Defaults to [].
+        :type additional_policies: list[str], optional
+
+        :param enable_ecr_image_push: When True, attaches a policy to the user which allows it to push images to ECR
+            repositories. Use this when your CI pipeline involves building a container image and pushing it to an ECR
+            repo. Defaults to False.
+        :type enable_ecr_image_push: bool, optional
+
+        :param ecr_repositories: When ``enabled_ecr_image_push`` is True, permission will be granted to push images to
+            these ECR repositories. Defaults to None.
+        :type ecr_repositories: list[str], optional
+
+        :param enable_fargate_deployments: When True, attaches a policy which allows new task definitions to be deployed
+            to Fargate services. Use this when your CI pipeline needs to deploy new images to Fargate services. Defaults
+            to False.
+        :type enable_fargate_deployments: str, optional
+
+        :param fargate_clusters: When ``enable_fargate_deployments`` is True, permission will be granted to deploy to
+            this list of clusters. Defaults to None.
+        :type fargate_clusters: str, optional
+
+        :param fargate_task_role_arns: When ``enable_fargate_deployments`` is True, permission will be granted for the
+            user to authenticate as this list of task roles. This should be a list of ARNs of task execution roles in
+            the clusters you wish to deploy to. Defaults to None.
+        :type fargate_task_role_arns: str, optional
+
+        :param enable_full_s3_access: When True, allows the user unrestricted access to select S3 buckets. Use this when
+            your CI needs to be able to run Pulumi executions. Those commands will need to run with access to the Pulumi
+            state bucket. Defaults to False.
+        :type enable_full_s3_access: bool, optional
+
+        :param s3_full_access_buckets: When ``enable_full_s3_access`` is True, full permission will be granted to this
+            list of buckets and all objects within them. Defaults to [].
+        :type s3_full_access_buckets: list, optional
+
+        :param enable_s3_bucket_upload: When True, allows the user to upload files into select S3 buckets. Use this when
+            your CI pipeline needs to deploy files to an S3 bucket, such as when using a
+            :py:class:`tb_pulumi.cloudfront.CloudFrontS3Service`. Defaults to False.
+        :type enable_s3_bucket_upload: bool, optional
+
+        :param s3_upload_buckets: When ``enable_s3_bucket_upload`` is True, allow uploading files to these buckets.
+            Defaults to [].
+        :type s3_upload_buckets: list, optional
+
+        :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+        :type opts: pulumi.ResourceOptions, optional
+        """
+
         super().__init__('tb:ci:Automationuser', name=name, project=project, opts=opts, **kwargs)
 
         if project.stack == active_stack:
@@ -224,6 +290,16 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     policy_arn=fargate_deployment_policy.arn,
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[fargate_deployment_policy, user]),
                 )
+
+                # Attach all other policies
+                for idx, policy in enumerate(additional_policies):
+                    aws.iam.PolicyAttachment(
+                        f'{name}-polatt-additional-{idx}',
+                        users=[user],
+                        policy_arn=policy,
+                        opts=pulumi.ResourceOptions(parent=self, depends_on=[user])
+                    )
+
             self.finish(
                 outputs={'user_name': user.name},
                 resources={

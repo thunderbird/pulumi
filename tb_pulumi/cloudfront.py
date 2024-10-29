@@ -177,7 +177,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
 
         # Set the policy allowing CloudFront access to the service bucket
         bucket_policy = {
-            'Version': '2008-10-17',
+            'Version': '2012-10-17',
             'Id': 'PolicyForCloudFrontPrivateContent',
             'Statement': [
                 {
@@ -202,25 +202,26 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Create a policy allowing cache invalidation of this distro
-        invalidation_policydoc = {
-            'Version': '2008-10-17',
-            'Id': 'CacheInvalidation',
-            'Statement': [
-                {
-                    'Sid': 'InvalidateDistroCache',
-                    'Effect': 'Allow',
-                    'Action': ['cloudfront:CreateInvalidation'],
-                    'Resource': [cloudfront_distribution.arn]
-                }
-            ]
-        }
-        invalidation_policydoc_json = json.dumps(invalidation_policydoc)
+        invalidation_policy_json = cloudfront_distribution.arn.apply(lambda distro_arn:
+            json.dumps({
+                'Version': '2012-10-17',
+                'Id': 'CacheInvalidation',
+                'Statement': [
+                    {
+                        'Sid': 'InvalidateDistroCache',
+                        'Effect': 'Allow',
+                        'Action': ['cloudfront:CreateInvalidation'],
+                        'Resource': [distro_arn]
+                    }
+                ]
+            })
+        )
 
         invalidation_policy = aws.iam.Policy(
             f'{name}-policy-invalidation',
             name=f'{name}-cache-invalidation',
             description=f'Allows for the invalidation of CDN cache for CloudFront distribution {name}',
-            policy=invalidation_policydoc_json,
+            policy=invalidation_policy_json,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[cloudfront_distribution])
         )
 
