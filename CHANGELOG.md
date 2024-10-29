@@ -1,5 +1,10 @@
 # tb_pulumi Changelog
 
+## v0.0.6
+
+  - Fixed bugs in the new CI features of v0.0.5 where certain permissions were lacking in some of the IAM polices.
+  - Added documentation of the CI module.
+
 ## v0.0.5
 
   - Added feature to `CloudFrontS3Service`s where S3 buckets can be forcibly destroyed, even if they contain objects.
