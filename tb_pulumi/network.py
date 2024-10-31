@@ -148,7 +148,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         for idx, subnet in enumerate(public_subnet_rs):
             public_route_table_subnet_associations.append(
                 aws.ec2.RouteTableAssociation(
-                    f'{name}-subnetassoc-{idx}',
+                    f'{name}-public-subnetassoc-{idx}',
                     route_table_id=vpc.default_route_table_id,
                     subnet_id=subnet.id,
                 )
@@ -168,7 +168,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         for idx, subnet in enumerate(private_subnet_rs):
             private_route_table_subnet_associations.append(
                 aws.ec2.RouteTableAssociation(
-                    f'{name}-subnetassoc-{idx}',
+                    f'{name}-private-subnetassoc-{idx}',
                     route_table_id=private_route_table.id,
                     subnet_id=subnet.id,
                 )
