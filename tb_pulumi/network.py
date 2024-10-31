@@ -111,7 +111,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         for idx, subnet in enumerate(public_subnets.items()):
             az, cidrs = subnet
             for cidr in cidrs:
-                subnet_resname = f'{name}-subnet-{idx}'
+                subnet_resname = f'{name}-public-subnet-{idx}'
                 subnet_tags = {'Name': subnet_resname}
                 subnet_tags.update(self.tags)
                 public_subnet_rs.append(
@@ -130,7 +130,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         for idx, subnet in enumerate(private_subnets.items()):
             az, cidrs = subnet
             for cidr in cidrs:
-                subnet_resname = f'{name}-subnet-{idx}'
+                subnet_resname = f'{name}-private-subnet-{idx}'
                 subnet_tags = {'Name': subnet_resname}
                 subnet_tags.update(self.tags)
                 private_subnet_rs.append(
