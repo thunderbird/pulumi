@@ -86,6 +86,9 @@ class ThunderbirdPulumiProject:
         with open(config_file, 'r') as fh:
             return yaml.load(fh.read(), Loader=yaml.SafeLoader)
 
+    def flatten(self) -> tuple[pulumi.Resource]:
+        return set(flatten(self.resources))
+
 
 class ThunderbirdComponentResource(pulumi.ComponentResource):
     """A special kind of pulumi.ComponentResource which handles common elements of resources such as naming and tagging.
@@ -149,6 +152,7 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
 
         # Register outputs both with the ThunderbirdPulumiProject and Pulumi itself
         self.resources = resources
+        self.project.resources[self.name] = self.resources
         self.register_outputs(outputs)
 
     @property
@@ -208,3 +212,26 @@ def env_var_is_true(name: str) -> bool:
     """
 
     return env_var_matches(name, ['t', 'true', 'yes'], False)
+
+
+def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource, prefix: str = ''):
+    # The item could be of a variety of types. When the item is some kind of collection, we should compress it down into
+    # a flat list first, then operate on its items.
+    flattened = []
+    to_flatten = None
+    if type(item) is list:
+        to_flatten = item
+    elif type(item) is dict:
+        to_flatten = [value for _, value in item.items()]
+    elif isinstance(item, ThunderbirdComponentResource):
+        to_flatten = [value for _, value in item.resources.items()]
+    elif isinstance(item, pulumi.Resource):
+        return [item]
+    else:
+        pass
+
+    if to_flatten is not None:
+        for item in to_flatten:
+            flattened.extend(flatten(item))
+
+    return flattened
