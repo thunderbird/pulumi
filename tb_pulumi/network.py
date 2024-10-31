@@ -368,7 +368,7 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         egress_rules = []
 
         ingress_ruledefs = rules['ingress']
-        for idx, rule in ingress_ruledefs:
+        for idx, rule in enumerate(ingress_ruledefs):
             rule.update({'type': 'ingress', 'security_group_id': sg.id})
             ingress_rules.append(
                 aws.ec2.SecurityGroupRule(
@@ -379,7 +379,7 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
             )
 
         egress_ruledefs = rules['egress']
-        for idx, rule in egress_ruledefs:
+        for idx, rule in enumerate(egress_ruledefs):
             rule.update({'type': 'egress', 'security_group_id': sg.id})
             egress_rules.append(
                 aws.ec2.SecurityGroupRule(
