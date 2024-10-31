@@ -258,7 +258,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                     private_dns_enabled=True,
                     service_name=f'com.amazonaws.{self.project.aws_region}.{svc}',
                     security_group_ids=[endpoint_sg.resources['sg'].id],
-                    subnet_ids=[subnet.id for subnet in public_subnet_rs] + [subnet.id for subnet in private_subnet_rs],
+                    subnet_ids=[subnet.id for subnet in public_subnet_rs],
                     vpc_endpoint_type='Interface',
                     vpc_id=vpc.id,
                     tags=self.tags,
