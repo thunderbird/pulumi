@@ -443,10 +443,7 @@ class SecurityGroup(tb_pulumi.ThunderbirdComponentResource):
         #)
 
         self.finish(
-            outputs={'sg': sg.id},
-            resources={
-                'sg': sg,
-            },
+            outputs={'sg': self.id},
         )
 
 class SecurityGroupRule(tb_pulumi.ThunderbirdComponentResource):
