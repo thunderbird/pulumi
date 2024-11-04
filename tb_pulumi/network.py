@@ -433,14 +433,14 @@ class SecurityGroup(tb_pulumi.ThunderbirdComponentResource):
         super().__init__('tb:network:SecurityGroup', name, project, opts=opts, **kwargs)
 
         # Build a security group in the provided VPC
-        sg = aws.ec2.SecurityGroup(
-            f'{name}-sg',
-            opts=pulumi.ResourceOptions(parent=self),
-            name=name,
-            description=f'Send Suite backend security group ({self.project.stack})',
-            vpc_id=vpc_id,
-            tags=self.tags,
-        )
+        #sg = aws.ec2.SecurityGroup(
+        #    f'{name}-sg',
+        #    opts=pulumi.ResourceOptions(parent=self),
+        #    name=name,
+        #    description=f'Send Suite backend security group ({self.project.stack})',
+        #    vpc_id=vpc_id,
+        #    tags=self.tags,
+        #)
 
         self.finish(
             outputs={'sg': sg.id},
