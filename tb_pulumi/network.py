@@ -397,3 +397,103 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
                 'sg': sg,
             },
         )
+
+class SecurityGroup(tb_pulumi.ThunderbirdComponentResource):
+    """Builds a security group with no attached rules.
+
+    :param name: A string identifying this resource.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param vpc_id: ID of the VPC this security group should belong to. When not set, defaults to the region's default
+        VPC. Defaults to None.
+    :type vpc_id: str, optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+        superconstructor.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        vpc_id: str = None,
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        """ """
+
+        super().__init__('tb:network:SecurityGroup', name, project, opts=opts, **kwargs)
+
+        # Build a security group in the provided VPC
+        sg = aws.ec2.SecurityGroup(
+            f'{name}-sg',
+            opts=pulumi.ResourceOptions(parent=self),
+            name=name,
+            description=f'Send Suite backend security group ({self.project.stack})',
+            vpc_id=vpc_id,
+            tags=self.tags,
+        )
+
+        self.finish(
+            outputs={'sg': sg.id},
+            resources={
+                'sg': sg,
+            },
+        )
+
+class SecurityGroupRule(tb_pulumi.ThunderbirdComponentResource):
+    """Builds a security group rule and attaches it to an existing security group.
+
+    :param name: A string identifying this resource.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param config: A dict describing rule config of the following construction:
+        ::
+
+            {
+              # Valid inputs to the SecurityGroupRule resource go here. Ref:
+              # https://www.pulumi.com/registry/packages/aws/api-docs/ec2/securitygrouprule/#inputs
+            }
+
+        Defaults to {}.
+    :type config: dict, optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+        superconstructor.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        config: dict = {},
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        """ """
+
+        super().__init__('tb:network:SecurityGroupRule', project, opts=opts, **kwargs)
+
+        rule = aws.ec2.SecurityGroupRule(
+            f'{name}-{config['type']}-{config['to_port']}',
+            opts=pulumi.ResourceOptions(parent=self),
+            **config,
+        )
+
+        self.finish(
+            outputs={
+                'id': rule.id,
+            },
+        )
