@@ -367,27 +367,29 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         ingress_rules = []
         egress_rules = []
 
-        ingress_ruledefs = rules['ingress']
-        for idx, rule in enumerate(ingress_ruledefs):
-            rule.update({'type': 'ingress', 'security_group_id': sg.id})
-            ingress_rules.append(
-                aws.ec2.SecurityGroupRule(
-                    f'{name}-ingress-{rule['to_port']}-{idx}',
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[sg]),
-                    **rule,
-                )
-            )
+        if rules['ingress']:
+          ingress_ruledefs = rules['ingress']
+          for idx, rule in enumerate(ingress_ruledefs):
+              rule.update({'type': 'ingress', 'security_group_id': sg.id})
+              ingress_rules.append(
+                  aws.ec2.SecurityGroupRule(
+                      f'{name}-ingress-{rule['to_port']}-{idx}',
+                      opts=pulumi.ResourceOptions(parent=self, depends_on=[sg]),
+                      **rule,
+                  )
+              )
 
-        egress_ruledefs = rules['egress']
-        for idx, rule in enumerate(egress_ruledefs):
-            rule.update({'type': 'egress', 'security_group_id': sg.id})
-            egress_rules.append(
-                aws.ec2.SecurityGroupRule(
-                    f'{name}-egress-{rule['to_port']}-{idx}',
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[sg]),
-                    **rule,
-                )
-            )
+        if rules['egress']:
+          egress_ruledefs = rules['egress']
+          for idx, rule in enumerate(egress_ruledefs):
+              rule.update({'type': 'egress', 'security_group_id': sg.id})
+              egress_rules.append(
+                  aws.ec2.SecurityGroupRule(
+                      f'{name}-egress-{rule['to_port']}-{idx}',
+                      opts=pulumi.ResourceOptions(parent=self, depends_on=[sg]),
+                      **rule,
+                  )
+              )
 
         self.finish(
             outputs={'sg': sg.id},
