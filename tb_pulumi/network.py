@@ -367,7 +367,7 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         ingress_rules = []
         egress_rules = []
 
-        if rules['ingress']:
+        if 'ingress' in rules:
           ingress_ruledefs = rules['ingress']
           for idx, rule in enumerate(ingress_ruledefs):
               rule.update({'type': 'ingress', 'security_group_id': sg.id})
@@ -379,7 +379,7 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
                   )
               )
 
-        if rules['egress']:
+        if 'egress' in rules:
           egress_ruledefs = rules['egress']
           for idx, rule in enumerate(egress_ruledefs):
               rule.update({'type': 'egress', 'security_group_id': sg.id})
