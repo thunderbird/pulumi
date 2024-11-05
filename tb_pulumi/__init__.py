@@ -47,6 +47,7 @@ class ThunderbirdPulumiProject:
                 username = 'unknown'
 
         self.common_tags: dict = {  #: Tags to apply to all taggable resources
+            'environment': self.stack,
             'project': self.project,
             'pulumi_last_run_by': f'{username}@{gethostname()}',
             'pulumi_project': self.project,
