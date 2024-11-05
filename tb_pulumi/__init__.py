@@ -86,8 +86,10 @@ class ThunderbirdPulumiProject:
         with open(config_file, 'r') as fh:
             return yaml.load(fh.read(), Loader=yaml.SafeLoader)
 
-    def flatten(self) -> tuple[pulumi.Resource]:
-        return set(flatten(self.resources))
+    def flatten(self) -> set[pulumi.Resource]:
+        """Returns a flat set of all resources existing within this project."""
+
+        return flatten(self.resources)
 
 
 class ThunderbirdComponentResource(pulumi.ComponentResource):
@@ -214,7 +216,18 @@ def env_var_is_true(name: str) -> bool:
     return env_var_matches(name, ['t', 'true', 'yes'], False)
 
 
-def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource, prefix: str = ''):
+def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource) -> set[pulumi.Resource]:
+    """Recursively traverses a nested collection of Pulumi ``Resource``s, converting them into a flat set which can be
+    more easily iterated over.
+
+    :param item: Either a Pulumi ``Resource`` object, or some collection thereof. The following types of collections are
+        supported: ``dict``, ``list``, ``ThunderbirdComponentResource``.
+    :type item: dict | list | ThunderbirdComponentResource
+
+    :return: A ``set`` of Pulumi ``Resource``s contained within the collection.
+    :rtype: set(pulumi.Resource)
+    """
+
     # The item could be of a variety of types. When the item is some kind of collection, we should compress it down into
     # a flat list first, then operate on its items.
     flattened = []
@@ -234,4 +247,4 @@ def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource, 
         for item in to_flatten:
             flattened.extend(flatten(item))
 
-    return flattened
+    return set(flattened)
