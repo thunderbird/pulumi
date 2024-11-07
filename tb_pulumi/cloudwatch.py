@@ -22,6 +22,9 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/metricalarm/>`_. Defaults to {}.
     :type config: dict, optional
 
+    :param notify_emails: A list of email addresses to notify when an alarm activates.
+    :type notify_emails: list, optional
+
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
     """
@@ -31,6 +34,7 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         config: dict = {},
+        notify_emails: list[str] = [],
         opts: pulumi.ResourceOptions = None,
     ):
         super().__init__(
@@ -46,10 +50,22 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
             f'{name}-topic', name=f'{self.project.name_prefix}-alarms', opts=pulumi.ResourceOptions(parent=self)
         )
 
+        # API details on SNS topic subscriptions can be found here:
+        # https://docs.aws.amazon.com/sns/latest/api/API_Subscribe.html
+        subscriptions = []
+        for idx, email in enumerate(notify_emails):
+            subscriptions.append(
+                aws.sns.TopicSubscription(
+                    f'{name}-snssub-{idx}',
+                    protocol='email',
+                    endpoint=email,
+                    topic=sns_topic.arn,
+                )
+            )
+
         alarms = {}
         for res in supported_resources:
-            pulumi.info(f'Supported resource: {res}')
-            shortname = res._name.replace(f'{self.project.name_prefix}-', '') # Make this name shorter, less redundant
+            shortname = res._name.replace(f'{self.project.name_prefix}-', '')  # Make this name shorter, less redundant
             alarms[res._name] = supported_types[type(res)](
                 name=f'{name}-{shortname}',
                 project=self.project,
@@ -58,7 +74,10 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
                 opts=pulumi.ResourceOptions(parent=self),
             )
 
-        self.finish(outputs={'sns_topic_arn': sns_topic.arn}, resources={'sns_topic': sns_topic, 'alarms': alarms})
+        self.finish(
+            outputs={'sns_topic_arn': sns_topic.arn},
+            resources={'sns_topic': sns_topic, 'sns_subscriptions': subscriptions, 'alarms': alarms},
+        )
 
 
 class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
@@ -108,21 +127,22 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         fivexx_opts.update(self.overrides['fivexx'] if 'fivexx' in self.overrides else {})
         fivexx_enabled = fivexx_opts['enabled']
         del fivexx_opts['enabled']
-        fivexx = (
-            aws.cloudwatch.MetricAlarm(
+        fivexx = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
+            lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-5xx',
                 name=f'{self.project.name_prefix}-5xx',
                 comparison_operator='GreaterThanOrEqualToThreshold',
-                dimensions={'LoadBalancer': f'app/{resource.name}/{resource.arn_suffix}'},
+                dimensions={'LoadBalancer': f'app/{outputs['res_name']}/{outputs['res_suffix']}'},
                 metric_name='HTTPCode_ELB_5XX_Count',
                 namespace='AWS/ApplicationELB',
-                alarm_description=f'Elevated 5xx errors on ALB {resource.name}',
+                alarm_description=f'Elevated 5xx errors on ALB {outputs['res_name']}',
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[resource]),
                 **fivexx_opts,
             )
             if fivexx_enabled
             else None
         )
+        fivexx = ()
 
         # Alert if response time is elevated over time
         response_time_opts = {
@@ -135,12 +155,12 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         response_time_opts.update(self.overrides['response_time'] if 'response_time' in self.overrides else {})
         response_time_enabled = response_time_opts['enabled']
         del response_time_opts['enabled']
-        response_time = (
-            aws.cloudwatch.MetricAlarm(
+        response_time = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
+            lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-responsetime',
                 name=f'{self.project.name_prefix}-responsetime',
                 comparison_operator='GreaterThanOrEqualToThreshold',
-                dimensions={'LoadBalancer': f'app/{resource.name}/{resource.arn_suffix}'},
+                dimensions={'LoadBalancer': f'app/{outputs['res_name']}/{outputs['res_suffix']}'},
                 metric_name='TargetResponseTime',
                 namespace='AWS/ApplicationELB',
                 alarm_description=f'Average response time is over {response_time_opts['threshold']} second(s) for {response_time_opts['period']} seconds',  # noqa: E501
@@ -208,18 +228,16 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         cpu_utilization_opts.update(self.overrides['cpu_utilization'] if 'cpu_utilization' in self.overrides else {})
         cpu_utilization_enabled = cpu_utilization_opts['enabled']
         del [cpu_utilization_opts['enabled']]
-        cpu_utilization_desc = resource.name.apply(
-            lambda resource_name: f'CPU utilization on the {resource_name} cluster exceeds {cpu_utilization_opts['threshold']}%'  # noqa: E501
-        )
-        cpu_utilization = (
-            aws.cloudwatch.MetricAlarm(
+        cpu_utilization = resource.name.apply(
+            lambda res_name: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-cpu',
                 name=f'{self.project.name_prefix}-cpu',
                 comparison_operator='GreaterThanOrEqualToThreshold',
-                dimensions={'ServiceName': resource.name},
+                dimensions={'ServiceName': res_name},
                 metric_name='CPUUtilization',
                 namespace='AWS/ECS',
-                alarm_description=cpu_utilization_desc,
+                alarm_description=f'CPU utilization on the {res_name} cluster exceeds '
+                f'{cpu_utilization_opts['threshold']}%',
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[resource]),
                 **cpu_utilization_opts,
             )
@@ -240,18 +258,16 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         )
         memory_utilization_enabled = memory_utilization_opts['enabled']
         del memory_utilization_opts['enabled']
-        memory_utilization_desc = resource.name.apply(
-            lambda resource_name: f'Memory utilization on the {resource_name} cluster exceeds {memory_utilization_opts['threshold']}%'  # noqa: E501
-        )
-        memory_utilization = (
-            aws.cloudwatch.MetricAlarm(
+        memory_utilization = resource.name.apply(
+            lambda res_name: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-memory',
                 name=f'{self.project.name_prefix}-memory',
                 comparison_operator='GreaterThanOrEqualToThreshold',
-                dimensions={'ServiceName': resource.name},
+                dimensions={'ServiceName': res_name},
                 metric_name='MemoryUtilization',
                 namespace='AWS/ECS',
-                alarm_description=memory_utilization_desc,
+                alarm_description=f'Memory utilization on the {res_name} cluster exceeds '
+                f'{memory_utilization_opts['threshold']}%',
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[resource]),
                 **memory_utilization_opts,
             )

@@ -98,8 +98,7 @@ class AlarmGroup(tb_pulumi.ThunderbirdComponentResource):
 
     @cached_property
     def overrides(self) -> dict:
-        """If the user has configured any overrides for alarms related to this resource, this function returns them.
-        """
+        """If the user has configured any overrides for alarms related to this resource, this function returns them."""
         if self.resource._name in self.monitoring_group.config['alarms'].keys():
             return self.monitoring_group.config['alarms'][self.resource._name]
         else:
