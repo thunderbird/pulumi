@@ -314,7 +314,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
             )
         else:
             msg = (
-                f'The current stack is "{project.stack}", but CI components are associated with the'
+                f'The current stack is "{project.stack}", but CI components are associated with the '
                 + f'"{active_stack}" stack. These resources will be skipped on this run.'
             )
             pulumi.info(msg)

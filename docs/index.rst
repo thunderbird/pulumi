@@ -14,3 +14,4 @@ infrastructure as code tool.
    ./getting-started
    ./patterns
    ./modules
+   ./monitoring
