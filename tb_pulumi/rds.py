@@ -36,8 +36,9 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
     :type vpc_id: str
 
     :param allocated_storage: GB of storage to allot to each instance. AWS may impose different minimum values for
-        this option depending on other storage options. Details are
-        `here <https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html>`_. Defaults to 20.
+        this option depending on other storage options. Details are found in
+        `AWS RDS documentation <https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html>`_. Defaults to
+        20.
     :type allocated_storage: int, optional
 
     :param auto_minor_version_upgrade: Allow RDS to upgrade the engine as long as it's only a minor version change,
@@ -83,8 +84,8 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
     :type engine_version: str, optional
 
     :param instance_class: One of the database sizes listed
-        `here <https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html>`_. Defaults to
-        'db.t3.micro'.
+        `in these docs <https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html>`_.
+        Defaults to 'db.t3.micro'.
     :type instance_class: str, optional
 
     :param internal: When True, if no sg_cidrs are set, allows ingress only from what `vpc_cidr` is set to. If False

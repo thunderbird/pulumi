@@ -1,0 +1,39 @@
+---
+name: merge-main
+
+concurrency:
+  group: merge-main
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+    contents: read
+
+jobs:
+
+  # This job detects which parts of the repo have been changed, setting future jobs up for conditional behavior.
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      docs: ${{ steps.check.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: check
+        with:
+          filters: |
+            docs:
+              - 'docs/**'
+
+  # Build the documentation with both themes and publish to Github Pages
+  publish-docs:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4

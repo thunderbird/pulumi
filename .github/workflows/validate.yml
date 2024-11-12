@@ -1,13 +1,4 @@
 ---
-# The general flow of this is like so:
-#
-# - When a PR is opened against `main`, or if that PR changes:
-#   - Figure out if any code changes have been made
-#   - Require a version number change
-#   - Require that the code pass Ruff tests
-# - When the PR gets merged:
-#   - Create a new branch matching the version number
-
 name: validate
 
 concurrency:
@@ -15,18 +6,13 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
-    types:
-      - opened
-      - edited
-      - synchronize
-      - closed
+      - '**'
+      - '!main'
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
 
@@ -34,7 +20,8 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      lint: ${{ steps.check.outputs.lint }}
+      docs: ${{ steps.check.outputs.docs }}
+      tb_pulumi: ${{ steps.check.outputs.tb_pulumi }}
     steps:
       - uses: actions/checkout@v4
 
@@ -42,36 +29,17 @@ jobs:
         id: check
         with:
           filters: |
-            lint:
+            tb_pulumi:
               - 'tb_pulumi/**'
               - 'pyproject.toml'
-
-  # This job detects what version is listed in pyproject.toml and determines if a branch exists for that version yet.
-  detect-versions:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.lint == 'true'
-    runs-on: ubuntu-latest
-    outputs:
-      branch-exists: ${{ steps.branch-exists.outputs.exists }}
-      version: v${{ steps.version.outputs.value }}
-    steps:
-      # Detect version from pyproject.toml
-      - uses: actions/checkout@v4
-      - uses: SebRollen/toml-action@v1.2.0
-        id: version
-        with:
-          file: './pyproject.toml'
-          field: project.version
-      - uses: GuillaumeFalourd/branch-exists@v1
-        id: branch-exists
-        with:
-          branch: v${{ steps.version.outputs.value }}
+            docs:
+              - 'docs/**'
 
   # Run Ruff against tb_pulumi. Fail on format errors or failed sanity checks.
   lint:
     needs: detect-changes
     runs-on: ubuntu-latest
-    if: needs.detect-changes.outputs.lint == 'true'
+    if: needs.detect-changes.outputs.tb_pulumi == 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -86,23 +54,26 @@ jobs:
           src: './tb_pulumi'
           args: 'format --check'
 
-  # The below code is commented out because it works, except for a Github auth issue.
-  # Ref: https://github.com/orgs/community/discussions/13836
+  # Attempt to build the documentation. Fail if there are errors or warnings.
+  build_docs:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    if: needs.detect-changes.outputs.docs == 'true'
+    steps:
+      - uses: actions/checkout@v4
 
-  # When the PR gets merged, cut a new version branch.
-  # merge:
-  #   needs: detect-versions
-  #   if: github.event.pull_request.merged == true && needs.detect-versions.outputs.branch-exists == 'false'
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: write
-  #   steps:
-  #     - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
 
-  #     - name: Create a new version branch
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       shell: bash
-  #       run: |
-  #         git checkout -b ${{ needs.detect-versions.outputs.version }}
-  #         git push -u origin ${{ needs.detect-versions.outputs.version }}
+      - name: Install dependencies
+        run: |
+          pip install .[dev]
+
+      - name: Build docs
+        run: |
+          cd docs
+          make clean build |& tee make.log
+          grep '\(ERROR\|WARNING\)' make.log
+          if [ $? -eq 0 ]; then
+            echo "Problems found in docs build"
+            exit 1
+          fi

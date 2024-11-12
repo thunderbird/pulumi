@@ -42,7 +42,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
     :param forcibly_destroy_buckets: When True, the service bucket and logging bucket will both be forcibly emptied -
         all their contents **destroyed beyond recovery** - when the bucket resource is destroyed. This is dangerous, as
         it bypasses protections against data loss. Only enable this for volatile environments. Defaults to False.
-    :type forcibly_destroy_buckets bool, optional
+    :type forcibly_destroy_buckets: bool, optional
 
     :param origins: List of `DistributionOrigin
         <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorigin>`_ objects to
