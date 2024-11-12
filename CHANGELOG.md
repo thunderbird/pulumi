@@ -1,5 +1,11 @@
 # tb_pulumi Changelog
 
+## v0.0.7
+
+  - Lock the AWS provider to a specific version to avoid errors when CI automation runs pulumi commands with `--target`.
+  - Add an `environment` tag to all AWS resources for cost tracking purposes.
+  - Build the initial patterns to use for developing project-at-once monitoring solutions.
+
 ## v0.0.6
 
   - Fixed bugs in the new CI features of v0.0.5 where certain permissions were lacking in some of the IAM polices.
