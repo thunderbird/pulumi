@@ -217,14 +217,14 @@ def env_var_is_true(name: str) -> bool:
 
 
 def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource) -> set[pulumi.Resource]:
-    """Recursively traverses a nested collection of Pulumi ``Resource``s, converting them into a flat set which can be
+    """Recursively traverses a nested collection of Pulumi ``Resource`` s, converting them into a flat set which can be
     more easily iterated over.
 
     :param item: Either a Pulumi ``Resource`` object, or some collection thereof. The following types of collections are
         supported: ``dict``, ``list``, ``ThunderbirdComponentResource``.
     :type item: dict | list | ThunderbirdComponentResource
 
-    :return: A ``set`` of Pulumi ``Resource``s contained within the collection.
+    :return: A ``set`` of Pulumi ``Resource`` s contained within the collection.
     :rtype: set(pulumi.Resource)
     """
 

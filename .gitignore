@@ -1,8 +1,10 @@
 build
+docs.tbz
 docs/_build
 docs/_doctrees
 docs/_static
 docs/_templates
+docs/make.log
 *.egg-info
 *.pyc
 __pycache__
