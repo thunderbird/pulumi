@@ -1,5 +1,4 @@
 .. tb_pulumi documentation top level
-.. comment
 
 tb_pulumi Documentation
 =======================
