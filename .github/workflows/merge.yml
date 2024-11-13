@@ -15,26 +15,8 @@ permissions:
 
 jobs:
 
-  # This job detects which parts of the repo have been changed, setting future jobs up for conditional behavior.
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      docs: ${{ steps.check.outputs.docs }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dorny/paths-filter@v3
-        id: check
-        with:
-          filters: |
-            docs:
-              - 'docs/**'
-              - 'tb_pulumi/**.py'
-
   # Build the documentation and publish to Github Pages
   publish-docs:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.docs == 'true'
     runs-on: ubuntu-latest
     permissions:
         contents: write
