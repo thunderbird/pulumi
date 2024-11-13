@@ -30,7 +30,7 @@ jobs:
             docs:
               - 'docs/**'
 
-  # Build the documentation with both themes and publish to Github Pages
+  # Build the documentation and publish to Github Pages
   publish-docs:
     needs: detect-changes
     if: needs.detect-changes.outputs.docs == 'true'
@@ -48,9 +48,12 @@ jobs:
       - name: Build docs
         shell: bash
         run: |
+          # Install dependencies and build the HTML docs
           pip install .[dev]
           cd docs
           make clean html
+
+          # Compress for archival
           cd _build/html/
           tar -cvjf ../../../docs.tbz ./*
 
@@ -61,6 +64,7 @@ jobs:
           name: docs
           path: docs.tbz
 
+      # This publishes the built docs into a special git branch which we tell Github to use with Github Pages
       - name: Publish docs
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
