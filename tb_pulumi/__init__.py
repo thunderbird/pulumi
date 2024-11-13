@@ -224,7 +224,7 @@ def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource) 
         supported: ``dict``, ``list``, ``ThunderbirdComponentResource``.
     :type item: dict | list | ThunderbirdComponentResource
 
-    :return: A ``set`` of Pulumi ``Resource``s contained within the collection.
+    :return: A ``set`` of Pulumi ``Resource`` s contained within the collection.
     :rtype: set(pulumi.Resource)
     """
 
