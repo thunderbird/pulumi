@@ -15,25 +15,8 @@ permissions:
 
 jobs:
 
-  # This job detects which parts of the repo have been changed, setting future jobs up for conditional behavior.
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      docs: ${{ steps.check.outputs.docs }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dorny/paths-filter@v3
-        id: check
-        with:
-          filters: |
-            docs:
-              - 'docs/**'
-
   # Build the documentation and publish to Github Pages
   publish-docs:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.docs == 'true'
     runs-on: ubuntu-latest
     permissions:
         contents: write
@@ -53,9 +36,19 @@ jobs:
           cd docs
           make clean html
 
+          # Move the build files into a location where we can compile multiple build outputs
+          mkdir -p compiled_html/dark
+          cp -r _build/html/* compiled_html/
+
+          # Build again with the dark theme
+          TBPULUMI_DARK_MODE=yes make clean html
+
+          # Move the dark theme files into a special directory
+          cp -r _build/html/* compiled_html/dark/
+
           # Compress for archival
-          cd _build/html/
-          tar -cvjf ../../../docs.tbz ./*
+          cd compiled_html
+          tar -cvjf ../../docs.tbz ./*
 
       - name: Archive docs
         id: archive
@@ -71,5 +64,5 @@ jobs:
         with:
           publish_branch: gh-pages  # this is the default, but let's be explicit
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _build/html/
+          publish_dir: docs/compiled_html/
           force_orphan: true
