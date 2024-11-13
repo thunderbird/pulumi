@@ -33,6 +33,7 @@ jobs:
               - 'tb_pulumi/**'
               - 'pyproject.toml'
             docs:
+              - 'tb_pulumi/**.py'
               - 'docs/**'
 
   # Run Ruff against tb_pulumi. Fail on format errors or failed sanity checks.
