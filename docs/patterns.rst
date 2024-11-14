@@ -10,6 +10,7 @@ The following patterns are available:
 
 * :py:class:`tb_pulumi.cloudfront.CloudFrontS3Service`: Store static content in an S3 bucket and serve it up over the
   CloudFront Content Delivery Network.
+* :py:class:`tb_pulumi.ci.AwsAutomationUser`: Create an IAM user with permission to perform automated CI tasks.
 * :py:class:`tb_pulumi.ec2.NetworkLoadBalancer`: Build a load balancer routing TCP traffic to multiple backends.
 * :py:class:`tb_pulumi.ec2.SshKeyPair`: Build an SSH keypair (or supply your own).
 * :py:class:`tb_pulumi.ec2.SshableInstance`: Build an EC2 instance allowing SSH access.

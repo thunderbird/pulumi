@@ -8,9 +8,12 @@ Typically, you want to implement the classes defined in this module to define in
 resources to support your application. These represent common infrastructural patterns which you can
 customize to some degree.
 
-The `docs` folder contains some documentation, but it is best read in a web browser. To build and view the docs:
+Full documentation is found on [Github Pages](https://thunderbird.github.io/pulumi/).
+
+If you require documentation for a specific version, check out that branch and build the docs yourself:
 
 ```bash
+git checkout v0.0.7
 virtualenv venv
 . ./venv/bin/activate
 pip install .[dev]
