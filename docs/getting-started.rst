@@ -1,3 +1,5 @@
+.. _getting_started:
+
 Getting Started
 ===============
 
@@ -73,6 +75,8 @@ Manual Setup
 S3 bucket
 ^^^^^^^^^
 
+.. note:: This step is optional. If you do not set up an S3 bucket, you can use Pulumi Cloud instead.
+
 Create an S3 bucket in which to store state for the project. You must have one bucket devoted to your project, but you
 can store multiple stacks' state files in that one bucket. The bucket should not be public (treat these files as
 sensitive), and it's a good idea to turn on versioning, as it can save you from some difficult situations down the road.
@@ -110,7 +114,7 @@ Ensure your pulumi code directory contains a ``requirements.txt`` file with at l
 You can pin your code to a specific version of this module by appending ``@branch_name`` to that. For example:
 ::
 
-  git+https://github.com/thunderbird/pulumi.git@v0.0.2
+  git+https://github.com/thunderbird/pulumi.git@v0.0.7
 
 Pulumi will need these requirements installed. On your first run of a ``pulumi preview`` command (or some others),
 Pulumi will attempt to set up its working environment. If this fails, or you need to make adjustments later, you can

@@ -4,7 +4,7 @@ tb_pulumi Documentation
 =======================
 
 tb_pulumi is a library used at Thunderbird to help developers bring cloud-based infrastructure
-online to host the services they're developing using the `Pulumi <https://www.pulumi.com/>`
+online to host the services they're developing using the `Pulumi <https://www.pulumi.com/>`_
 infrastructure as code tool.
 
 .. toctree::
@@ -13,5 +13,5 @@ infrastructure as code tool.
 
    ./getting-started
    ./patterns
-   ./modules
    ./monitoring
+   ./modules
