@@ -1,6 +1,7 @@
 """Standardization library for the usage of Pulumi in Python at Thunderbird. For an overview of how
 to use this library, read the :ref:`getting_started` page.
 """
+
 # <https://thunderbird.github.io/pulumi/getting-started.html>`_
 import boto3
 import pulumi
