@@ -385,7 +385,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-ssm-dbwritehost',
                 f'/{self.project.project}/{self.project.stack}/db-write-host',
                 primary.address,
-                depends_on=[primary]
+                depends_on=[primary],
             ),
         )
 
@@ -451,11 +451,11 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             f'{name}-ssm-dbreadhost',
             f'/{self.project.project}/{self.project.stack}/db-read-host',
             nlb.resources['nlb'].dns_name.apply(lambda dns_name: dns_name),
-            depends_on=[nlb]
+            depends_on=[nlb],
         )
         return {'nlb': nlb, 'ssm_param_read_host': ssm_param_read_host}
 
-    def __ssm_param(self, name, param_name, value, depends_on: list[pulumi.Output] =None):
+    def __ssm_param(self, name, param_name, value, depends_on: list[pulumi.Output] = None):
         """Build an SSM Parameter."""
         return aws.ssm.Parameter(
             name, name=param_name, type=aws.ssm.ParameterType.STRING, value=value, depends_on=depends_on
