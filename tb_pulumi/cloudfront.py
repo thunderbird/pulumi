@@ -114,7 +114,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
                 ],
                 'owner': {'id': canonical_user},
             },
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket_ownership]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket, logging_bucket_ownership]),
         )
 
         # Create an Origin Access Control to use when CloudFront talks to S3
@@ -125,10 +125,10 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             signing_protocol='sigv4',
             description=f'Serve {service_bucket_name} contents via CDN',
             name=service_bucket_name,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[service_bucket]),
+            opts=pulumi.ResourceOptions(parent=self),
         )
 
-        # Define the S3 DistributionOrigin and set up the distribution
+        # Define the S3 DistributionOrigin and set up the distribution.
         # The `bucket_regional_domain_name` output does not actually seem to contain the region. This may be a bug in
         # the AWS Pulumi provider. For now, we have to form this domain ourselves or it will be incorrect.
         bucket_regional_domain_name = f'{service_bucket_name}.s3.{project.aws_region}.amazonaws.com'
@@ -170,6 +170,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             tags=self.tags,
             opts=pulumi.ResourceOptions(
                 parent=self,
+                depends_on=[logging_bucket, oac],
                 ignore_changes=['defaultCacheBehavior.functionAssociations'],
             ),
             **distribution,

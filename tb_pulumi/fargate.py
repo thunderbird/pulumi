@@ -134,7 +134,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         arp = json.dumps(arp)
 
         # IAM policy for shipping logs
-        doc = log_group.arn.apply(
+        log_doc = log_group.arn.apply(
             lambda arn: json.dumps(
                 {
                     'Version': '2012-10-17',
@@ -153,12 +153,12 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             f'{name}-policy-logs',
             name=f'{name}-logging',
             description='Allows Fargate tasks to log to their log group',
-            policy=doc,
+            policy=log_doc,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[log_group]),
         )
 
         # IAM policy for accessing container dependencies
-        doc = json.dumps(
+        container_doc = json.dumps(
             {
                 'Version': '2012-10-17',
                 'Statement': [
@@ -197,7 +197,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             f'{name}-policy-exec',
             name=f'{name}-exec',
             description=f'Allows {self.project.project} tasks access to resources they need to run',
-            policy=doc,
+            policy=container_doc,
             opts=pulumi.ResourceOptions(parent=self),
         )
 
@@ -213,13 +213,12 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 policy_exec,
             ],
             tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[policy_exec, policy_log_sending]),
         )
 
         # Fargate Cluster
         cluster = aws.ecs.Cluster(
             f'{name}-cluster',
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[log_key, log_group]),
             name=name,
             configuration={
                 'executeCommandConfiguration': {
@@ -233,6 +232,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             },
             settings=[{'name': 'containerInsights', 'value': 'enabled' if enable_container_insights else 'disabled'}],
             tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[log_key, log_group]),
         )
 
         # Prep the task definition
@@ -247,10 +247,13 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 log_group_name=outputs[0],
                 aws_region=outputs[1],
                 task_role_arn=outputs[2],
+                dependencies=[log_group, task_role],
             )
         )
 
-        # Build ALBs and related resources to route traffic to our services
+        # Build ALBs and related resources to route traffic to our services. Perhaps unintuitively, the Service is
+        # dependent upon load balancers, not the other way around, since it must manipulate their configs to match the
+        # IP addresses of the running containers.
         fsalb_name = f'{name}-fargateservicealb'
         fargate_service_alb = FargateServiceAlb(
             fsalb_name,
@@ -289,7 +292,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             },
             task_definition=task_definition_res,
             tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[cluster, task_definition_res]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[cluster, fargate_service_alb, task_definition_res]),
         )
 
         self.finish(
@@ -311,7 +314,13 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         )
 
     def task_definition(
-        self, task_def: dict, family: str, log_group_name: str, aws_region: str, task_role_arn: str
+        self,
+        task_def: dict,
+        family: str,
+        log_group_name: str,
+        aws_region: str,
+        task_role_arn: str,
+        dependencies: list[pulumi.Resource] = [],
     ) -> aws.ecs.TaskDefinition:
         """Returns an ECS task definition resource.
 
@@ -329,6 +338,9 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
 
         :param task_role_arn: ARN of the IAM role the task will run as.
         :type task_role_arn: str
+
+        :param dependencies: List of Resources this task definition is dependent upon.
+        :type dependencies: list[pulumi.Resource]
 
         :return: A TaskDefinition Resource
         :rtype: aws.ecs.TaskDefinition
@@ -361,7 +373,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
 
         task_def_res = aws.ecs.TaskDefinition(
             f'{family}-taskdef',
-            opts=pulumi.ResourceOptions(parent=self),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[*dependencies]),
             **task_def,
         )
 
@@ -463,7 +475,7 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
                 security_groups=security_groups,
                 subnets=[subnet.id for subnet in subnets],
                 tags=self.tags,
-                opts=pulumi.ResourceOptions(parent=self),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[*subnets]),
             )
 
             # Build a target group
@@ -483,7 +495,7 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
                 target_type='ip',
                 ip_address_type='ipv4',
                 tags=svc_tags,
-                opts=pulumi.ResourceOptions(parent=self),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[subnets[0]]),
             )
 
             # Build a listener for the target group
@@ -496,7 +508,7 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
                 protocol=listener_proto,
                 ssl_policy=ssl_policy,
                 tags=svc_tags,
-                opts=pulumi.ResourceOptions(parent=self),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[albs[svc_name]]),
             )
 
         self.finish(outputs={}, resources={'albs': albs, 'listeners': listeners, 'target_groups': target_groups})

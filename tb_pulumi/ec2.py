@@ -133,7 +133,7 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
             target_type='ip',
             vpc_id=subnets[0].vpc_id,
             tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[nlb]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[nlb, subnets[0]]),
         )
 
         # Add targets to the target group
@@ -280,7 +280,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
             volume_tags=self.tags,
             vpc_security_group_ids=sg_ids,
             tags=instance_tags,
-            opts=pulumi.ResourceOptions(parent=self),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[keypair.resources['keypair']]),
         )
 
         self.finish(

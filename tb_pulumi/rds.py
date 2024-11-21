@@ -215,13 +215,15 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         # Store the password in Secrets Manager
         secret_fullname = f'{self.project.project}/{self.project.stack}/{name}/root_password'
         secret = aws.secretsmanager.Secret(
-            f'{name}-secret', opts=pulumi.ResourceOptions(parent=self), name=secret_fullname
+            f'{name}-secret',
+            name=secret_fullname,
+            opts=pulumi.ResourceOptions(parent=self),
         )
         secret_version = aws.secretsmanager.SecretVersion(
             f'{name}-secretversion',
             secret_id=secret.id,
             secret_string=password.result,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=password),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[secret, password]),
         )
 
         # If no ingress CIDRs have been defined, find a reasonable default
@@ -262,25 +264,25 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             name=name,
             subnet_ids=[subnet.id for subnet in subnets],
             tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[*subnets]),
         )
 
         # Build a parameter group
         parameter_group = aws.rds.ParameterGroup(
             f'{name}-parametergroup',
             name=name,
-            opts=pulumi.ResourceOptions(parent=self),
             family=parameter_group_family,
             parameters=parameters,
+            opts=pulumi.ResourceOptions(parent=self),
         )
 
         # Build a KMS Key
         key = aws.kms.Key(
             f'{name}-storage',
-            opts=pulumi.ResourceOptions(parent=self),
             description=f'Key to encrypt database storage for {name}',
             deletion_window_in_days=7,
             tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self),
         )
 
         # Build the primary instance
@@ -322,6 +324,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                     key,
                     parameter_group,
                     password,
+                    security_group_with_rules,
                     subnet_group,
                 ],
             ),
@@ -363,7 +366,9 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                     storage_type=storage_type,
                     vpc_security_group_ids=[security_group_with_rules.resources['sg'].id],
                     tags=instance_tags,
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[primary]),
+                    opts=pulumi.ResourceOptions(
+                        parent=self, depends_on=[key, parameter_group, security_group_with_rules, primary]
+                    ),
                 ),
                 **kwargs,
             )
@@ -380,6 +385,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-ssm-dbwritehost',
                 f'/{self.project.project}/{self.project.stack}/db-write-host',
                 primary.address,
+                depends_on=[primary]
             ),
         )
 
@@ -439,15 +445,18 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             internal=True,
             ips=[socket.gethostbyname(addr) for addr in addresses],
             security_group_description=f'Allow database traffic for {name}',
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances, *subnets]),
         )
         ssm_param_read_host = self.__ssm_param(
             f'{name}-ssm-dbreadhost',
             f'/{self.project.project}/{self.project.stack}/db-read-host',
             nlb.resources['nlb'].dns_name.apply(lambda dns_name: dns_name),
+            depends_on=[nlb]
         )
         return {'nlb': nlb, 'ssm_param_read_host': ssm_param_read_host}
 
-    def __ssm_param(self, name, param_name, value):
+    def __ssm_param(self, name, param_name, value, depends_on: list[pulumi.Output] =None):
         """Build an SSM Parameter."""
-        return aws.ssm.Parameter(name, name=param_name, type=aws.ssm.ParameterType.STRING, value=value)
+        return aws.ssm.Parameter(
+            name, name=param_name, type=aws.ssm.ParameterType.STRING, value=value, depends_on=depends_on
+        )

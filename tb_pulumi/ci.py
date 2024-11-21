@@ -43,12 +43,12 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
 
     :param fargate_clusters: When ``enable_fargate_deployments`` is True, permission will be granted to deploy to
         this list of clusters. Defaults to None.
-    :type fargate_clusters: str, optional
+    :type fargate_clusters: list[str], optional
 
     :param fargate_task_role_arns: When ``enable_fargate_deployments`` is True, permission will be granted for the
         user to authenticate as this list of task roles. This should be a list of ARNs of task execution roles in
         the clusters you wish to deploy to. Defaults to None.
-    :type fargate_task_role_arns: str, optional
+    :type fargate_task_role_arns: list[str], optional
 
     :param enable_full_s3_access: When True, allows the user unrestricted access to select S3 buckets. Use this when
         your CI needs to be able to run Pulumi executions. Those commands will need to run with access to the Pulumi
@@ -81,12 +81,12 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
         enable_ecr_image_push: bool = False,
         ecr_repositories: list[str] = None,
         enable_fargate_deployments: str = False,
-        fargate_clusters: str = None,
-        fargate_task_role_arns: str = None,
+        fargate_clusters: list[str] = None,
+        fargate_task_role_arns: list[str] = None,
         enable_full_s3_access: bool = False,
         s3_full_access_buckets: list = [],
         enable_s3_bucket_upload: bool = False,
-        s3_upload_buckets: list = [],
+        s3_upload_buckets: list[str] = [],
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
