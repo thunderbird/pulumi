@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>tb_pulumi :: tb_pulumi.network</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="genindex.html"/>
+
+  <link rel="stylesheet" href="_static/css/insegel.css"/>
+  <link rel="stylesheet" href="_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/sphinx_highlight.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>tb_pulumi</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="module-tb_pulumi.network">
+<span id="tb-pulumi-network"></span><h1>tb_pulumi.network<a class="headerlink" href="#module-tb_pulumi.network" title="Link to this heading">¶</a></h1>
+<p>Infrastructural patterns related to networking.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tb_pulumi.network.MultiCidrVpc">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tb_pulumi.network.</span></span><span class="sig-name descname"><span class="pre">MultiCidrVpc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><span class="pre">ThunderbirdPulumiProject</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cidr_block</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'10.0.0.0/16'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">egress_via_internet_gateway</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">egress_via_nat_gateway</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_dns_hostnames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_internet_gateway</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_nat_gateway</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint_gateways</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint_interfaces</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subnets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ResourceOptions</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tb_pulumi.network.MultiCidrVpc" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource" title="tb_pulumi.ThunderbirdComponentResource"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></p>
+<p>Builds a VPC with configurable network space.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – A string identifying this set of resources.</p></li>
+<li><p><strong>project</strong> (<a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><em>tb_pulumi.ThunderbirdPulumiProject</em></a>) – The ThunderbirdPulumiProject to add these resources to.</p></li>
+<li><p><strong>cidr_block</strong> (<em>str</em><em>, </em><em>optional</em>) – A CIDR describing the IP space of this VPC. Defaults to ‘10.0.0.0/16’.</p></li>
+<li><p><strong>egress_via_internet_gateway</strong> (<em>bool</em><em>, </em><em>optional</em>) – When True, establish an outbound route to the Internet via the Internet
+Gateway. Requires <code class="docutils literal notranslate"><span class="pre">enable_internet_gateway=True</span></code>. Conflicts with <code class="docutils literal notranslate"><span class="pre">egress_via_nat_gateway=True</span></code>.
+Defaults to False.</p></li>
+<li><p><strong>egress_via_nat_gateway</strong> (<em>bool</em><em>, </em><em>optional</em>) – When True, establish an outbound route to the Internet via the NAT Gateway.
+Requires <code class="docutils literal notranslate"><span class="pre">enable_nat_gateway=True</span></code>. Conflicts with <code class="docutils literal notranslate"><span class="pre">egress_via_internet_gateway=True</span></code>. Defaults to
+False.</p></li>
+<li><p><strong>enable_dns_hostnames</strong> (<em>bool</em><em>, </em><em>optional</em>) – When True, internal DNS mappings get built for IPs assigned within the VPC. This is
+required for the use of certain other services like load-balanced Fargate clusters. Defaults to None.</p></li>
+<li><p><strong>enable_internet_gateway</strong> (<em>bool</em><em>, </em><em>optional</em>) – Build an IGW will to allow traffic outbond to the Internet. Defaults to False.</p></li>
+<li><p><strong>enable_nat_gateway</strong> (<em>bool</em><em>, </em><em>optional</em>) – Build a NAT Gateway to route inbound traffic. Defaults to False.</p></li>
+<li><p><strong>endpoint_gateways</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of public-facing AWS services (such as S3) to create VPC gateways to. Defaults to
+[].</p></li>
+<li><p><strong>endpoint_interfaces</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of AWS services to create VPC Interface endpoints for. These must match service
+names listed <a class="reference external" href="https://docs.aws.amazon.com/vpc/latest/privatelink/aws-services-privatelink-support.html">here</a> <strong>Do not</strong> list
+the full qualifying name, only the service name portion. f/ex, do not use
+<code class="docutils literal notranslate"><span class="pre">com.amazonaws.us-east-1.secretsmanager</span></code>, only use <code class="docutils literal notranslate"><span class="pre">secretsmanager</span></code>. Defaults to [].</p></li>
+<li><p><strong>subnets</strong> (<em>dict</em><em>, </em><em>optional</em>) – <p>A dict where the keys are the names of AWS Availability Zones in which to build subnets and the
+values are lists of CIDRs describing valid subsets of IPs in the VPC <code class="docutils literal notranslate"><span class="pre">cidr_block</span></code> to build in that AZ.
+f/ex:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="s1">&#39;us-east-1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;10.0.100.0/24&#39;</span><span class="p">],</span>
+  <span class="s1">&#39;us-east-2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;10.0.101.0/24&#39;</span><span class="p">,</span> <span class="s1">&#39;10.0.102.0/24&#39;</span><span class="p">]</span> <span class="p">}</span>
+</pre></div>
+</div>
+<p>Defaults to {}.</p>
+</p></li>
+<li><p><strong>opts</strong> (<em>pulumi.ResourceOptions</em><em>, </em><em>optional</em>) – Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.</p></li>
+<li><p><strong>kwargs</strong> – Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+superconstructor.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tb_pulumi.network.SecurityGroupWithRules">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tb_pulumi.network.</span></span><span class="sig-name descname"><span class="pre">SecurityGroupWithRules</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><span class="pre">ThunderbirdPulumiProject</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vpc_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ResourceOptions</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tb_pulumi.network.SecurityGroupWithRules" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource" title="tb_pulumi.ThunderbirdComponentResource"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></p>
+<p>Builds a security group and sets rules for it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – A string identifying this set of resources.</p></li>
+<li><p><strong>project</strong> (<a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><em>tb_pulumi.ThunderbirdPulumiProject</em></a>) – The ThunderbirdPulumiProject to add these resources to.</p></li>
+<li><p><strong>rules</strong> (<em>dict</em><em>, </em><em>optional</em>) – <p>A dict describing in/egress rules of the following construction:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;ingress&#39;</span><span class="p">:</span> <span class="p">[{</span>
+        <span class="c1"># Valid inputs to the SecurityGroupRule resource go here. Ref:</span>
+        <span class="c1"># https://www.pulumi.com/registry/packages/aws/api-docs/ec2/securitygrouprule/#inputs</span>
+    <span class="p">}],</span>
+    <span class="s1">&#39;egress&#39;</span><span class="p">:</span> <span class="p">[{</span>
+        <span class="c1"># The same inputs are valid here</span>
+    <span class="p">}]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Defaults to {}.</p>
+</p></li>
+<li><p><strong>vpc_id</strong> (<em>str</em><em>, </em><em>optional</em>) – ID of the VPC this security group should belong to. When not set, defaults to the region’s default
+VPC. Defaults to None.</p></li>
+<li><p><strong>opts</strong> (<em>pulumi.ResourceOptions</em><em>, </em><em>optional</em>) – Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.</p></li>
+<li><p><strong>kwargs</strong> – Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+superconstructor.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#quickstart">Quickstart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#manual-setup">Manual Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#s3-bucket">S3 bucket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#repo-setup">Repo setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#set-up-this-module">Set up this module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#use-this-module">Use this module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#pythonic-problems">Pythonic problems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#shells-other-than-bash">Shells other than Bash</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="patterns.html">Patterns of Use</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#project-patterns">Project patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#setting-up-a-network">Setting up a network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#handling-secrets">Handling secrets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="monitoring.html">Monitoring Resources</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">tb_pulumi</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tb_pulumi.html">tb_pulumi</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource"><code class="docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject"><code class="docutils literal notranslate"><span class="pre">ThunderbirdPulumiProject</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.env_var_is_true"><code class="docutils literal notranslate"><span class="pre">env_var_is_true()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.env_var_matches"><code class="docutils literal notranslate"><span class="pre">env_var_matches()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.flatten"><code class="docutils literal notranslate"><span class="pre">flatten()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ci.html">tb_pulumi.ci</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ci.html#tb_pulumi.ci.AwsAutomationUser"><code class="docutils literal notranslate"><span class="pre">AwsAutomationUser</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cloudfront.html">tb_pulumi.cloudfront</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cloudfront.html#tb_pulumi.cloudfront.CloudFrontS3Service"><code class="docutils literal notranslate"><span class="pre">CloudFrontS3Service</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">tb_pulumi.constants</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.ASSUME_ROLE_POLICY"><code class="docutils literal notranslate"><span class="pre">ASSUME_ROLE_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_AWS_SSL_POLICY"><code class="docutils literal notranslate"><span class="pre">DEFAULT_AWS_SSL_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_PROTECTED_STACKS"><code class="docutils literal notranslate"><span class="pre">DEFAULT_PROTECTED_STACKS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.IAM_POLICY_DOCUMENT"><code class="docutils literal notranslate"><span class="pre">IAM_POLICY_DOCUMENT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.SERVICE_PORTS"><code class="docutils literal notranslate"><span class="pre">SERVICE_PORTS</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ec2.html">tb_pulumi.ec2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.AMAZON_LINUX_AMI"><code class="docutils literal notranslate"><span class="pre">AMAZON_LINUX_AMI</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.NetworkLoadBalancer"><code class="docutils literal notranslate"><span class="pre">NetworkLoadBalancer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshKeyPair"><code class="docutils literal notranslate"><span class="pre">SshKeyPair</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshableInstance"><code class="docutils literal notranslate"><span class="pre">SshableInstance</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.generate_ssh_keypair"><code class="docutils literal notranslate"><span class="pre">generate_ssh_keypair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fargate.html">tb_pulumi.fargate</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateClusterWithLogging"><code class="docutils literal notranslate"><span class="pre">FargateClusterWithLogging</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateServiceAlb"><code class="docutils literal notranslate"><span class="pre">FargateServiceAlb</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tb_pulumi.network</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tb_pulumi.network.MultiCidrVpc"><code class="docutils literal notranslate"><span class="pre">MultiCidrVpc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tb_pulumi.network.SecurityGroupWithRules"><code class="docutils literal notranslate"><span class="pre">SecurityGroupWithRules</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rds.html">tb_pulumi.rds</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rds.html#tb_pulumi.rds.RdsDatabaseGroup"><code class="docutils literal notranslate"><span class="pre">RdsDatabaseGroup</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="secrets.html">tb_pulumi.secrets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.PulumiSecretsManager"><code class="docutils literal notranslate"><span class="pre">PulumiSecretsManager</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.SecretsManagerSecret"><code class="docutils literal notranslate"><span class="pre">SecretsManagerSecret</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="_sources/network.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; 2024, Thunderbird
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

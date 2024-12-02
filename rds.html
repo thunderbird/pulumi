@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>tb_pulumi :: tb_pulumi.rds</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="genindex.html"/>
+
+  <link rel="stylesheet" href="_static/css/insegel.css"/>
+  <link rel="stylesheet" href="_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/sphinx_highlight.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>tb_pulumi</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="module-tb_pulumi.rds">
+<span id="tb-pulumi-rds"></span><h1>tb_pulumi.rds<a class="headerlink" href="#module-tb_pulumi.rds" title="Link to this heading">¶</a></h1>
+<p>Infrastructural patterns related to AWS’s RDS product.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tb_pulumi.rds.RdsDatabaseGroup">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tb_pulumi.rds.</span></span><span class="sig-name descname"><span class="pre">RdsDatabaseGroup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><span class="pre">ThunderbirdPulumiProject</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subnets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Output</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vpc_cidr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vpc_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allocated_storage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_minor_version_upgrade</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_immediately</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backup_retention_period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blue_green_update</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build_jumphost</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'root'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enabled_cluster_cloudwatch_logs_exports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enabled_instance_cloudwatch_logs_exports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">engine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'postgres'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">engine_version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'15.7'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance_class</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'db.t3.micro'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">internal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jumphost_public_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jumphost_source_cidrs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['0.0.0.0/0']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jumphost_user_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_allocated_storage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_instances</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override_special</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'!#$%&amp;*()-_=+[]{}&lt;&gt;:?'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter_group_family</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'postgres15'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">performance_insights_enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sg_cidrs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_final_snapshot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'gp3'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ResourceOptions</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tb_pulumi.rds.RdsDatabaseGroup" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource" title="tb_pulumi.ThunderbirdComponentResource"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></p>
+<p>Using RDS, construct a primary database and zero or more read replicas. A Network Load Balancer (NLB) is
+created to spread load across the read replicas.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – A string identifying this set of resources.</p></li>
+<li><p><strong>project</strong> (<a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><em>tb_pulumi.ThunderbirdPulumiProject</em></a>) – The ThunderbirdPulumiProject to add these resources to.</p></li>
+<li><p><strong>db_name</strong> (<em>str</em>) – What to call the name of the database at the schema level.</p></li>
+<li><p><strong>subnets</strong> (<em>list</em><em>[</em><em>pulumi.Output</em><em>]</em>) – List of subnet Output objects defining the network space to build in.</p></li>
+<li><p><strong>vpc_cidr</strong> (<em>str</em>) – An IP range to allow incoming traffic from, which is a subset of the IP range allowed by the
+VPC in which this cluster is built. If you do not specify <cite>sg_cidrs</cite>, but <cite>internal</cite> is True, then ingress
+traffic will be limited to being sourced in this CIDR.</p></li>
+<li><p><strong>vpc_id</strong> (<em>str</em>) – The ID of the VPC to build in.</p></li>
+<li><p><strong>allocated_storage</strong> (<em>int</em><em>, </em><em>optional</em>) – GB of storage to allot to each instance. AWS may impose different minimum values for
+this option depending on other storage options. Details are found in
+<a class="reference external" href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html">AWS RDS documentation</a>. Defaults to
+20.</p></li>
+<li><p><strong>auto_minor_version_upgrade</strong> (<em>bool</em><em>, </em><em>optional</em>) – Allow RDS to upgrade the engine as long as it’s only a minor version change,
+and therefore backward compatible. Defaults to True.</p></li>
+<li><p><strong>apply_immediately</strong> (<em>bool</em><em>, </em><em>optional</em>) – When True, changes to the DB config will be applied right away instead of during the
+next maintenance window. Depending on the change, this could cause downtime. Defaults to False.</p></li>
+<li><p><strong>backup_retention_period</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of days to keep old backups. Defaults to 7.</p></li>
+<li><p><strong>blue_green_update</strong> (<em>bool</em><em>, </em><em>optional</em>) – When RDS applies updates, it will deploy a new cluster and fail over to it.
+<a class="reference external" href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/blue-green-deployments.html">AWS Reference</a>
+Defaults to False.</p></li>
+<li><p><strong>build_jumphost</strong> (<em>bool</em><em>, </em><em>optional</em>) – When True, an EC2 instance in the same network space but with a public IP address will be
+built, allowing access to a database that’s only internally accessible. Defaults to False.</p></li>
+<li><p><strong>db_username</strong> (<em>str</em><em>, </em><em>optional</em>) – The username to use for the root-level administrative user in the database. Defaults to
+‘root’.</p></li>
+<li><p><strong>enabled_cluster_cloudwatch_logs_exports</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Any combination of valid log types for a DB instance to export.
+These include: audit, error, general, slowquery, postgresql. Defaults to [].</p></li>
+<li><p><strong>enabled_instance_cloudwatch_logs_exports</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Any combination of valid log types for a DB cluster to export.
+For details, see the “EnableCloudwatchLogsExports” section of
+<a class="reference external" href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html">these docs</a>.
+Defaults to [].</p></li>
+<li><p><strong>engine</strong> (<em>str</em><em>, </em><em>optional</em>) – The core database engine to use, such as “postgres” or “mysql”. Defaults to ‘postgres’.</p></li>
+<li><p><strong>engine_version</strong> (<em>str</em><em>, </em><em>optional</em>) – The version of the engine to use. This is a specific string that AWS recognizes. You can
+see a list of those strings by running this command: <code class="docutils literal notranslate"><span class="pre">aws</span> <span class="pre">rds</span> <span class="pre">describe-db-engine-versions</span></code>. Defaults to
+‘15.7’</p></li>
+<li><p><strong>instance_class</strong> (<em>str</em><em>, </em><em>optional</em>) – One of the database sizes listed
+<a class="reference external" href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html">in these docs</a>.
+Defaults to ‘db.t3.micro’.</p></li>
+<li><p><strong>internal</strong> (<em>bool</em><em>, </em><em>optional</em>) – When True, if no sg_cidrs are set, allows ingress only from what <cite>vpc_cidr</cite> is set to. If False
+and no sg_cidrs are set, allows ingress from anywhere. Defaults to True.</p></li>
+<li><p><strong>jumphost_public_key</strong> (<em>str</em><em>, </em><em>optional</em>) – The public key you want to use when authenticating against the jumphost’s SSH
+service. Defaults to None.</p></li>
+<li><p><strong>jumphost_source_cidrs</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of CIDRs to allow SSH ingress to the jump host from. Defaults to
+[‘0.0.0.0/0’].</p></li>
+<li><p><strong>jumphost_user_data</strong> (<em>str</em><em>, </em><em>optional</em>) – Plaintext value (not base64-encoded) of the user data to pass the jumphost. Use this
+to launch the server with your database client of choice pre-installed, for example. Defaults to None.</p></li>
+<li><p><strong>max_allocated_storage</strong> (<em>int</em><em>, </em><em>optional</em>) – Gigabytes of storage which storage autoscaling will refuse to increase beyond. To
+disable autoscaling, set this to zero. Defaults to 0.</p></li>
+<li><p><strong>num_instances</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of database servers to build. This must be at least 1. This module interprets this
+number to mean that we should build a primary instance and (num_instances - 1) read replicas. All servers
+will be built from the same set of options described here. Defaults to 1.</p></li>
+<li><p><strong>override_special</strong> (<em>str</em><em>, </em><em>optional</em>) – The root password is generated using “special characters”. Set this value to a string
+containing only those special characters that you want included in your otherwise random password. Defaults
+to ‘!#$%&amp;*()-_=+[]{}&lt;&gt;:?’.</p></li>
+<li><p><strong>parameters</strong> (<em>list</em><em>[</em><em>dict</em><em>]</em><em>, </em><em>optional</em>) – A list of dicts describing parameters to override from the defaults set by the
+parameter_group_family. These dicts should describe one of
+<a class="reference external" href="https://www.pulumi.com/registry/packages/aws/api-docs/rds/parametergroup/#parametergroupparameter">these</a>.
+Defaults to None</p></li>
+<li><p><strong>parameter_group_family</strong> (<em>str</em><em>, </em><em>optional</em>) – A special string known to AWS describing the base set of DB parameters to use.
+These parameters can be overridden with the <cite>parameters</cite> option. You can get a list of options by running:
+<code class="docutils literal notranslate"><span class="pre">aws</span> <span class="pre">rds</span> <span class="pre">describe-db-engine-versions</span> <span class="pre">--query</span> <span class="pre">&quot;DBEngineVersions[].DBParameterGroupFamily&quot;</span></code> Defaults to
+‘postgres15’.</p></li>
+<li><p><strong>performance_insights_enabled</strong> (<em>bool</em><em>, </em><em>optional</em>) – Record more detailed monitoring metrics to CloudWatch. Incurs additional costs.
+Defaults to False.</p></li>
+<li><p><strong>port</strong> (<em>int</em><em>, </em><em>optional</em>) – Specify a non-default listening port. Defaults to None.</p></li>
+<li><p><strong>sg_cidrs</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – A list of CIDRs from which ingress should be allowed. If this is left to the default value, a
+sensible default will be selected. If <cite>internal</cite> is True, this will allow access from the <cite>vpc_cidr</cite>. Otherwise,
+traffic will be allowed from anywhere. Defaults to None.</p></li>
+<li><p><strong>skip_final_snapshot</strong> (<em>bool</em><em>, </em><em>optional</em>) – Allow deletion of an RDS instance without performing a final backup. Defaults to False.</p></li>
+<li><p><strong>storage_type</strong> (<em>str</em><em>, </em><em>optional</em>) – Type of storage to provision. Defaults to <cite>gp3</cite> but could be set to other values such as <cite>io2</cite>.
+For details, see <a class="reference external" href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html">Amazon RDS DB instance storage</a>
+Defaults to ‘gp3’.</p></li>
+<li><p><strong>opts</strong> (<em>pulumi.ResourceOptions</em><em>, </em><em>optional</em>) – Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.</p></li>
+<li><p><strong>kwargs</strong> – Key/value pairs describing additional arguments to be passed into <em>all</em> RDS Instance declarations.
+Detail can be found <a class="reference external" href="https://www.pulumi.com/registry/packages/aws/api-docs/rds/instance/#inputs">here</a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – Raised if no <code class="docutils literal notranslate"><span class="pre">port</span></code> is supplied, and if a default cannot be found in the lookup table in the
+constants module.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#quickstart">Quickstart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#manual-setup">Manual Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#s3-bucket">S3 bucket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#repo-setup">Repo setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#set-up-this-module">Set up this module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#use-this-module">Use this module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#pythonic-problems">Pythonic problems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#shells-other-than-bash">Shells other than Bash</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="patterns.html">Patterns of Use</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#project-patterns">Project patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#setting-up-a-network">Setting up a network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#handling-secrets">Handling secrets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="monitoring.html">Monitoring Resources</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">tb_pulumi</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tb_pulumi.html">tb_pulumi</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource"><code class="docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject"><code class="docutils literal notranslate"><span class="pre">ThunderbirdPulumiProject</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.env_var_is_true"><code class="docutils literal notranslate"><span class="pre">env_var_is_true()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.env_var_matches"><code class="docutils literal notranslate"><span class="pre">env_var_matches()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.flatten"><code class="docutils literal notranslate"><span class="pre">flatten()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ci.html">tb_pulumi.ci</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ci.html#tb_pulumi.ci.AwsAutomationUser"><code class="docutils literal notranslate"><span class="pre">AwsAutomationUser</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cloudfront.html">tb_pulumi.cloudfront</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cloudfront.html#tb_pulumi.cloudfront.CloudFrontS3Service"><code class="docutils literal notranslate"><span class="pre">CloudFrontS3Service</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">tb_pulumi.constants</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.ASSUME_ROLE_POLICY"><code class="docutils literal notranslate"><span class="pre">ASSUME_ROLE_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_AWS_SSL_POLICY"><code class="docutils literal notranslate"><span class="pre">DEFAULT_AWS_SSL_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_PROTECTED_STACKS"><code class="docutils literal notranslate"><span class="pre">DEFAULT_PROTECTED_STACKS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.IAM_POLICY_DOCUMENT"><code class="docutils literal notranslate"><span class="pre">IAM_POLICY_DOCUMENT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.SERVICE_PORTS"><code class="docutils literal notranslate"><span class="pre">SERVICE_PORTS</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ec2.html">tb_pulumi.ec2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.AMAZON_LINUX_AMI"><code class="docutils literal notranslate"><span class="pre">AMAZON_LINUX_AMI</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.NetworkLoadBalancer"><code class="docutils literal notranslate"><span class="pre">NetworkLoadBalancer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshKeyPair"><code class="docutils literal notranslate"><span class="pre">SshKeyPair</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshableInstance"><code class="docutils literal notranslate"><span class="pre">SshableInstance</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.generate_ssh_keypair"><code class="docutils literal notranslate"><span class="pre">generate_ssh_keypair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fargate.html">tb_pulumi.fargate</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateClusterWithLogging"><code class="docutils literal notranslate"><span class="pre">FargateClusterWithLogging</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateServiceAlb"><code class="docutils literal notranslate"><span class="pre">FargateServiceAlb</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="network.html">tb_pulumi.network</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="network.html#tb_pulumi.network.MultiCidrVpc"><code class="docutils literal notranslate"><span class="pre">MultiCidrVpc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="network.html#tb_pulumi.network.SecurityGroupWithRules"><code class="docutils literal notranslate"><span class="pre">SecurityGroupWithRules</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tb_pulumi.rds</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tb_pulumi.rds.RdsDatabaseGroup"><code class="docutils literal notranslate"><span class="pre">RdsDatabaseGroup</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="secrets.html">tb_pulumi.secrets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.PulumiSecretsManager"><code class="docutils literal notranslate"><span class="pre">PulumiSecretsManager</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.SecretsManagerSecret"><code class="docutils literal notranslate"><span class="pre">SecretsManagerSecret</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="_sources/rds.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; 2024, Thunderbird
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

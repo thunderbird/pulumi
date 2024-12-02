@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>tb_pulumi :: tb_pulumi.fargate</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="genindex.html"/>
+
+  <link rel="stylesheet" href="_static/css/insegel.css"/>
+  <link rel="stylesheet" href="_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/sphinx_highlight.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>tb_pulumi</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="module-tb_pulumi.fargate">
+<span id="tb-pulumi-fargate"></span><h1>tb_pulumi.fargate<a class="headerlink" href="#module-tb_pulumi.fargate" title="Link to this heading">¶</a></h1>
+<p>Infrastructural patterns related to <a class="reference external" href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html">AWS Fargate</a>.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tb_pulumi.fargate.FargateClusterWithLogging">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tb_pulumi.fargate.</span></span><span class="sig-name descname"><span class="pre">FargateClusterWithLogging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><span class="pre">ThunderbirdPulumiProject</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">subnets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assign_public_ip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">desired_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ecr_resources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['*']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_container_insights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">health_check_grace_period_seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">internal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_deletion_window_in_days</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">security_groups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">services</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_definition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ResourceOptions</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tb_pulumi.fargate.FargateClusterWithLogging" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource" title="tb_pulumi.ThunderbirdComponentResource"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></p>
+<p>Builds a Fargate cluster running a variable number of tasks. Logs from these tasks will be
+sent to CloudWatch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – A string identifying this set of resources.</p></li>
+<li><p><strong>project</strong> (<a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><em>tb_pulumi.ThunderbirdPulumiProject</em></a>) – The ThunderbirdPulumiProject to add these resources to.</p></li>
+<li><p><strong>subnets</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – A list of subnet IDs to build Fargate containers on. There must be at least one subnet to use.</p></li>
+<li><p><strong>assign_public_ip</strong> (<em>bool</em><em>, </em><em>optional</em>) – When True, containers will receive Internet-facing network interfaces. Must be enabled for
+Fargate-backed containers to talk out to the net. Defaults to False.</p></li>
+<li><p><strong>desired_count</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of containers the service should target to run. Defaults to 1.</p></li>
+<li><p><strong>ecr_resources</strong> (<em>list</em><em>, </em><em>optional</em>) – The containers will be granted permissions to pull images from ECR. If you would like to
+restrict these permissions, supply this argument as a list of ARNs as they would appear in an IAM Policy.
+Defaults to [‘*’].</p></li>
+<li><p><strong>enable_container_insights</strong> (<em>bool</em><em>, </em><em>optional</em>) – When True, enables advanced CloudWatch metrics collection. Defaults to False.</p></li>
+<li><p><strong>health_check_grace_period_seconds</strong> (<em>int</em><em>, </em><em>optional</em>) – Time to wait for a container to come online before attempting health
+checks. This can be used to prevent accidental health check failures. Defaults to None.</p></li>
+<li><p><strong>internal</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether traffic should be accepted from the Internet (False) or not (True). Defaults to True.</p></li>
+<li><p><strong>key_deletion_window_in_days</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of days after the KMS key is deleted that it will be recoverable. If you
+need to forcibly delete a key, set this to 0. Defaults to 7.</p></li>
+<li><p><strong>security_groups</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – A list of security group IDs to attach to the load balancer. Defaults to [].</p></li>
+<li><p><strong>services</strong> (<em>dict</em><em>, </em><em>optional</em>) – <p>A dict defining the ports to use when routing requests to each service. The keys should be the name
+of the service as described in a container definition. The values should be dicts supporting the options shown
+below. If no <code class="docutils literal notranslate"><span class="pre">listenter_port</span></code> is specified, the <code class="docutils literal notranslate"><span class="pre">container_port</span></code> will be used. The <code class="docutils literal notranslate"><span class="pre">container_name</span></code> is the
+name of a container as specified in a container definition which can receive this traffic.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;web_portal&#39;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s1">&#39;container_port&#39;</span><span class="p">:</span> <span class="mi">8080</span><span class="p">,</span>
+    <span class="s1">&#39;container_name&#39;</span><span class="p">:</span> <span class="s1">&#39;web_backend&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;listener_cert_arn&#39;</span><span class="p">:</span> <span class="s1">&#39;arn:aws:acm:region:account:certificate/id&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;listener_port&#39;</span><span class="p">:</span> <span class="mi">443</span><span class="p">,</span>
+    <span class="s1">&#39;listener_proto&#39;</span><span class="p">:</span> <span class="s1">&#39;HTTPS&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Arbitrary name for the ALB; must be unique and no longer than 32 characters.&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;health_check&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="c1"># Keys match parameters listed here:</span>
+        <span class="c1"># https://www.pulumi.com/registry/packages/aws/api-docs/alb/targetgroup/#targetgrouphealthcheck</span>
+    <span class="p">}</span>
+<span class="p">}}</span>
+</pre></div>
+</div>
+<p>Defaults to {}.</p>
+</p></li>
+<li><p><strong>task_definition</strong> (<em>dict</em><em>, </em><em>optional</em>) – A dict representing an ECS task definition. Defaults to {}.</p></li>
+<li><p><strong>opts</strong> (<em>pulumi.ResourceOptions</em><em>, </em><em>optional</em>) – Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.</p></li>
+<li><p><strong>kwargs</strong> – Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+superconstructor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>IndexError</strong> – Thrown if the list of <cite>subnets</cite> is empty.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tb_pulumi.fargate.FargateClusterWithLogging.task_definition">
+<span class="sig-name descname"><span class="pre">task_definition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_def</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">family</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_group_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aws_region</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_role_arn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependencies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Resource</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">TaskDefinition</span></span></span><a class="headerlink" href="#tb_pulumi.fargate.FargateClusterWithLogging.task_definition" title="Link to this definition">¶</a></dt>
+<dd><p>Returns an ECS task definition resource.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>task_def</strong> (<em>dict</em>) – A dict defining the task definition template which needs modification.</p></li>
+<li><p><strong>family</strong> (<em>str</em>) – A unique name for the task definition.</p></li>
+<li><p><strong>log_group_name</strong> (<em>str</em>) – Name of the log group to ship logs to.</p></li>
+<li><p><strong>aws_region</strong> (<em>str</em>) – AWS region to build in.</p></li>
+<li><p><strong>task_role_arn</strong> (<em>str</em>) – ARN of the IAM role the task will run as.</p></li>
+<li><p><strong>dependencies</strong> (<em>list</em><em>[</em><em>pulumi.Resource</em><em>]</em>) – List of Resources this task definition is dependent upon.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A TaskDefinition Resource</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>aws.ecs.TaskDefinition</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tb_pulumi.fargate.FargateServiceAlb">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tb_pulumi.fargate.</span></span><span class="sig-name descname"><span class="pre">FargateServiceAlb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><span class="pre">ThunderbirdPulumiProject</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">subnets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Output</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">internal</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">security_groups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">services</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ResourceOptions</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tb_pulumi.fargate.FargateServiceAlb" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource" title="tb_pulumi.ThunderbirdComponentResource"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></p>
+<p>Builds an ALB with all of its constituent components to serve traffic for a set of ECS
+services. ECS does not allow reuse of a single ALB with multiple listeners, so if there are
+multiple services, multiple ALBs will be constructed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – A string identifying this set of resources.</p></li>
+<li><p><strong>project</strong> (<a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><em>tb_pulumi.ThunderbirdPulumiProject</em></a>) – The ThunderbirdPulumiProject to add these resources to.</p></li>
+<li><p><strong>subnets</strong> (<em>list</em><em>[</em><em>pulumi.Output</em><em>]</em>) – A list of subnet resources (pulumi outputs) to attach the ALB to.</p></li>
+<li><p><strong>internal</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether traffic should be accepted from the Internet (False) or not (True). Defaults to True.</p></li>
+<li><p><strong>security_groups</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – A list of security group IDs to attach to the load balancer. Defaults to [].</p></li>
+<li><p><strong>services</strong> (<em>dict</em><em>, </em><em>optional</em>) – <p>A dict defining the ports to use when routing requests to each service. The keys should be the name
+of the service as described in a container definition. The values should be dicts supporting the options shown
+below. If no <code class="docutils literal notranslate"><span class="pre">listenter_port</span></code> is specified, the <code class="docutils literal notranslate"><span class="pre">container_port</span></code> will be used. The <code class="docutils literal notranslate"><span class="pre">container_name</span></code> is the
+name of a container as specified in a container definition which can receive this traffic.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;web_portal&#39;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s1">&#39;container_port&#39;</span><span class="p">:</span> <span class="mi">8080</span><span class="p">,</span>
+    <span class="s1">&#39;container_name&#39;</span><span class="p">:</span> <span class="s1">&#39;web_backend&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;listener_cert_arn&#39;</span><span class="p">:</span> <span class="s1">&#39;arn:aws:acm:region:account:certificate/id&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;listener_port&#39;</span><span class="p">:</span> <span class="mi">443</span><span class="p">,</span>
+    <span class="s1">&#39;listener_proto&#39;</span><span class="p">:</span> <span class="s1">&#39;HTTPS&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;Arbitrary name for the ALB; must be unique and no longer than 32 characters.&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;health_check&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="c1"># Keys match parameters listed here:</span>
+        <span class="c1"># https://www.pulumi.com/registry/packages/aws/api-docs/alb/targetgroup/#targetgrouphealthcheck</span>
+    <span class="p">}</span>
+<span class="p">}}</span>
+</pre></div>
+</div>
+<p>Defaults to {}.</p>
+</p></li>
+<li><p><strong>opts</strong> (<em>pulumi.ResourceOptions</em><em>, </em><em>optional</em>) – Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.</p></li>
+<li><p><strong>kwargs</strong> – Any other keyword arguments which will be passed as inputs to the ThunderbirdComponentResource
+superconstructor.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#quickstart">Quickstart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#manual-setup">Manual Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#s3-bucket">S3 bucket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#repo-setup">Repo setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#set-up-this-module">Set up this module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#use-this-module">Use this module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#pythonic-problems">Pythonic problems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#shells-other-than-bash">Shells other than Bash</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="patterns.html">Patterns of Use</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#project-patterns">Project patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#setting-up-a-network">Setting up a network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#handling-secrets">Handling secrets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="monitoring.html">Monitoring Resources</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">tb_pulumi</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tb_pulumi.html">tb_pulumi</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource"><code class="docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject"><code class="docutils literal notranslate"><span class="pre">ThunderbirdPulumiProject</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.env_var_is_true"><code class="docutils literal notranslate"><span class="pre">env_var_is_true()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.env_var_matches"><code class="docutils literal notranslate"><span class="pre">env_var_matches()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.flatten"><code class="docutils literal notranslate"><span class="pre">flatten()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ci.html">tb_pulumi.ci</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ci.html#tb_pulumi.ci.AwsAutomationUser"><code class="docutils literal notranslate"><span class="pre">AwsAutomationUser</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cloudfront.html">tb_pulumi.cloudfront</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cloudfront.html#tb_pulumi.cloudfront.CloudFrontS3Service"><code class="docutils literal notranslate"><span class="pre">CloudFrontS3Service</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">tb_pulumi.constants</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.ASSUME_ROLE_POLICY"><code class="docutils literal notranslate"><span class="pre">ASSUME_ROLE_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_AWS_SSL_POLICY"><code class="docutils literal notranslate"><span class="pre">DEFAULT_AWS_SSL_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_PROTECTED_STACKS"><code class="docutils literal notranslate"><span class="pre">DEFAULT_PROTECTED_STACKS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.IAM_POLICY_DOCUMENT"><code class="docutils literal notranslate"><span class="pre">IAM_POLICY_DOCUMENT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.SERVICE_PORTS"><code class="docutils literal notranslate"><span class="pre">SERVICE_PORTS</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ec2.html">tb_pulumi.ec2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.AMAZON_LINUX_AMI"><code class="docutils literal notranslate"><span class="pre">AMAZON_LINUX_AMI</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.NetworkLoadBalancer"><code class="docutils literal notranslate"><span class="pre">NetworkLoadBalancer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshKeyPair"><code class="docutils literal notranslate"><span class="pre">SshKeyPair</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshableInstance"><code class="docutils literal notranslate"><span class="pre">SshableInstance</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.generate_ssh_keypair"><code class="docutils literal notranslate"><span class="pre">generate_ssh_keypair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tb_pulumi.fargate</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tb_pulumi.fargate.FargateClusterWithLogging"><code class="docutils literal notranslate"><span class="pre">FargateClusterWithLogging</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tb_pulumi.fargate.FargateServiceAlb"><code class="docutils literal notranslate"><span class="pre">FargateServiceAlb</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="network.html">tb_pulumi.network</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="network.html#tb_pulumi.network.MultiCidrVpc"><code class="docutils literal notranslate"><span class="pre">MultiCidrVpc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="network.html#tb_pulumi.network.SecurityGroupWithRules"><code class="docutils literal notranslate"><span class="pre">SecurityGroupWithRules</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rds.html">tb_pulumi.rds</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rds.html#tb_pulumi.rds.RdsDatabaseGroup"><code class="docutils literal notranslate"><span class="pre">RdsDatabaseGroup</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="secrets.html">tb_pulumi.secrets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.PulumiSecretsManager"><code class="docutils literal notranslate"><span class="pre">PulumiSecretsManager</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.SecretsManagerSecret"><code class="docutils literal notranslate"><span class="pre">SecretsManagerSecret</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="_sources/fargate.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; 2024, Thunderbird
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>tb_pulumi :: Patterns of Use</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="genindex.html"/>
+
+  <link rel="stylesheet" href="_static/css/insegel.css"/>
+  <link rel="stylesheet" href="_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/sphinx_highlight.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>tb_pulumi</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="patterns-of-use">
+<h1>Patterns of Use<a class="headerlink" href="#patterns-of-use" title="Link to this heading">¶</a></h1>
+<p>The patterns contained in this module support our use cases for services hosted at Thunderbird. At an extremely high
+level, this module allows us to standardize certain aspects of the Pulumi resources we’re building by using a custom
+<code class="docutils literal notranslate"><span class="pre">ComponentResource</span></code> called a <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource" title="tb_pulumi.ThunderbirdComponentResource"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdComponentResource</span></code></a>. When building your Pulumi project
+using this module, you should organize these resources into a <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdPulumiProject</span></code></a>.</p>
+<p>The following patterns are available:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="cloudfront.html#tb_pulumi.cloudfront.CloudFrontS3Service" title="tb_pulumi.cloudfront.CloudFrontS3Service"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.cloudfront.CloudFrontS3Service</span></code></a>: Store static content in an S3 bucket and serve it up over the
+CloudFront Content Delivery Network.</p></li>
+<li><p><a class="reference internal" href="ci.html#tb_pulumi.ci.AwsAutomationUser" title="tb_pulumi.ci.AwsAutomationUser"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ci.AwsAutomationUser</span></code></a>: Create an IAM user with permission to perform automated CI tasks.</p></li>
+<li><p><a class="reference internal" href="ec2.html#tb_pulumi.ec2.NetworkLoadBalancer" title="tb_pulumi.ec2.NetworkLoadBalancer"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ec2.NetworkLoadBalancer</span></code></a>: Build a load balancer routing TCP traffic to multiple backends.</p></li>
+<li><p><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshKeyPair" title="tb_pulumi.ec2.SshKeyPair"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ec2.SshKeyPair</span></code></a>: Build an SSH keypair (or supply your own).</p></li>
+<li><p><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshableInstance" title="tb_pulumi.ec2.SshableInstance"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ec2.SshableInstance</span></code></a>: Build an EC2 instance allowing SSH access.</p></li>
+<li><p><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateClusterWithLogging" title="tb_pulumi.fargate.FargateClusterWithLogging"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.fargate.FargateClusterWithLogging</span></code></a>: Run load balanced Docker containers on AWS Fargate.</p></li>
+<li><p><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateServiceAlb" title="tb_pulumi.fargate.FargateServiceAlb"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.fargate.FargateServiceAlb</span></code></a>: Balance load between Fargate tasks.</p></li>
+<li><p><a class="reference internal" href="network.html#tb_pulumi.network.MultiCidrVpc" title="tb_pulumi.network.MultiCidrVpc"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.network.MultiCidrVpc</span></code></a>: Build a VPC with configurable network space and routing.</p></li>
+<li><p><a class="reference internal" href="network.html#tb_pulumi.network.SecurityGroupWithRules" title="tb_pulumi.network.SecurityGroupWithRules"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.network.SecurityGroupWithRules</span></code></a>: Build a security group with configurable traffic rules.</p></li>
+<li><p><a class="reference internal" href="rds.html#tb_pulumi.rds.RdsDatabaseGroup" title="tb_pulumi.rds.RdsDatabaseGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.rds.RdsDatabaseGroup</span></code></a>: Build a database, optionally with replication to multiple downstreams.</p></li>
+<li><p><a class="reference internal" href="secrets.html#tb_pulumi.secrets.PulumiSecretsManager" title="tb_pulumi.secrets.PulumiSecretsManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.secrets.PulumiSecretsManager</span></code></a>: Manage secrets in AWS Secrets Manager based on Pulumi secrets.</p></li>
+<li><p><a class="reference internal" href="secrets.html#tb_pulumi.secrets.SecretsManagerSecret" title="tb_pulumi.secrets.SecretsManagerSecret"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.secrets.SecretsManagerSecret</span></code></a>: Store a secret value in AWS Secrets Manager.</p></li>
+</ul>
+<section id="project-patterns">
+<h2>Project patterns<a class="headerlink" href="#project-patterns" title="Link to this heading">¶</a></h2>
+<p>The idea is to reduce most infrastructural changes to YAML file tweaks, requiring no code inspection or debugging for
+most changes. Python gives us the <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> method of using <code class="docutils literal notranslate"><span class="pre">dict</span></code> types to supply arguments to function calls. The
+<a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdPulumiProject</span></code></a> class gives us access to these YAML files’ contents as a <code class="docutils literal notranslate"><span class="pre">dict</span></code>.
+This enables a simple pattern of reading the config and arbitrarily passing its contents into these classes’
+constructors.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It may be best to review the sample <a class="reference external" href="https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example">configuration</a> and <a class="reference external" href="https://github.com/thunderbird/pulumi/blob/main/__main__.py.example">program</a> used by the quickstart to see an easy way to
+achieve this.</p>
+</div>
+</section>
+<section id="setting-up-a-network">
+<h2>Setting up a network<a class="headerlink" href="#setting-up-a-network" title="Link to this heading">¶</a></h2>
+<p>Your infrastructure stack should usually begin with a <a class="reference internal" href="network.html#tb_pulumi.network.MultiCidrVpc" title="tb_pulumi.network.MultiCidrVpc"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.network.MultiCidrVpc</span></code></a> to establish some
+private network space. This will build you a VPC, some subnets, and some network routes. These things will get used by
+any resources that present a service to the network, so this will typically be one of the first things to build.</p>
+</section>
+<section id="handling-secrets">
+<h2>Handling secrets<a class="headerlink" href="#handling-secrets" title="Link to this heading">¶</a></h2>
+<p>Applications often need to operate on values such as database passwords that are considered secrets. You never want to
+store these values in plaintext, and they should always be protected by policies preventing unauthorized access. Pulumi
+allows you to store secret values directly in its configuration using hashes only decryptable with a secret passphrase.</p>
+<p>To set a secret value, run a command like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pulumi</span> <span class="n">config</span> <span class="nb">set</span> <span class="o">--</span><span class="n">secret</span> <span class="n">my</span><span class="o">-</span><span class="n">password</span> <span class="s1">&#39;P@$sw0rd&#39;</span>
+</pre></div>
+</div>
+<p>The first time you set a Pulumi secret, you will be asked to generate this passphrase. When you do, be sure to log it in
+a safe location. Any other users working with your Pulumi code will need this to manipulate your live resources.</p>
+<p>Many AWS configurations will require that secret values come out of their Secrets Manager product. To help bridge the
+gap between Pulumi and AWS, we have the <a class="reference internal" href="secrets.html#tb_pulumi.secrets.PulumiSecretsManager" title="tb_pulumi.secrets.PulumiSecretsManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.secrets.PulumiSecretsManager</span></code></a> class. Feed this a list of
+<code class="docutils literal notranslate"><span class="pre">secret_names</span></code> which match Pulumi secret names. This module will create AWS secrets matching those Pulumi secrets.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>AWS Secrets Manager applies a randomly generated suffix to each secret ARN. This value is not predictable. References
+to secrets typically require you to use this ARN even though it is not predictable. For this reason, you may have to
+run a <code class="docutils literal notranslate"><span class="pre">pulumi</span> <span class="pre">up</span></code> to generate these secrets before using them as part of, for example, an ECS task definition.</p>
+</div>
+</section>
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#quickstart">Quickstart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#manual-setup">Manual Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#s3-bucket">S3 bucket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#repo-setup">Repo setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#set-up-this-module">Set up this module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#use-this-module">Use this module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#pythonic-problems">Pythonic problems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#shells-other-than-bash">Shells other than Bash</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Patterns of Use</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#project-patterns">Project patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#setting-up-a-network">Setting up a network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#handling-secrets">Handling secrets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="monitoring.html">Monitoring Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">tb_pulumi</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tb_pulumi.html">tb_pulumi</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource"><code class="docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject"><code class="docutils literal notranslate"><span class="pre">ThunderbirdPulumiProject</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.env_var_is_true"><code class="docutils literal notranslate"><span class="pre">env_var_is_true()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.env_var_matches"><code class="docutils literal notranslate"><span class="pre">env_var_matches()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.flatten"><code class="docutils literal notranslate"><span class="pre">flatten()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ci.html">tb_pulumi.ci</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ci.html#tb_pulumi.ci.AwsAutomationUser"><code class="docutils literal notranslate"><span class="pre">AwsAutomationUser</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cloudfront.html">tb_pulumi.cloudfront</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cloudfront.html#tb_pulumi.cloudfront.CloudFrontS3Service"><code class="docutils literal notranslate"><span class="pre">CloudFrontS3Service</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">tb_pulumi.constants</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.ASSUME_ROLE_POLICY"><code class="docutils literal notranslate"><span class="pre">ASSUME_ROLE_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_AWS_SSL_POLICY"><code class="docutils literal notranslate"><span class="pre">DEFAULT_AWS_SSL_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_PROTECTED_STACKS"><code class="docutils literal notranslate"><span class="pre">DEFAULT_PROTECTED_STACKS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.IAM_POLICY_DOCUMENT"><code class="docutils literal notranslate"><span class="pre">IAM_POLICY_DOCUMENT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.SERVICE_PORTS"><code class="docutils literal notranslate"><span class="pre">SERVICE_PORTS</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ec2.html">tb_pulumi.ec2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.AMAZON_LINUX_AMI"><code class="docutils literal notranslate"><span class="pre">AMAZON_LINUX_AMI</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.NetworkLoadBalancer"><code class="docutils literal notranslate"><span class="pre">NetworkLoadBalancer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshKeyPair"><code class="docutils literal notranslate"><span class="pre">SshKeyPair</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshableInstance"><code class="docutils literal notranslate"><span class="pre">SshableInstance</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.generate_ssh_keypair"><code class="docutils literal notranslate"><span class="pre">generate_ssh_keypair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fargate.html">tb_pulumi.fargate</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateClusterWithLogging"><code class="docutils literal notranslate"><span class="pre">FargateClusterWithLogging</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateServiceAlb"><code class="docutils literal notranslate"><span class="pre">FargateServiceAlb</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="network.html">tb_pulumi.network</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="network.html#tb_pulumi.network.MultiCidrVpc"><code class="docutils literal notranslate"><span class="pre">MultiCidrVpc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="network.html#tb_pulumi.network.SecurityGroupWithRules"><code class="docutils literal notranslate"><span class="pre">SecurityGroupWithRules</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rds.html">tb_pulumi.rds</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rds.html#tb_pulumi.rds.RdsDatabaseGroup"><code class="docutils literal notranslate"><span class="pre">RdsDatabaseGroup</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="secrets.html">tb_pulumi.secrets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.PulumiSecretsManager"><code class="docutils literal notranslate"><span class="pre">PulumiSecretsManager</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.SecretsManagerSecret"><code class="docutils literal notranslate"><span class="pre">SecretsManagerSecret</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="_sources/patterns.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; 2024, Thunderbird
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

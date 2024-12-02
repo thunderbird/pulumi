@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>tb_pulumi :: tb_pulumi</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="genindex.html"/>
+
+  <link rel="stylesheet" href="_static/css/insegel.css"/>
+  <link rel="stylesheet" href="_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/sphinx_highlight.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>tb_pulumi</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="module-tb_pulumi">
+<span id="tb-pulumi"></span><h1>tb_pulumi<a class="headerlink" href="#module-tb_pulumi" title="Link to this heading">¶</a></h1>
+<p>Standardization library for the usage of Pulumi in Python at Thunderbird. For an overview of how
+to use this library, read the <a class="reference internal" href="getting-started.html#getting-started"><span class="std std-ref">Getting Started</span></a> page.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdComponentResource">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tb_pulumi.</span></span><span class="sig-name descname"><span class="pre">ThunderbirdComponentResource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pulumi_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><span class="pre">ThunderbirdPulumiProject</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ResourceOptions</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tb_pulumi.ThunderbirdComponentResource" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ComponentResource</span></code></p>
+<p>A special kind of pulumi.ComponentResource which handles common elements of resources such as naming and tagging.
+All such resources must belong to a <a class="reference internal" href="#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdPulumiProject</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pulumi_type</strong> (<em>str</em>) – The “type” string (commonly referred to in docs as just <code class="docutils literal notranslate"><span class="pre">t</span></code>) of the component as described
+by <a class="reference external" href="https://www.pulumi.com/docs/concepts/resources/names/#types">Pulumi’s docs</a>.</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – An identifier for this set of resources. Generally, this gets used as part of all resources defined
+by the ComponentResource.</p></li>
+<li><p><strong>project</strong> (<a class="reference internal" href="#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdPulumiProject</span></code></a>) – The project this resource belongs to.</p></li>
+<li><p><strong>opts</strong> (<em>pulumi.ResourceOptions</em><em>, </em><em>optional</em>) – Additional <code class="docutils literal notranslate"><span class="pre">pulumi.ResourceOptions</span></code> to apply to this resource. Defaults to None.</p></li>
+<li><p><strong>tags</strong> (<em>dict</em><em>, </em><em>optional</em>) – Key/value pairs to merge with the default tags which get applied to all resources in this group.
+Defaults to {}.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdComponentResource.finish">
+<span class="sig-name descname"><span class="pre">finish</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Resource</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">Resource</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tb_pulumi.ThunderbirdComponentResource.finish" title="Link to this definition">¶</a></dt>
+<dd><p>Registers the provided <code class="docutils literal notranslate"><span class="pre">outputs</span></code> as Pulumi outputs for the module. Also stores the mapping of <code class="docutils literal notranslate"><span class="pre">resources</span></code>
+internally as the <code class="docutils literal notranslate"><span class="pre">resources</span></code> member where they it be acted on collectively by a <code class="docutils literal notranslate"><span class="pre">ThunderbirdPulumiProject</span></code>.
+Any implementation of this class should call this function at the end of its <code class="docutils literal notranslate"><span class="pre">__init__</span></code> function to ensure its
+state is properly represented.</p>
+<p>Values in <code class="docutils literal notranslate"><span class="pre">resources</span></code> should be either a Resource or derivative (such as a ThunderbirdComponentResource) or a
+list of such.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdComponentResource.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdComponentResource.name" title="Link to this definition">¶</a></dt>
+<dd><p>Identifier for this set of resources.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdComponentResource.project">
+<span class="sig-name descname"><span class="pre">project</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><span class="pre">ThunderbirdPulumiProject</span></a></em><a class="headerlink" href="#tb_pulumi.ThunderbirdComponentResource.project" title="Link to this definition">¶</a></dt>
+<dd><p>Project this resource is a member of.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdComponentResource.protect_resources">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">protect_resources</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdComponentResource.protect_resources" title="Link to this definition">¶</a></dt>
+<dd><p>Determines whether resources should have protection against changes enabled based on the project’s
+configuration. Unprotected resources are not part of a protected stack, or you have run Pulumi with
+<code class="docutils literal notranslate"><span class="pre">TBPULUMI_DISABLE_PROTECTION=True</span></code> set in your environment.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdComponentResource.resources">
+<span class="sig-name descname"><span class="pre">resources</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdComponentResource.resources" title="Link to this definition">¶</a></dt>
+<dd><p>Resources which are members of this ComponentResource.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdComponentResource.tags">
+<span class="sig-name descname"><span class="pre">tags</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdComponentResource.tags" title="Link to this definition">¶</a></dt>
+<dd><p>Tags to apply to all taggable resources</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdPulumiProject">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tb_pulumi.</span></span><span class="sig-name descname"><span class="pre">ThunderbirdPulumiProject</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">protected_stacks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['prod']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tb_pulumi.ThunderbirdPulumiProject" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A collection of related Pulumi resources upon which we can take bulk/collective actions. This class enforces some
+usage conventions that help keep us organized and consistent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>protected_stacks</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – List of stack names which should require explicit instruction to modify. Defaults to
+<a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_PROTECTED_STACKS" title="tb_pulumi.constants.DEFAULT_PROTECTED_STACKS"><code class="xref py py-data docutils literal notranslate"><span class="pre">tb_pulumi.constants.DEFAULT_PROTECTED_STACKS</span></code></a>.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdPulumiProject.aws_account_id">
+<span class="sig-name descname"><span class="pre">aws_account_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdPulumiProject.aws_account_id" title="Link to this definition">¶</a></dt>
+<dd><p>Account number that the currently configured AWS user/role is a member of, in which Pulumi will act.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdPulumiProject.aws_region">
+<span class="sig-name descname"><span class="pre">aws_region</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdPulumiProject.aws_region" title="Link to this definition">¶</a></dt>
+<dd><p>Currently configured AWS region</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdPulumiProject.config">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdPulumiProject.config" title="Link to this definition">¶</a></dt>
+<dd><p>Provides read-only access to the project configuration, which is expected to be in the root of your Pulumi
+project directory, and should match the current stack. For example, <code class="docutils literal notranslate"><span class="pre">config.preprod.yaml</span></code> would be a
+configuration for an environment called “preprod”.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdPulumiProject.flatten">
+<span class="sig-name descname"><span class="pre">flatten</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">Resource</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#tb_pulumi.ThunderbirdPulumiProject.flatten" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a flat set of all resources existing within this project.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdPulumiProject.get_aws_client">
+<span class="sig-name descname"><span class="pre">get_aws_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">service</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tb_pulumi.ThunderbirdPulumiProject.get_aws_client" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieves an AWS client for the requested service, preferably from a cache. Caches any clients it creates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>service</strong> (<em>str</em>) – Name of the service as described in
+<a class="reference external" href="https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/index.html">boto3 docs</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdPulumiProject.project">
+<span class="sig-name descname"><span class="pre">project</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdPulumiProject.project" title="Link to this definition">¶</a></dt>
+<dd><p>Name of the Pulumi project</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdPulumiProject.pulumi_config">
+<span class="sig-name descname"><span class="pre">pulumi_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Config</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdPulumiProject.pulumi_config" title="Link to this definition">¶</a></dt>
+<dd><p>Pulumi configuration data referencing Pulumi.stack.yaml</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdPulumiProject.resources">
+<span class="sig-name descname"><span class="pre">resources</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdPulumiProject.resources" title="Link to this definition">¶</a></dt>
+<dd><p>Pulumi Resource objects managed by this project</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tb_pulumi.ThunderbirdPulumiProject.stack">
+<span class="sig-name descname"><span class="pre">stack</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#tb_pulumi.ThunderbirdPulumiProject.stack" title="Link to this definition">¶</a></dt>
+<dd><p>Name of the Pulumi stack</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tb_pulumi.env_var_is_true">
+<span class="sig-prename descclassname"><span class="pre">tb_pulumi.</span></span><span class="sig-name descname"><span class="pre">env_var_is_true</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#tb_pulumi.env_var_is_true" title="Link to this definition">¶</a></dt>
+<dd><p>Determines if the value of the given environment variable represents “True” in some way.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – The environment variable to check</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><cite>True</cite> if the value of the environment variable looks like it is set to an affirmative value, otherwise
+<cite>False</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tb_pulumi.env_var_matches">
+<span class="sig-prename descclassname"><span class="pre">tb_pulumi.</span></span><span class="sig-name descname"><span class="pre">env_var_matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">matches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#tb_pulumi.env_var_matches" title="Link to this definition">¶</a></dt>
+<dd><p>Determines if the value of the given environment variable is in the given list. This is a case-insensitive check.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The environment variable to check</p></li>
+<li><p><strong>matches</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – A list of strings to match against</p></li>
+<li><p><strong>default</strong> (<em>bool</em><em>, </em><em>optional</em>) – Default value if the variable doesn’t match. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the value of the given environment variable is in the given list, the provided <cite>default</cite> value if
+it is not, or <cite>None</cite> if the variable is unset.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><p>bool</p>
+<ul class="simple">
+<li><p>name:</p></li>
+<li><p>matches:</p></li>
+<li><p>default:</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tb_pulumi.flatten">
+<span class="sig-prename descclassname"><span class="pre">tb_pulumi.</span></span><span class="sig-name descname"><span class="pre">flatten</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#tb_pulumi.ThunderbirdComponentResource" title="tb_pulumi.ThunderbirdComponentResource"><span class="pre">ThunderbirdComponentResource</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Resource</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">Resource</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#tb_pulumi.flatten" title="Link to this definition">¶</a></dt>
+<dd><p>Recursively traverses a nested collection of Pulumi <code class="docutils literal notranslate"><span class="pre">Resource</span></code> s, converting them into a flat set which can be
+more easily iterated over.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>item</strong> (<em>dict</em><em> | </em><em>list</em><em> | </em><a class="reference internal" href="#tb_pulumi.ThunderbirdComponentResource" title="tb_pulumi.ThunderbirdComponentResource"><em>ThunderbirdComponentResource</em></a>) – Either a Pulumi <code class="docutils literal notranslate"><span class="pre">Resource</span></code> object, or some collection thereof. The following types of collections are
+supported: <code class="docutils literal notranslate"><span class="pre">dict</span></code>, <code class="docutils literal notranslate"><span class="pre">list</span></code>, <code class="docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">set</span></code> of Pulumi <code class="docutils literal notranslate"><span class="pre">Resource</span></code> s contained within the collection.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>set(pulumi.Resource)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#quickstart">Quickstart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#manual-setup">Manual Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#s3-bucket">S3 bucket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#repo-setup">Repo setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#set-up-this-module">Set up this module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#use-this-module">Use this module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#pythonic-problems">Pythonic problems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="getting-started.html#shells-other-than-bash">Shells other than Bash</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="patterns.html">Patterns of Use</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#project-patterns">Project patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#setting-up-a-network">Setting up a network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#handling-secrets">Handling secrets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="monitoring.html">Monitoring Resources</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">tb_pulumi</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tb_pulumi</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tb_pulumi.ThunderbirdComponentResource"><code class="docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tb_pulumi.ThunderbirdPulumiProject"><code class="docutils literal notranslate"><span class="pre">ThunderbirdPulumiProject</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tb_pulumi.env_var_is_true"><code class="docutils literal notranslate"><span class="pre">env_var_is_true()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tb_pulumi.env_var_matches"><code class="docutils literal notranslate"><span class="pre">env_var_matches()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tb_pulumi.flatten"><code class="docutils literal notranslate"><span class="pre">flatten()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ci.html">tb_pulumi.ci</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ci.html#tb_pulumi.ci.AwsAutomationUser"><code class="docutils literal notranslate"><span class="pre">AwsAutomationUser</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cloudfront.html">tb_pulumi.cloudfront</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cloudfront.html#tb_pulumi.cloudfront.CloudFrontS3Service"><code class="docutils literal notranslate"><span class="pre">CloudFrontS3Service</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">tb_pulumi.constants</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.ASSUME_ROLE_POLICY"><code class="docutils literal notranslate"><span class="pre">ASSUME_ROLE_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_AWS_SSL_POLICY"><code class="docutils literal notranslate"><span class="pre">DEFAULT_AWS_SSL_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_PROTECTED_STACKS"><code class="docutils literal notranslate"><span class="pre">DEFAULT_PROTECTED_STACKS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.IAM_POLICY_DOCUMENT"><code class="docutils literal notranslate"><span class="pre">IAM_POLICY_DOCUMENT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.SERVICE_PORTS"><code class="docutils literal notranslate"><span class="pre">SERVICE_PORTS</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ec2.html">tb_pulumi.ec2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.AMAZON_LINUX_AMI"><code class="docutils literal notranslate"><span class="pre">AMAZON_LINUX_AMI</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.NetworkLoadBalancer"><code class="docutils literal notranslate"><span class="pre">NetworkLoadBalancer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshKeyPair"><code class="docutils literal notranslate"><span class="pre">SshKeyPair</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshableInstance"><code class="docutils literal notranslate"><span class="pre">SshableInstance</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.generate_ssh_keypair"><code class="docutils literal notranslate"><span class="pre">generate_ssh_keypair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fargate.html">tb_pulumi.fargate</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateClusterWithLogging"><code class="docutils literal notranslate"><span class="pre">FargateClusterWithLogging</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateServiceAlb"><code class="docutils literal notranslate"><span class="pre">FargateServiceAlb</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="network.html">tb_pulumi.network</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="network.html#tb_pulumi.network.MultiCidrVpc"><code class="docutils literal notranslate"><span class="pre">MultiCidrVpc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="network.html#tb_pulumi.network.SecurityGroupWithRules"><code class="docutils literal notranslate"><span class="pre">SecurityGroupWithRules</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rds.html">tb_pulumi.rds</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rds.html#tb_pulumi.rds.RdsDatabaseGroup"><code class="docutils literal notranslate"><span class="pre">RdsDatabaseGroup</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="secrets.html">tb_pulumi.secrets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.PulumiSecretsManager"><code class="docutils literal notranslate"><span class="pre">PulumiSecretsManager</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.SecretsManagerSecret"><code class="docutils literal notranslate"><span class="pre">SecretsManagerSecret</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="_sources/tb_pulumi.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; 2024, Thunderbird
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>tb_pulumi :: Getting Started</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="genindex.html"/>
+
+  <link rel="stylesheet" href="_static/css/insegel.css"/>
+  <link rel="stylesheet" href="_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/documentation_options.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/sphinx_highlight.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>tb_pulumi</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="getting-started">
+<span id="id1"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
+<p>The classes in this module are intended to provide easy access to common infrastructural patterns in use at Thunderbird.
+This should…</p>
+<ul class="simple">
+<li><p>help you set up a Pulumi project,</p></li>
+<li><p>reduce most infrastructure configuration to values in a YAML file,</p></li>
+<li><p>simplify the process of building complete infrastructural patterns.</p></li>
+</ul>
+<p>As such, it is somewhat opinionated, requires certain usage patterns, and strongly suggests some usage conventions.</p>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">¶</a></h2>
+<p>To use this module, you’ll need to get through this checklist first:</p>
+<ul class="simple">
+<li><p>Ensure Python 3.12 or greater is installed on your system.</p></li>
+<li><p><a class="reference external" href="https://www.pulumi.com/docs/iac/download-install/">Install Pulumi</a>.</p></li>
+<li><p>Understand the <a class="reference external" href="https://www.pulumi.com/docs/iac/concepts/">basic concepts of Pulumi</a>, particularly <a class="reference external" href="https://www.pulumi.com/docs/iac/concepts/resources/">Resources</a> and <a class="reference external" href="https://www.pulumi.com/docs/iac/concepts/resources/components/">Component Resources</a>.</p></li>
+<li><p><a class="reference external" href="https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html">Configure awscli</a> with
+your credentials and default region. (You do not have to install awscli, though you can
+<a class="reference external" href="https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html">read how to here</a>.
+Some of these docs refer to helpful awscli commands.)</p></li>
+<li><p>Set up an <a class="reference internal" href="#s3-bucket">S3 bucket</a> to store your Pulumi state in.</p></li>
+</ul>
+<p>The <a class="reference internal" href="#troubleshooting">Troubleshooting</a> section has some details on how to work through some issues related to setup.</p>
+</section>
+<section id="quickstart">
+<h2>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">¶</a></h2>
+<p>After ensuring you meet the above prerequisites, run the <code class="docutils literal notranslate"><span class="pre">quickstart.sh</span></code> script, adjusting the following command to
+refer to your particular project details:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">quickstart</span><span class="o">.</span><span class="n">sh</span> \
+  <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">project</span><span class="o">/</span><span class="n">root</span>          <span class="c1"># The root of your code project where you want to set up a pulumi project</span>
+  <span class="n">pulumi</span><span class="o">-</span><span class="n">state</span><span class="o">-</span><span class="n">s3</span><span class="o">-</span><span class="n">bucket</span><span class="o">-</span><span class="n">name</span> \  <span class="c1"># S3 bucket where you&#39;ll store your pulumi state files</span>
+  <span class="n">project_name</span><span class="p">,</span> \                <span class="c1"># Name of your project as it will be known to pulumi</span>
+  <span class="n">stack_name</span><span class="p">,</span> \                  <span class="c1"># Name of the first stack you want to create</span>
+  <span class="p">[</span><span class="n">code_version</span><span class="p">]</span>                 <span class="c1"># Code version (git branch) that you want to pin. Optional; defaults to &quot;main&quot;</span>
+</pre></div>
+</div>
+<p>This will…</p>
+<ul class="simple">
+<li><p>run you through some prompts where you can enter further project details,</p></li>
+<li><p>install a simple Pulumi program intended to set up a basic networking landscape,</p></li>
+<li><p>run a <code class="docutils literal notranslate"><span class="pre">pulumi</span> <span class="pre">preview</span></code> command to finish setting up the environment and confirm the project is working.</p></li>
+</ul>
+<p>The output should look something like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Previewing update (mystack):
+     Type                              Name                                 Plan
+ +   pulumi:pulumi:Stack               myproject-mystack                    create
+ +   ├─ tb:network:MultiCidrVpc        myproject-mystack-vpc                create
+ +   │  ├─ aws:ec2:Vpc                 myproject-mystack-vpc                create
+ +   │  ├─ aws:ec2:Subnet              myproject-mystack-vpc-subnet-0       create
+ +   │  ├─ aws:ec2:Subnet              myproject-mystack-vpc-subnet-1       create
+ +   │  └─ aws:ec2:Subnet              myproject-mystack-vpc-subnet-2       create
+ +   ├─ aws:ec2:RouteTableAssociation  myproject-mystack-vpc-subnetassoc-0  create
+ +   ├─ aws:ec2:RouteTableAssociation  myproject-mystack-vpc-subnetassoc-1  create
+ +   └─ aws:ec2:RouteTableAssociation  myproject-mystack-vpc-subnetassoc-2  create
+
+Resources:
+    + 9 to create
+</pre></div>
+</div>
+</section>
+<section id="manual-setup">
+<h2>Manual Setup<a class="headerlink" href="#manual-setup" title="Link to this heading">¶</a></h2>
+<section id="s3-bucket">
+<h3>S3 bucket<a class="headerlink" href="#s3-bucket" title="Link to this heading">¶</a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This step is optional. If you do not set up an S3 bucket, you can use Pulumi Cloud instead.</p>
+</div>
+<p>Create an S3 bucket in which to store state for the project. You must have one bucket devoted to your project, but you
+can store multiple stacks’ state files in that one bucket. The bucket should not be public (treat these files as
+sensitive), and it’s a good idea to turn on versioning, as it can save you from some difficult situations down the road.</p>
+<p>The name of an S3 bucket is used as part of a global domain, and so your bucket name must be globally unique. A good way
+to handle this is to include an organization name in your bucket name. As a template, you may use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ORG-$PROJECT_NAME-pulumi
+</pre></div>
+</div>
+</section>
+<section id="repo-setup">
+<h3>Repo setup<a class="headerlink" href="#repo-setup" title="Link to this heading">¶</a></h3>
+<p>You probably already have a code repo with your application code in it. If not, create such a repo.</p>
+<p>Create a directory there called <code class="docutils literal notranslate"><span class="pre">pulumi</span></code> and create a new project and stack in it. You’ll need the name of the S3
+bucket from the previous step here. If you are operating in an AWS region other than what is set as your default for
+AWSCLI, be sure to <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">AWS_REGION=us-east-1</span></code> or whatever else you may need to do to override that.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">pulumi</span><span class="o">/</span><span class="n">code</span>
+<span class="n">pulumi</span> <span class="n">login</span> <span class="n">s3</span><span class="p">:</span><span class="o">//</span><span class="n">s3</span><span class="o">-</span><span class="n">bucket</span><span class="o">-</span><span class="n">name</span>
+<span class="n">pulumi</span> <span class="n">new</span> <span class="n">aws</span><span class="o">-</span><span class="n">python</span>
+</pre></div>
+</div>
+<p>Follow the prompts to get everything named.</p>
+</section>
+<section id="set-up-this-module">
+<h3>Set up this module<a class="headerlink" href="#set-up-this-module" title="Link to this heading">¶</a></h3>
+<p>Ensure your pulumi code directory contains a <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code> file with at least this repo listed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span><span class="o">+</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">thunderbird</span><span class="o">/</span><span class="n">pulumi</span><span class="o">.</span><span class="n">git</span>
+</pre></div>
+</div>
+<p>You can pin your code to a specific version of this module by appending <code class="docutils literal notranslate"><span class="pre">&#64;branch_name</span></code> to that. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span><span class="o">+</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">thunderbird</span><span class="o">/</span><span class="n">pulumi</span><span class="o">.</span><span class="n">git</span><span class="nd">@v0</span><span class="mf">.0.7</span>
+</pre></div>
+</div>
+<p>Pulumi will need these requirements installed. On your first run of a <code class="docutils literal notranslate"><span class="pre">pulumi</span> <span class="pre">preview</span></code> command (or some others),
+Pulumi will attempt to set up its working environment. If this fails, or you need to make adjustments later, you can
+activate Pulumi’s virtual environment to perform pip changes. Assuming Pulumi’s virtual environment lives at <code class="docutils literal notranslate"><span class="pre">venv</span></code>,
+run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="o">./</span><span class="n">venv</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">U</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+<p>You can now develop Python Pulumi code in that directory, referring to this module with imports such as these:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tb_pulumi</span>
+
+<span class="c1"># ...or...</span>
+
+<span class="kn">from</span> <span class="nn">tb_pulumi</span> <span class="kn">import</span> <span class="p">(</span><span class="n">ec2</span><span class="p">,</span> <span class="n">fargate</span><span class="p">,</span> <span class="n">secrets</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="use-this-module">
+<h3>Use this module<a class="headerlink" href="#use-this-module" title="Link to this heading">¶</a></h3>
+<p>When you issue <code class="docutils literal notranslate"><span class="pre">pulumi</span></code> commands (like “up” and “preview” and so on), it looks for a <code class="docutils literal notranslate"><span class="pre">__main__.py</span></code> file in your
+current directory and executes the code in that file. To use this module, you’ll import it into that file and write up
+some code and configuration files.</p>
+<section id="create-a-config-file">
+<h4>Create a config file<a class="headerlink" href="#create-a-config-file" title="Link to this heading">¶</a></h4>
+<p>It is assumed that a config file will exist at <code class="docutils literal notranslate"><span class="pre">config.$STACK.yaml</span></code> where <code class="docutils literal notranslate"><span class="pre">$STACK</span></code> is the currently selected Pulumi
+stack. This file must contain a mapping of names of config settings to their desired values. Currently, only one such
+setting is formally recognized. That is <code class="docutils literal notranslate"><span class="pre">resources</span></code>.</p>
+<p>This is a mostly arbitary mapping that you will have to interpret on your own. This allows for flexibility, but we
+recommend some conventions here. Namely:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">resources</span></code> should be a mapping where the keys are the Pulumi type-strings for the resources they are configuring.
+For example, if you want to build a VPC with several subnets, you might use the <code class="docutils literal notranslate"><span class="pre">tb_pulumi.network.MultiCidrVpc</span></code>
+class. Following this convention, that should be accompanied by a <code class="docutils literal notranslate"><span class="pre">tb:network:MultiCidrVpc</span></code> key in this mapping.</p></li>
+<li><p>The values these keys map to should themselves be mappings. This provides a convention where more than one of each
+pattern are configurable. The keys here should be arbitrary but unique identifiers for the resources being configured.
+F/ex: <code class="docutils literal notranslate"><span class="pre">backend</span></code> or <code class="docutils literal notranslate"><span class="pre">api</span></code>.</p></li>
+<li><p>The values these keys map to should be a mapping where the keys are valid configuration options for the resources
+being built. The full listing of these values can be found by browsing the documentation. A barebones example can be
+found in our <a class="reference external" href="https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example">configuration example</a>.</p></li>
+</ul>
+</section>
+<section id="define-a-thunderbirdpulumiproject">
+<h4>Define a ThunderbirdPulumiProject<a class="headerlink" href="#define-a-thunderbirdpulumiproject" title="Link to this heading">¶</a></h4>
+<p>In your <code class="docutils literal notranslate"><span class="pre">__main__.py</span></code> file, start with a simple skeleton (or use <code class="docutils literal notranslate"><span class="pre">__main__.py.example</span></code> to start):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tb_pulumi</span>
+<span class="n">project</span> <span class="o">=</span> <span class="n">tb_pulumi</span><span class="o">.</span><span class="n">ThunderbirdPulumiProject</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If you have followed the conventions outlined above, <code class="docutils literal notranslate"><span class="pre">project</span></code> is now an object with a key property, <code class="docutils literal notranslate"><span class="pre">config</span></code>, which
+gives you access to the config file’s data. You can use this in the next step to feed parameters into resource
+declarations.</p>
+</section>
+<section id="declare-thunderbirdcomponentresources">
+<h4>Declare ThunderbirdComponentResources<a class="headerlink" href="#declare-thunderbirdcomponentresources" title="Link to this heading">¶</a></h4>
+<p>A <code class="docutils literal notranslate"><span class="pre">pulumi.ComponentResource</span></code> is a collection of related resources. In an effort to follow consistent patterns across
+infrastructure projects, the resources available in this module all extend a custom class called a
+<code class="docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code>. If you have followed the conventions outlined so far, it should be easy to stamp out
+common patterns with them by passing config options into the constructors for these classes.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <a class="reference internal" href="#quickstart">Quickstart</a> section provides a working minimal example of code that follows these patterns.</p>
+</div>
+</section>
+<section id="implementing-thunderbirdcomponentresources">
+<h4>Implementing ThunderbirdComponentResources<a class="headerlink" href="#implementing-thunderbirdcomponentresources" title="Link to this heading">¶</a></h4>
+<p>So you want to develop a new pattern to stamp out? Here’s what you’ll need to do:</p>
+<ul class="simple">
+<li><p>Determine the best place to put the code. Is there an existing module that fits the bill?</p></li>
+<li><p>Determine the Pulumi type string for it. This goes: <code class="docutils literal notranslate"><span class="pre">org:module:class</span></code>. The <code class="docutils literal notranslate"><span class="pre">org</span></code> should be unique to your
+organization. For Thunderbird projects, it should be <code class="docutils literal notranslate"><span class="pre">tb</span></code>. The <code class="docutils literal notranslate"><span class="pre">module</span></code> will be the Python submodule you’re
+placing the new class in. The <code class="docutils literal notranslate"><span class="pre">class</span></code> is whatever you’ve called the class.</p></li>
+<li><dl class="simple">
+<dt>Design the class following these guidelines:</dt><dd><ul>
+<li><dl class="simple">
+<dt>The constructor should always accept, before any other arguments, the following positional options:</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code>: The internal name of the resource as Pulumi tracks it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">project</span></code>: The ThunderbirdPulumiProject these resources belong to.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>The constructor should always accept the following keyword arguments:</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">opts</span></code>: A <code class="docutils literal notranslate"><span class="pre">pulumi.ResourceOptions</span></code> object which will get merged into the default set of arguments managed
+by the project.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>The constructor should explicitly define only those arguments that you intend to have default values which differ
+from the default values the provider will set, or which imply larger patterns (such as <code class="docutils literal notranslate"><span class="pre">build_jumphost</span></code> implying
+other resources, like a security group and its rules, not just an EC2 instance).</p></li>
+<li><p>The constructor may accept a final <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> argument with arbitrary meaning. Because the nature of a component
+resource is to compile many other resources into one class, it is not implicitly clear what “everything else”
+should apply to. If this is implemented, its function should be clearly documented in the class.</p></li>
+<li><p>The class should extend <code class="docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdComponentResource</span></code>.</p></li>
+<li><dl class="simple">
+<dt>The class should call its superconstructor in the following way:</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">super().__init__(typestring,</span> <span class="pre">name,</span> <span class="pre">project,</span> <span class="pre">opts=opts)</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Any resources you create must have the <code class="docutils literal notranslate"><span class="pre">parent=self</span></code> <code class="docutils literal notranslate"><span class="pre">pulumi.ResourceOption</span></code> set.</p></li>
+<li><p>At the end of the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> function, you must call <code class="docutils literal notranslate"><span class="pre">self.finish()</span></code>, passing in a dictionary of <code class="docutils literal notranslate"><span class="pre">outputs</span></code>
+and one of <code class="docutils literal notranslate"><span class="pre">resources</span></code> (see <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource.finish" title="tb_pulumi.ThunderbirdComponentResource.finish"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdComponentResource.finish()</span></code></a>).</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+</section>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">¶</a></h2>
+<section id="pythonic-problems">
+<h3>Pythonic problems<a class="headerlink" href="#pythonic-problems" title="Link to this heading">¶</a></h3>
+<p>This Pulumi code is developed against Python 3.12 or later. If this is not your default version, you’ll need to manage
+your own virtual environment.</p>
+<p>Check your default version:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python -V
+Python 3.12.6
+</pre></div>
+</div>
+<p>If you need a newer Python, <a class="reference external" href="https://www.python.org/downloads/">download and install it</a>. Then you’ll have to set up
+the virtual environment yourself with something like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">virtualenv</span> <span class="o">-</span><span class="n">p</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">python3</span><span class="mf">.12</span> <span class="n">venv</span>
+<span class="o">./</span><span class="n">venv</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+<p>After this, <code class="docutils literal notranslate"><span class="pre">pulumi</span></code> commands should work. If 3.12 is your default version of Python, Pulumi should set up its own
+virtualenv, and you should not have to do this.</p>
+</section>
+<section id="shells-other-than-bash">
+<h3>Shells other than Bash<a class="headerlink" href="#shells-other-than-bash" title="Link to this heading">¶</a></h3>
+<p>Setup instructions in these docs are designed for use with the Bourne Again SHell (Bash). Pulumi also seems to make some
+assumptions like this when it installs itself. Pulumi will install itself into a hidden folder in your home directory:
+<code class="docutils literal notranslate"><span class="pre">~/.pulumi/bin</span></code>. You may need to add this to your <code class="docutils literal notranslate"><span class="pre">$PATH</span></code> to avoid having to make the explicit reference with every
+<code class="docutils literal notranslate"><span class="pre">pulumi</span></code> command.</p>
+</section>
+</section>
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#manual-setup">Manual Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#s3-bucket">S3 bucket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#repo-setup">Repo setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#set-up-this-module">Set up this module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#use-this-module">Use this module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pythonic-problems">Pythonic problems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#shells-other-than-bash">Shells other than Bash</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="patterns.html">Patterns of Use</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#project-patterns">Project patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#setting-up-a-network">Setting up a network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="patterns.html#handling-secrets">Handling secrets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="monitoring.html">Monitoring Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">tb_pulumi</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tb_pulumi.html">tb_pulumi</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource"><code class="docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject"><code class="docutils literal notranslate"><span class="pre">ThunderbirdPulumiProject</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.env_var_is_true"><code class="docutils literal notranslate"><span class="pre">env_var_is_true()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.env_var_matches"><code class="docutils literal notranslate"><span class="pre">env_var_matches()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="tb_pulumi.html#tb_pulumi.flatten"><code class="docutils literal notranslate"><span class="pre">flatten()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ci.html">tb_pulumi.ci</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ci.html#tb_pulumi.ci.AwsAutomationUser"><code class="docutils literal notranslate"><span class="pre">AwsAutomationUser</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cloudfront.html">tb_pulumi.cloudfront</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cloudfront.html#tb_pulumi.cloudfront.CloudFrontS3Service"><code class="docutils literal notranslate"><span class="pre">CloudFrontS3Service</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">tb_pulumi.constants</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.ASSUME_ROLE_POLICY"><code class="docutils literal notranslate"><span class="pre">ASSUME_ROLE_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_AWS_SSL_POLICY"><code class="docutils literal notranslate"><span class="pre">DEFAULT_AWS_SSL_POLICY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.DEFAULT_PROTECTED_STACKS"><code class="docutils literal notranslate"><span class="pre">DEFAULT_PROTECTED_STACKS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.IAM_POLICY_DOCUMENT"><code class="docutils literal notranslate"><span class="pre">IAM_POLICY_DOCUMENT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#tb_pulumi.constants.SERVICE_PORTS"><code class="docutils literal notranslate"><span class="pre">SERVICE_PORTS</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ec2.html">tb_pulumi.ec2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.AMAZON_LINUX_AMI"><code class="docutils literal notranslate"><span class="pre">AMAZON_LINUX_AMI</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.NetworkLoadBalancer"><code class="docutils literal notranslate"><span class="pre">NetworkLoadBalancer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshKeyPair"><code class="docutils literal notranslate"><span class="pre">SshKeyPair</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.SshableInstance"><code class="docutils literal notranslate"><span class="pre">SshableInstance</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ec2.html#tb_pulumi.ec2.generate_ssh_keypair"><code class="docutils literal notranslate"><span class="pre">generate_ssh_keypair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fargate.html">tb_pulumi.fargate</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateClusterWithLogging"><code class="docutils literal notranslate"><span class="pre">FargateClusterWithLogging</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fargate.html#tb_pulumi.fargate.FargateServiceAlb"><code class="docutils literal notranslate"><span class="pre">FargateServiceAlb</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="network.html">tb_pulumi.network</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="network.html#tb_pulumi.network.MultiCidrVpc"><code class="docutils literal notranslate"><span class="pre">MultiCidrVpc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="network.html#tb_pulumi.network.SecurityGroupWithRules"><code class="docutils literal notranslate"><span class="pre">SecurityGroupWithRules</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rds.html">tb_pulumi.rds</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="rds.html#tb_pulumi.rds.RdsDatabaseGroup"><code class="docutils literal notranslate"><span class="pre">RdsDatabaseGroup</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="secrets.html">tb_pulumi.secrets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.PulumiSecretsManager"><code class="docutils literal notranslate"><span class="pre">PulumiSecretsManager</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="secrets.html#tb_pulumi.secrets.SecretsManagerSecret"><code class="docutils literal notranslate"><span class="pre">SecretsManagerSecret</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="_sources/getting-started.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; 2024, Thunderbird
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>
