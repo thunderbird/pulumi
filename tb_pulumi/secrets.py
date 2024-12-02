@@ -111,7 +111,7 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
 
         # Then create an IAM policy allowing access to them
         secret_arns = [secret.resources['secret'].arn for secret in secrets]
-        policy = pulumi.Output.all(*secret_arns).apply(
+        policy_json = pulumi.Output.all(*secret_arns).apply(
             lambda secret_arns: json.dumps(
                 {
                     'Version': '2012-10-17',
@@ -128,10 +128,10 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
         )
         policy = aws.iam.Policy(
             f'{name}-policy',
-            opts=pulumi.ResourceOptions(parent=self),
             name=name,
             description=f'Allows access to secrets related to {name}',
-            policy=policy,
+            policy=policy_json,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[*secrets]),
         )
 
         self.finish(

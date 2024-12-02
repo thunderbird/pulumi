@@ -124,6 +124,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                     f'{name}-subnetassoc-{idx}',
                     route_table_id=vpc.default_route_table_id,
                     subnet_id=subnet.id,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[subnet, vpc]),
                 )
             )
 
@@ -135,7 +136,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-ig',
                 vpc_id=vpc.id,
                 tags=ig_tags,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=vpc),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
             )
             if egress_via_internet_gateway:
                 subnet_ig_route = aws.ec2.Route(
@@ -152,7 +153,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 domain='vpc',
                 public_ipv4_pool='amazon',
                 network_border_group=self.project.aws_region,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=vpc),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
             )
             ng_tags = {'Name': name}
             ng_tags.update(self.tags)
@@ -161,7 +162,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 allocation_id=nat_eip.allocation_id,
                 subnet_id=subnets[0].id,
                 tags=ng_tags,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=nat_eip),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[nat_eip, subnets[0]]),
             )
             if egress_via_nat_gateway:
                 subnet_ng_route = aws.ec2.Route(
@@ -198,7 +199,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                         }
                     ],
                 },
-                opts=pulumi.ResourceOptions(parent=self),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
                 tags=self.tags,
             )
 
@@ -214,7 +215,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                     vpc_endpoint_type='Interface',
                     vpc_id=vpc.id,
                     tags=self.tags,
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[*subnet_rs, endpoint_sg.resources['sg']]),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, *subnet_rs, endpoint_sg.resources['sg']]),
                 )
             )
 
@@ -228,7 +229,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                     vpc_endpoint_type='Gateway',
                     vpc_id=vpc.id,
                     tags=self.tags,
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[*subnet_rs, endpoint_sg.resources['sg']]),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, *subnet_rs, endpoint_sg.resources['sg']]),
                 )
             )
 
@@ -305,11 +306,11 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         # Build a security group in the provided VPC
         sg = aws.ec2.SecurityGroup(
             f'{name}-sg',
-            opts=pulumi.ResourceOptions(parent=self),
             name=name,
             description=f'Send Suite backend security group ({self.project.stack})',
             vpc_id=vpc_id,
             tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self),
         )
 
         # Set up security group rules for that SG
