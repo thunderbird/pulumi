@@ -61,6 +61,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         certificate_arn: str,
         service_bucket_name: str,
         behaviors: list[dict] = [],
+        default_function_associations: dict = {},
         distribution: dict = {},
         forcibly_destroy_buckets: bool = False,
         origins: list[dict] = [],
@@ -90,7 +91,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             server_side_encryption_configuration={
                 'rule': {'applyServerSideEncryptionByDefault': {'sseAlgorithm': 'AES256'}, 'bucket_key_enabled': True}
             },
-            opts=pulumi.ResourceOptions(parent=self),
+            opts=pulumi.ResourceOptions(parent=self, ignore_changes='grants'),
             tags=self.tags,
         )
 
@@ -114,7 +115,9 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
                 ],
                 'owner': {'id': canonical_user},
             },
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket, logging_bucket_ownership]),
+            opts=pulumi.ResourceOptions(
+                parent=self, depends_on=[logging_bucket, logging_bucket_ownership], ignore_changes=['grants']
+            ),
         )
 
         # Create an Origin Access Control to use when CloudFront talks to S3
@@ -154,6 +157,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
                 'cached_methods': ['HEAD', 'GET'],
                 'cache_policy_id': CACHE_POLICY_ID_OPTIMIZED,
                 'compress': True,
+                'function_associations': default_function_associations,
                 'target_origin_id': bucket_regional_domain_name,
                 'viewer_protocol_policy': 'redirect-to-https',
             },
@@ -171,7 +175,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(
                 parent=self,
                 depends_on=[logging_bucket, oac],
-                ignore_changes=['defaultCacheBehavior.functionAssociations'],
+                # ignore_changes=['defaultCacheBehavior.functionAssociations'],
             ),
             **distribution,
         )
