@@ -132,7 +132,7 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
                 f'{self.name}-5xx',
                 name=f'{self.project.name_prefix}-5xx',
                 comparison_operator='GreaterThanOrEqualToThreshold',
-                dimensions={'LoadBalancer': f'app/{outputs['res_name']}/{outputs['res_suffix']}'},
+                dimensions={'LoadBalancer': outputs['res_suffix']},
                 metric_name='HTTPCode_ELB_5XX_Count',
                 namespace='AWS/ApplicationELB',
                 alarm_description=f'Elevated 5xx errors on ALB {outputs['res_name']}',
@@ -160,7 +160,7 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
                 f'{self.name}-responsetime',
                 name=f'{self.project.name_prefix}-responsetime',
                 comparison_operator='GreaterThanOrEqualToThreshold',
-                dimensions={'LoadBalancer': f'app/{outputs['res_name']}/{outputs['res_suffix']}'},
+                dimensions={'LoadBalancer': outputs['res_suffix']},
                 metric_name='TargetResponseTime',
                 namespace='AWS/ApplicationELB',
                 alarm_description=f'Average response time is over {response_time_opts['threshold']} second(s) for {response_time_opts['period']} seconds',  # noqa: E501
@@ -228,15 +228,17 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         cpu_utilization_opts.update(self.overrides['cpu_utilization'] if 'cpu_utilization' in self.overrides else {})
         cpu_utilization_enabled = cpu_utilization_opts['enabled']
         del [cpu_utilization_opts['enabled']]
-        cpu_utilization = resource.name.apply(
-            lambda res_name: aws.cloudwatch.MetricAlarm(
+        cpu_utilization = pulumi.Output.all(res_name=resource.name, cluster_arn=resource.cluster).apply(
+            lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-cpu',
                 name=f'{self.project.name_prefix}-cpu',
                 comparison_operator='GreaterThanOrEqualToThreshold',
-                dimensions={'ServiceName': res_name},
+                # There is no direct way to get the Cluster name from a Service, but we can get the ARN, which has the
+                # name as the final portion after the last slash.
+                dimensions={'ClusterName': outputs['cluster_arn'].split('/')[-1], 'ServiceName': outputs['res_name']},
                 metric_name='CPUUtilization',
                 namespace='AWS/ECS',
-                alarm_description=f'CPU utilization on the {res_name} cluster exceeds '
+                alarm_description=f'CPU utilization on the {outputs['res_name']} cluster exceeds '
                 f'{cpu_utilization_opts['threshold']}%',
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[resource]),
                 **cpu_utilization_opts,
@@ -258,15 +260,17 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         )
         memory_utilization_enabled = memory_utilization_opts['enabled']
         del memory_utilization_opts['enabled']
-        memory_utilization = resource.name.apply(
-            lambda res_name: aws.cloudwatch.MetricAlarm(
+        memory_utilization = pulumi.Output.all(res_name=resource.name, cluster_arn=resource.cluster).apply(
+            lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-memory',
                 name=f'{self.project.name_prefix}-memory',
                 comparison_operator='GreaterThanOrEqualToThreshold',
-                dimensions={'ServiceName': res_name},
+                # There is no direct way to get the Cluster name from a Service, but we can get the ARN, which has the
+                # name as the final portion after the last slash.
+                dimensions={'ClusterName': outputs['cluster_arn'].split('/')[-1], 'ServiceName': outputs['res_name']},
                 metric_name='MemoryUtilization',
                 namespace='AWS/ECS',
-                alarm_description=f'Memory utilization on the {res_name} cluster exceeds '
+                alarm_description=f'Memory utilization on the {outputs['res_name']} cluster exceeds '
                 f'{memory_utilization_opts['threshold']}%',
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[resource]),
                 **memory_utilization_opts,
