@@ -91,7 +91,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             server_side_encryption_configuration={
                 'rule': {'applyServerSideEncryptionByDefault': {'sseAlgorithm': 'AES256'}, 'bucket_key_enabled': True}
             },
-            opts=pulumi.ResourceOptions(parent=self, ignore_changes='grants'),
+            opts=pulumi.ResourceOptions(parent=self),
             tags=self.tags,
         )
 
@@ -115,9 +115,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
                 ],
                 'owner': {'id': canonical_user},
             },
-            opts=pulumi.ResourceOptions(
-                parent=self, depends_on=[logging_bucket, logging_bucket_ownership], ignore_changes=['grants']
-            ),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket, logging_bucket_ownership]),
         )
 
         # Create an Origin Access Control to use when CloudFront talks to S3
@@ -175,7 +173,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(
                 parent=self,
                 depends_on=[logging_bucket, oac],
-                # ignore_changes=['defaultCacheBehavior.functionAssociations'],
             ),
             **distribution,
         )

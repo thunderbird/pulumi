@@ -131,6 +131,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                                 'ecr:CompleteLayerUpload',
                                 'ecr:DescribeImages',
                                 'ecr:InitiateLayerUpload',
+                                'ecr:GetDownloadUrlForLayer',
                                 'ecr:ListImages',
                                 'ecr:UploadLayerPart',
                                 'ecr:PutImage',
