@@ -132,7 +132,7 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-5xx',
                 name=f'{self.project.name_prefix}-5xx',
-                alarm_actions=monitoring_group.resources['sns_topic'].arn,
+                alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 dimensions={'LoadBalancer': outputs['res_suffix']},
                 metric_name='HTTPCode_ELB_5XX_Count',
@@ -163,7 +163,7 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-responsetime',
                 name=f'{self.project.name_prefix}-responsetime',
-                alarm_actions=monitoring_group.resources['sns_topic'].arn,
+                alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 dimensions={'LoadBalancer': outputs['res_suffix']},
                 metric_name='TargetResponseTime',
@@ -239,7 +239,7 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-cpu',
                 name=f'{self.project.name_prefix}-cpu',
-                alarm_actions=monitoring_group.resources['sns_topic'].arn,
+                alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 # There is no direct way to get the Cluster name from a Service, but we can get the ARN, which has the
                 # name as the final portion after the last slash.
@@ -274,7 +274,7 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-memory',
                 name=f'{self.project.name_prefix}-memory',
-                alarm_actions=monitoring_group.resources['sns_topic'].arn,
+                alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 # There is no direct way to get the Cluster name from a Service, but we can get the ARN, which has the
                 # name as the final portion after the last slash.
