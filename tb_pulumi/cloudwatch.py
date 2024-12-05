@@ -43,6 +43,7 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
 
         supported_types = {
             aws.lb.load_balancer.LoadBalancer: AlbAlarmGroup,
+            aws.alb.target_group.TargetGroup: AlbTargetGroupAlarmGroup,
             aws.cloudfront.Distribution: CloudFrontDistributionAlarmGroup,
             aws.cloudfront.Function: CloudFrontFunctionAlarmGroup,
             aws.ecs.Service: EcsServiceAlarmGroup,
@@ -70,6 +71,8 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
             )
 
         alarms = {}
+        # pulumi.info(f'All resources: {'\n'.join([str(res.__class__) for res in self.project.flatten()])}')
+        # pulumi.info(f'Supported resources: {supported_resources}')
         for res in supported_resources:
             shortname = res._name.replace(f'{self.project.name_prefix}-', '')  # Make this name shorter, less redundant
             alarms[res._name] = supported_types[type(res)](
@@ -186,6 +189,102 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         self.finish(outputs={}, resources={'fivexx': fivexx, 'response_time': response_time})
 
 
+class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """A set of alarms for ALB target groups. Contains the following configurable alarms:
+
+    - ``unhealthy_hosts``: Alarms on the number of unhealthy hosts in a target group.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        resource: aws.ecs.Service,
+        monitoring_group: CloudWatchMonitoringGroup,
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        super().__init__(
+            pulumi_type='tb:cloudwatch:CloudFrontDistributionAlarmGroup',
+            name=name,
+            monitoring_group=monitoring_group,
+            project=project,
+            resource=resource,
+            opts=opts,
+            **kwargs,
+        )
+
+        # Alert if there are unhealthy hosts
+        unhealthy_hosts_opts = {
+            'enabled': True,
+            'evaluation_periods': 2,
+            'period': 300,
+            'statistic': 'Average',
+            'threshold': 1,
+        }
+        unhealthy_hosts_opts.update(self.overrides['unhealthy_hosts'] if 'unhealthy_hosts' in self.overrides else {})
+        unhealthy_hosts_enabled = unhealthy_hosts_opts['enabled']
+        print(unhealthy_hosts_enabled)
+        del unhealthy_hosts_opts['enabled']
+
+        # TargetGroups can be attached to multiple LBs. This metric depends on "ARN suffixes" (a special ID that
+        # CloudWatch uses to identify certain resources) for both the target group and the load balancer. Therefore, we
+        # must look up those LBs and get their ARN suffixes prior to building these alarms. Additionally complicating
+        # this is the fact that the load_balancer_arns do not seem to populate as part of the resource itself, but *do*
+        # populate when you make the .get() call for the resource. (This might be a bug in the AWS provider; I couldn't
+        # find any existing problem reports, though.) This and the dependency on a chain of Outputs whose values are not
+        # guaranteed to be available at the time these statements are called necessitates this ugly nested function
+        # call structure.
+        unhealthy_hosts = pulumi.Output.all(tg_arn=resource.arn, tg_arn_suffix=resource.arn_suffix).apply(
+            lambda outputs: self.__unhealthy_hosts(
+                target_group_arn=outputs['tg_arn'],
+                target_group_arn_suffix=outputs['tg_arn_suffix'],
+                alarm_opts=unhealthy_hosts_opts,
+            )
+            if unhealthy_hosts_enabled
+            else []
+        )
+
+        self.finish(outputs={}, resources={'unhealthy_hosts': unhealthy_hosts})
+
+    def __unhealthy_hosts(self, target_group_arn, target_group_arn_suffix, alarm_opts):
+        target_group = aws.lb.TargetGroup.get('tg', id=target_group_arn)
+        return pulumi.Output.all(tg_suffix=target_group.arn_suffix, lb_arns=target_group.load_balancer_arns).apply(
+            lambda outputs: [
+                self.__unhealthy_hosts_metric_alarm(
+                    target_group=target_group,
+                    tg_suffix=outputs['tg_suffix'],
+                    lb_suffix=lb_suffix,
+                    alarm_opts=alarm_opts,
+                )
+                for lb_suffix in [
+                    aws.lb.LoadBalancer.get(resource_name=f'lb-{idx}', id=arn_suffix).arn_suffix
+                    for idx, arn_suffix in enumerate(outputs['lb_arns'])
+                ]
+            ]
+        )
+
+    def __unhealthy_hosts_metric_alarm(self, target_group, tg_suffix, lb_suffix, alarm_opts):
+        # An arn_suffix looks like this: targetgroup/target_group_name/0123456789abcdef; extract that name part
+        return pulumi.Output.all(tg_suffix=tg_suffix, lb_suffix=lb_suffix).apply(
+            lambda outputs: aws.cloudwatch.MetricAlarm(
+                f'{self.name}-unhealthy-hosts',
+                name=f'{outputs['tg_suffix'].split('/')[1]}-{outputs['lb_suffix'].split('/')[1]}-unhealthy-hosts',
+                alarm_actions=[self.monitoring_group.resources['sns_topic'].arn],
+                comparison_operator='GreaterThanOrEqualToThreshold',
+                dimensions={'TargetGroup': outputs['tg_suffix'], 'LoadBalancer': outputs['lb_suffix']},
+                metric_name='UnHealthyHostCount',
+                namespace='AWS/ApplicationELB',
+                alarm_description=f'{outputs['tg_suffix'].split('/')[1]} has detected unhealthy hosts in load balancer '
+                f'{outputs['lb_suffix'].split('/')[1]}',
+                opts=pulumi.ResourceOptions(
+                    parent=self, depends_on=[target_group, self.monitoring_group.resources['sns_topic']]
+                ),
+                **alarm_opts,
+            )
+        )
+
+
 class CloudFrontDistributionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     """A set of alarms for CloudFront distributions. Contains the following configurable alarms:
 
@@ -281,7 +380,6 @@ class CloudFrontFunctionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         }
         cpu_utilization_opts.update(self.overrides['cpu_utilization'] if 'cpu_utilization' in self.overrides else {})
         cpu_utilization_enabled = cpu_utilization_opts['enabled']
-        pulumi.info(f'CPU enabled: {cpu_utilization_enabled}')
         del cpu_utilization_opts['enabled']
         cpu_utilization = (
             resource.name.apply(
