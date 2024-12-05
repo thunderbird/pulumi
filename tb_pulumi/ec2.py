@@ -104,7 +104,7 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Build the load balancer first, as other resources must be attached to it later
-        nlb = aws.alb.LoadBalancer(
+        nlb = aws.lb.LoadBalancer(
             f'{name}-nlb',
             enable_cross_zone_load_balancing=True,
             internal=internal,
