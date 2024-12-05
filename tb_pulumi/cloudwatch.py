@@ -134,14 +134,14 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         del fivexx_opts['enabled']
         fivexx = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
             lambda outputs: aws.cloudwatch.MetricAlarm(
-                f'{self.name}-5xx',
-                name=f'{self.project.name_prefix}-5xx',
+                f'{self.name}-4xx',
+                name=f'{self.project.name_prefix}-4xx',
                 alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 dimensions={'LoadBalancer': outputs['res_suffix']},
                 metric_name='HTTPCode_ELB_5XX_Count',
                 namespace='AWS/ApplicationELB',
-                alarm_description=f'Elevated 5xx errors on ALB {outputs['res_name']}',
+                alarm_description=f'Elevated 4xx errors on ALB {outputs['res_name']}',
                 opts=pulumi.ResourceOptions(
                     parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
                 ),
@@ -188,7 +188,8 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 class CloudFrontAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     """A set of alarms for CloudFront distributions and related resources. Contains the following configurable alarms:
 
-    - ``blah`` : Something
+    - ``distro_4xx``: Alarms on the number of HTTP responses with status codes in the 400-499 range, indicating an
+        elevated number of calls to invalid files.
     """
 
     def __init__(
@@ -221,16 +222,16 @@ class CloudFrontAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         distro_4xx_opts.update(self.overrides['distro_4xx'] if 'distro_4xx' in self.overrides else {})
         distro_4xx_enabled = distro_4xx_opts['enabled']
         del distro_4xx_opts['enabled']
-        distro_4xx = (
-            aws.cloudwatch.MetricAlarm(
+        distro_4xx = pulumi.Output.all(res_id=resource.id, res_comment=resource.comment).apply(
+            lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-4xx',
                 name=f'{self.project.name_prefix}-4xx',
                 alarm_actions=[monitoring_group.resources['sns_topic'].arn],
-                comparison_operator='GreaterThanOrEqualTo',
-                dimensions={'DistributionId': resource.id},
+                comparison_operator='GreaterThanOrEqualToThreshold',
+                dimensions={'DistributionId': outputs['res_id']},
                 metric_name='4xxErrorRate',
                 namespace='AWS/CloudFront',
-                alarm_description=f'4xx error rate for CloudFront Distribution "{resource.description}" exceeds '
+                alarm_description=f'4xx error rate for CloudFront Distribution "{outputs['res_comment']}" exceeds '
                 f'{distro_4xx_opts['threshold']} on average over {distro_4xx_opts['period']} seconds.',
                 opts=pulumi.ResourceOptions(
                     parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
