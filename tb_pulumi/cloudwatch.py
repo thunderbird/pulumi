@@ -135,14 +135,14 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         del fivexx_opts['enabled']
         fivexx = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
             lambda outputs: aws.cloudwatch.MetricAlarm(
-                f'{self.name}-4xx',
-                name=f'{self.project.name_prefix}-4xx',
+                f'{self.name}-5xx',
+                name=f'{outputs['res_name']}-5xx',
                 alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 dimensions={'LoadBalancer': outputs['res_suffix']},
                 metric_name='HTTPCode_ELB_5XX_Count',
                 namespace='AWS/ApplicationELB',
-                alarm_description=f'Elevated 4xx errors on ALB {outputs['res_name']}',
+                alarm_description=f'Elevated 5xx errors on ALB {outputs['res_name']}',
                 opts=pulumi.ResourceOptions(
                     parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
                 ),
@@ -167,7 +167,7 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         response_time = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
             lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-responsetime',
-                name=f'{self.project.name_prefix}-responsetime',
+                name=f'{outputs['res_name']}-responsetime',
                 alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 dimensions={'LoadBalancer': outputs['res_suffix']},
@@ -226,7 +226,7 @@ class CloudFrontDistributionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         distro_4xx = pulumi.Output.all(res_id=resource.id, res_comment=resource.comment).apply(
             lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-4xx',
-                name=f'{self.project.name_prefix}-4xx',
+                name=f'{self.project.name_prefix}-cfdistro-{outputs['res_id']}-4xx',
                 alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 dimensions={'DistributionId': outputs['res_id']},
@@ -279,7 +279,7 @@ class CloudFrontFunctionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             'statistic': 'Average',
             'threshold': 80,
         }
-        cpu_utilization_opts.update(self.overrides['cpu_utilization'] if 'cpu_utilization' in self.overrides else None)
+        cpu_utilization_opts.update(self.overrides['cpu_utilization'] if 'cpu_utilization' in self.overrides else {})
         cpu_utilization_enabled = cpu_utilization_opts['enabled']
         pulumi.info(f'CPU enabled: {cpu_utilization_enabled}')
         del cpu_utilization_opts['enabled']
@@ -287,7 +287,7 @@ class CloudFrontFunctionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             resource.name.apply(
                 lambda res_name: aws.cloudwatch.MetricAlarm(
                     f'{self.name}-cpu',
-                    name=f'{self.project.name_prefix}-cpu',
+                    name=f'{res_name}-cpu',
                     alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                     comparison_operator='GreaterThanOrEqualToThreshold',
                     dimensions={'FunctionName': res_name},
@@ -365,7 +365,7 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         cpu_utilization = pulumi.Output.all(res_name=resource.name, cluster_arn=resource.cluster).apply(
             lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-cpu',
-                name=f'{self.project.name_prefix}-cpu',
+                name=f'{outputs['res_name']}-cpu',
                 alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 # There is no direct way to get the Cluster name from a Service, but we can get the ARN, which has the
@@ -400,7 +400,7 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         memory_utilization = pulumi.Output.all(res_name=resource.name, cluster_arn=resource.cluster).apply(
             lambda outputs: aws.cloudwatch.MetricAlarm(
                 f'{self.name}-memory',
-                name=f'{self.project.name_prefix}-memory',
+                name=f'{outputs['res_name']}-memory',
                 alarm_actions=[monitoring_group.resources['sns_topic'].arn],
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 # There is no direct way to get the Cluster name from a Service, but we can get the ARN, which has the
