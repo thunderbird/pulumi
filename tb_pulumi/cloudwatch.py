@@ -41,7 +41,11 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
             pulumi_type='tb:cloudwatch:CloudWatchMonitoringGroup', name=name, project=project, opts=opts, config=config
         )
 
-        supported_types = {aws.lb.load_balancer.LoadBalancer: AlbAlarmGroup, aws.ecs.Service: EcsServiceAlarmGroup}
+        supported_types = {
+            aws.lb.load_balancer.LoadBalancer: AlbAlarmGroup,
+            aws.cloudfront.Distribution: CloudFrontAlarmGroup,
+            aws.ecs.Service: EcsServiceAlarmGroup,
+        }
         supported_resources = [
             resource for resource in self.project.flatten() if type(resource) in supported_types.keys()
         ]
@@ -85,8 +89,8 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     """A set of alarms for Application Load Balancers. Contains the following configurable alarms:
 
         - ``fivexx``: Alarms on the number of HTTP responses with status codes in the 500-599 range, indicating a count
-        of internal server errors.
-        - ``response_time`: Alarms on the response time of HTTP requests. Threshold should be set in seconds.
+          of internal server errors.
+        - ``response_time``: Alarms on the response time of HTTP requests. Threshold should be set in seconds.
 
     :param name: The name of the the ``AlbAlarmGroup`` resource.
     :type name: str
@@ -179,6 +183,65 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         )
 
         self.finish(outputs={}, resources={'fivexx': fivexx, 'response_time': response_time})
+
+
+class CloudFrontAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """A set of alarms for CloudFront distributions and related resources. Contains the following configurable alarms:
+
+    - ``blah`` : Something
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        resource: aws.ecs.Service,
+        monitoring_group: CloudWatchMonitoringGroup,
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        super().__init__(
+            pulumi_type='tb:cloudwatch:CloudFrontAlarmGroup',
+            name=name,
+            monitoring_group=monitoring_group,
+            project=project,
+            resource=resource,
+            opts=opts,
+            **kwargs,
+        )
+
+        # Alert if the distro reports an elevated error rate
+        distro_4xx_opts = {
+            'enabled': True,
+            'evaluation_periods': 2,
+            'period': 900,
+            'statistic': 'Average',
+            'threshold': 10,
+        }
+        distro_4xx_opts.update(self.overrides['distro_4xx'] if 'distro_4xx' in self.overrides else {})
+        distro_4xx_enabled = distro_4xx_opts['enabled']
+        del distro_4xx_opts['enabled']
+        distro_4xx = (
+            aws.cloudwatch.MetricAlarm(
+                f'{self.name}-4xx',
+                name=f'{self.project.name_prefix}-4xx',
+                alarm_actions=[monitoring_group.resources['sns_topic'].arn],
+                comparison_operator='GreaterThanOrEqualTo',
+                dimensions={'DistributionId': resource.id},
+                metric_name='4xxErrorRate',
+                namespace='AWS/CloudFront',
+                alarm_description=f'4xx error rate for CloudFront Distribution "{resource.description}" exceeds '
+                f'{distro_4xx_opts['threshold']} on average over {distro_4xx_opts['period']} seconds.',
+                opts=pulumi.ResourceOptions(
+                    parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
+                ),
+                **distro_4xx_opts,
+            )
+            if distro_4xx_enabled
+            else None
+        )
+
+        self.finish(outputs={}, resources={'distro_4xx': distro_4xx})
 
 
 class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
