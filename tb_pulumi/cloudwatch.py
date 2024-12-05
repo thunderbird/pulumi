@@ -43,7 +43,8 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
 
         supported_types = {
             aws.lb.load_balancer.LoadBalancer: AlbAlarmGroup,
-            aws.cloudfront.Distribution: CloudFrontAlarmGroup,
+            aws.cloudfront.Distribution: CloudFrontDistributionAlarmGroup,
+            aws.cloudfront.Function: CloudFrontFunctionAlarmGroup,
             aws.ecs.Service: EcsServiceAlarmGroup,
         }
         supported_resources = [
@@ -185,8 +186,8 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         self.finish(outputs={}, resources={'fivexx': fivexx, 'response_time': response_time})
 
 
-class CloudFrontAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
-    """A set of alarms for CloudFront distributions and related resources. Contains the following configurable alarms:
+class CloudFrontDistributionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """A set of alarms for CloudFront distributions. Contains the following configurable alarms:
 
     - ``distro_4xx``: Alarms on the number of HTTP responses with status codes in the 400-499 range, indicating an
         elevated number of calls to invalid files.
@@ -202,7 +203,7 @@ class CloudFrontAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         **kwargs,
     ):
         super().__init__(
-            pulumi_type='tb:cloudwatch:CloudFrontAlarmGroup',
+            pulumi_type='tb:cloudwatch:CloudFrontDistributionAlarmGroup',
             name=name,
             monitoring_group=monitoring_group,
             project=project,
@@ -243,6 +244,68 @@ class CloudFrontAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         )
 
         self.finish(outputs={}, resources={'distro_4xx': distro_4xx})
+
+
+class CloudFrontFunctionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """A set of alarms for CloudFront functions. Contains the following configurable alarms:
+
+    - ``cpu_utilization``: Alarms when the function's compute utilization is excessive.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        resource: aws.ecs.Service,
+        monitoring_group: CloudWatchMonitoringGroup,
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        super().__init__(
+            pulumi_type='tb:cloudwatch:CloudFrontFunctionAlarmGroup',
+            name=name,
+            monitoring_group=monitoring_group,
+            project=project,
+            resource=resource,
+            opts=opts,
+            **kwargs,
+        )
+
+        # Alert if the function's CPU utilization is too high
+        cpu_utilization_opts = {
+            'enabled': True,
+            'evaluation_periods': 2,
+            'period': 300,
+            'statistic': 'Average',
+            'threshold': 80,
+        }
+        cpu_utilization_opts.update(self.overrides['cpu_utilization'] if 'cpu_utilization' in self.overrides else None)
+        cpu_utilization_enabled = cpu_utilization_opts['enabled']
+        pulumi.info(f'CPU enabled: {cpu_utilization_enabled}')
+        del cpu_utilization_opts['enabled']
+        cpu_utilization = (
+            resource.name.apply(
+                lambda res_name: aws.cloudwatch.MetricAlarm(
+                    f'{self.name}-cpu',
+                    name=f'{self.project.name_prefix}-cpu',
+                    alarm_actions=[monitoring_group.resources['sns_topic'].arn],
+                    comparison_operator='GreaterThanOrEqualToThreshold',
+                    dimensions={'FunctionName': res_name},
+                    metric_name='FunctionComputeUtilization',
+                    namespace='AWS/CloudFront',
+                    alarm_description=f'CPU utilization on CloudFront Function {res_name} exceeds '
+                    f'{cpu_utilization_opts['threshold']}.',
+                    opts=pulumi.ResourceOptions(
+                        parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
+                    ),
+                    **cpu_utilization_opts,
+                )
+            )
+            if cpu_utilization_enabled
+            else None
+        )
+
+        self.finish(outputs={}, resources={'cpu_utilization': cpu_utilization})
 
 
 class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
