@@ -458,5 +458,9 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
     def __ssm_param(self, name, param_name, value, depends_on: list[pulumi.Output] = None):
         """Build an SSM Parameter."""
         return aws.ssm.Parameter(
-            name, name=param_name, type=aws.ssm.ParameterType.STRING, value=value, depends_on=depends_on
+            name,
+            name=param_name,
+            type=aws.ssm.ParameterType.STRING,
+            value=value,
+            opts=pulumi.ResourceOptions(depends_on=depends_on),
         )
