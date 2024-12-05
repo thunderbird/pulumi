@@ -15,7 +15,6 @@ dependencies = { file = ["requirements.txt"] }
 [project.optional-dependencies]
 dev = [
     "furo",
-    "insegel",
     "ruff",
     "sphinx"
 ]
