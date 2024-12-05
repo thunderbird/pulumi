@@ -3,7 +3,7 @@ Monitoring Resources
 
 When you use a ``ThunderbirdPulumiProject`` and add ``ThunderbirdComponentResource`` s to it, the project tracks the
 resources in an internal mapping correlating the name of the module to a collection of its resources. These resources
-can have complex structures with nested lists, dicts, and ``ThunderbirdComponentResource``s. The project's
+can have complex structures with nested lists, dicts, and ``ThunderbirdComponentResource`` s. The project's
 :py:meth:`tb_pulumi.ThunderbirdPulumiProject.flatten` function returns these as a flat list of unlabeled Pulumi
 ``Resource`` s.
 
