@@ -106,7 +106,7 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         - ``response_time``: Alarms on the average response time of HTTP requests. Defaults to alarming if the average
             response time over a minute is longer than 1 second.
 
-    Further detail on these metrics and others can be found within `Amazon's documentation
+    Further detail on these metrics and others can be found within `Amazon's ALB metrics documentation
     <https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html>`_.
 
     :param name: The name of the the ``AlbAlarmGroup`` resource.
@@ -233,7 +233,7 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         - ``unhealthy_hosts``: Alarms on the number of unhealthy hosts in a target group. Defaults to alarm when the
             average of unhealthy hosts is over 1 in 1 minute.
 
-    Further detail on these metrics and others can be found within `Amazon's documentation
+    Further detail on these metrics and others can be found within `Amazon's Target Group metric documentation
     <https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html#target-metric-table>`_.
 
     :param name: The name of the the ``AlbTargetGroupAlarmGroup`` resource.
@@ -349,7 +349,7 @@ class CloudFrontDistributionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             elevated number of calls to invalid files. This value is reported as a percentage of all responses. Defaults
             to alarm on at least 10% 4xx codes in 1 minute.
 
-    Further details about these metrics and more can be found in `Amazon's documentation
+    Further details about these metrics and more can be found in `Amazon's CloudFront distribution documentation
     <https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/programming-cloudwatch-metrics.html#cloudfront-metrics-distribution-values>`_.
 
     :param name: The name of the ``CloudFrontDistributionAlarmGroup`` resource.
@@ -428,7 +428,7 @@ class CloudFrontFunctionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         percentage of its allotted CPU. Defaults to alarm when the function's CPU usage has been over 80% on average for
         1 minute.
 
-    Further details about these metrics and more can be found in `Amazon's documentation
+    Further details about these metrics and more can be found in `Amazon's CloudFront Functions documentation
     <https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/programming-cloudwatch-metrics.html#cloudfront-metrics-function-values>`_.
 
     :param name: The name of the the ``CloudFrontFunctionAlarmGroup`` resource.
