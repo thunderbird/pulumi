@@ -7,9 +7,11 @@ tb_pulumi
    tb_pulumi
    ci
    cloudfront
+   cloudwatch
    constants
    ec2
    fargate
+   monitoring
    network
    rds
    secrets

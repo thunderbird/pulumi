@@ -71,11 +71,14 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
     ):
         super().__init__('tb:ec2:NetworkLoadBalancer', name, project, opts=opts)
 
+        # The primary_subnet is just the first subnet listed, used for determining VPC placement
+        primary_subnet = subnets[0]
+
         # Build a security group that allows ingress on our listener port
         security_group_with_rules = tb_pulumi.network.SecurityGroupWithRules(
             f'{name}-sg',
             project,
-            vpc_id=subnets[0].vpc_id,
+            vpc_id=primary_subnet.vpc_id,
             rules={
                 'ingress': [
                     {
@@ -101,7 +104,7 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Build the load balancer first, as other resources must be attached to it later
-        nlb = aws.alb.LoadBalancer(
+        nlb = aws.lb.LoadBalancer(
             f'{name}-nlb',
             enable_cross_zone_load_balancing=True,
             internal=internal,
@@ -131,9 +134,9 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
             port=target_port,
             protocol='TCP',
             target_type='ip',
-            vpc_id=subnets[0].vpc_id,
+            vpc_id=primary_subnet.vpc_id,
             tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[nlb, subnets[0]]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[nlb, primary_subnet]),
         )
 
         # Add targets to the target group

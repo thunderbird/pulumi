@@ -36,18 +36,8 @@ jobs:
           cd docs
           make clean html
 
-          # Move the build files into a location where we can compile multiple build outputs
-          mkdir -p compiled_html/dark
-          cp -r _build/html/* compiled_html/
-
-          # Build again with the dark theme
-          TBPULUMI_DARK_MODE=yes make clean html
-
-          # Move the dark theme files into a special directory
-          cp -r _build/html/* compiled_html/dark/
-
           # Compress for archival
-          cd compiled_html
+          cd _build/html
           tar -cvjf ../../docs.tbz ./*
 
       - name: Archive docs
@@ -64,5 +54,5 @@ jobs:
         with:
           publish_branch: gh-pages  # this is the default, but let's be explicit
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/compiled_html/
+          publish_dir: docs/_build/html/
           force_orphan: true
