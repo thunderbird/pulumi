@@ -5,6 +5,8 @@ import pulumi_aws as aws
 import tb_pulumi
 import tb_pulumi.monitoring
 
+from tb_pulumi.constants import CLOUDWATCH_METRIC_ALARM_DEFAULTS
+
 
 class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
     """A ``MonitoringGroup`` that monitors AWS-based resources using AWS's CloudWatch service. This creates an SNS topic
@@ -146,8 +148,8 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
         # Alert if we see sustained 5xx statuses on the ALB itself (not on the target groups)
         alb_5xx_name = 'alb_5xx'
-        alb_5xx_opts = {'enabled': True, 'evaluation_periods': 2, 'period': 60, 'statistic': 'Sum', 'threshold': 10}
-        alb_5xx_opts.update(self.overrides[alb_5xx_name] if alb_5xx_name in self.overrides else {})
+        alb_5xx_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
+        alb_5xx_opts.update({'statistic': 'Sum', **self.overrides.get(alb_5xx_name, {})})
         alb_5xx_enabled = alb_5xx_opts['enabled']
         del alb_5xx_opts['enabled']
         alb_5xx_tags = {'tb_pulumi_alarm_name': alb_5xx_name}
@@ -174,8 +176,8 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
         # Alert if we see sustained 5xx statuses on the targets of the ALB (from the application)
         target_5xx_name = 'target_5xx'
-        target_5xx_opts = {'enabled': True, 'evaluation_periods': 2, 'period': 60, 'statistic': 'Sum', 'threshold': 10}
-        target_5xx_opts.update(self.overrides[target_5xx_name] if target_5xx_name in self.overrides else {})
+        target_5xx_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
+        target_5xx_opts.update({'statistic': 'Sum', **self.overrides.get(target_5xx_name, {})})
         target_5xx_enabled = target_5xx_opts['enabled']
         del target_5xx_opts['enabled']
         target_5xx_tags = {'tb_pulumi_alarm_name': target_5xx_name}
@@ -202,14 +204,8 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
         # Alert if response time is elevated over time
         response_time_name = 'response_time'
-        response_time_opts = {
-            'enabled': True,
-            'evaluation_periods': 2,
-            'period': 60,
-            'statistic': 'Average',
-            'threshold': 1,
-        }
-        response_time_opts.update(self.overrides[response_time_name] if response_time_name in self.overrides else {})
+        response_time_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
+        response_time_opts.update({'threshold': 1, **self.overrides.get(response_time_name, {})})
         response_time_enabled = response_time_opts['enabled']
         del response_time_opts['enabled']
         response_time_tags = {'tb_pulumi_alarm_name': response_time_name}
@@ -286,16 +282,8 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
         # Alert if there are unhealthy hosts
         unhealth_hosts_name = 'unhealthy_hosts'
-        unhealthy_hosts_opts = {
-            'enabled': True,
-            'evaluation_periods': 2,
-            'period': 60,
-            'statistic': 'Average',
-            'threshold': 1,
-        }
-        unhealthy_hosts_opts.update(
-            self.overrides[unhealth_hosts_name] if unhealth_hosts_name in self.overrides else {}
-        )
+        unhealthy_hosts_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
+        unhealthy_hosts_opts.update({'threshold': 1, **self.overrides.get(unhealth_hosts_name, {})})
         unhealthy_hosts_enabled = unhealthy_hosts_opts['enabled']
         del unhealthy_hosts_opts['enabled']
         unhealthy_hosts_tags = {'tb_pulumi_alarm_name': unhealth_hosts_name}
@@ -411,14 +399,8 @@ class CloudFrontDistributionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
         # Alert if the distro reports an elevated error rate
         distro_4xx_name = 'distro_4xx'
-        distro_4xx_opts = {
-            'enabled': True,
-            'evaluation_periods': 2,
-            'period': 60,
-            'statistic': 'Average',
-            'threshold': 10,
-        }
-        distro_4xx_opts.update(self.overrides[distro_4xx_name] if distro_4xx_name in self.overrides else {})
+        distro_4xx_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
+        distro_4xx_opts.update(self.overrides.get(distro_4xx_name, {}))
         distro_4xx_enabled = distro_4xx_opts['enabled']
         del distro_4xx_opts['enabled']
         distro_4xx_tags = {'tb_pulumi_alarm_name': distro_4xx_name}
@@ -494,16 +476,8 @@ class CloudFrontFunctionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
         # Alert if the function's CPU utilization is too high
         cpu_utilization_name = 'cpu_utilization'
-        cpu_utilization_opts = {
-            'enabled': True,
-            'evaluation_periods': 2,
-            'period': 60,
-            'statistic': 'Average',
-            'threshold': 80,
-        }
-        cpu_utilization_opts.update(
-            self.overrides[cpu_utilization_name] if cpu_utilization_name in self.overrides else {}
-        )
+        cpu_utilization_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
+        cpu_utilization_opts.update({'threshold': 80, **self.overrides.get(cpu_utilization_name, {})})
         cpu_utilization_enabled = cpu_utilization_opts['enabled']
         del cpu_utilization_opts['enabled']
         cpu_utilization_tags = {'tb_pulumi_alarm_name': cpu_utilization_name}
@@ -583,16 +557,8 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
         # Alert if we see overall elevated CPU consumption
         cpu_utilization_name = 'cpu_utilization'
-        cpu_utilization_opts = {
-            'enabled': True,
-            'evaluation_periods': 2,
-            'period': 300,
-            'statistic': 'Average',
-            'threshold': 80,
-        }
-        cpu_utilization_opts.update(
-            self.overrides[cpu_utilization_name] if cpu_utilization_name in self.overrides else {}
-        )
+        cpu_utilization_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
+        cpu_utilization_opts.update({'period': 300, 'threshold': 80, **self.overrides.get(cpu_utilization_name, {})})
         cpu_utilization_enabled = cpu_utilization_opts['enabled']
         del [cpu_utilization_opts['enabled']]
         cpu_utilization_tags = {'tb_pulumi_alarm_name': cpu_utilization_name}
@@ -622,15 +588,9 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
         # Alert if we see overall elevated memory consumption
         memory_utilization_name = 'memory_utilization'
-        memory_utilization_opts = {
-            'enabled': True,
-            'evaluation_periods': 2,
-            'period': 300,
-            'statistic': 'Average',
-            'threshold': 80,
-        }
+        memory_utilization_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
         memory_utilization_opts.update(
-            self.overrides[memory_utilization_name] if memory_utilization_name in self.overrides else {}
+            {'period': 300, 'threshold': 80, **self.overrides.get(memory_utilization_name, {})}
         )
         memory_utilization_enabled = memory_utilization_opts['enabled']
         del memory_utilization_opts['enabled']
