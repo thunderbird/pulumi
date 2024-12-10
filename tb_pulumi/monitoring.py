@@ -96,6 +96,9 @@ class AlarmGroup(tb_pulumi.ThunderbirdComponentResource):
         self.monitoring_group = monitoring_group
         self.resource = resource
 
+        # Tag alarms with their resource names for easy reference when tweaking later
+        self.tags.update({'tb_pulumi_resource_name': resource._name})
+
     @cached_property
     def overrides(self) -> dict:
         """If the user has configured any overrides for alarms related to this resource, this function returns them."""

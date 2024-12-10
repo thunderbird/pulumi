@@ -121,3 +121,6 @@ config for one alarm and disable another, you could write the following config:
                     evaluation_periods: 3
                 alb_5xx:
                     enabled: False
+
+Both of these pieces of data are available as tags on the alarms themselves. If you discover an alarm which needs to be
+tweaked, note the `tb_pulumi_resource_name` and `tb_pulumi_alarm_name` tags.
