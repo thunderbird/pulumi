@@ -1,7 +1,7 @@
-tb\_pulumi.monitoring
+tb\_pulumi.cloudwatch
 =====================
 
-.. automodule:: tb_pulumi.monitoring
+.. automodule:: tb_pulumi.cloudwatch
    :members:
    :undoc-members:
    :show-inheritance:

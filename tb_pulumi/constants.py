@@ -6,6 +6,15 @@ ASSUME_ROLE_POLICY = {
     'Statement': [{'Sid': '', 'Effect': 'Allow', 'Principal': {'Service': None}, 'Action': 'sts:AssumeRole'}],
 }
 
+#: Most common settings for Cloudwatch metric alarms
+CLOUDWATCH_METRIC_ALARM_DEFAULTS = {
+    'enabled': True,
+    'evaluation_periods': 2,
+    'period': 60,
+    'statistic': 'Average',
+    'threshold': 10,
+}
+
 # Global default values to fall back on
 DEFAULT_AWS_SSL_POLICY = 'ELBSecurityPolicy-2016-08'  #: Good default policy when setting up SSL termination with an ELB
 DEFAULT_PROTECTED_STACKS = ['prod']  #: Which Pulumi stacks should get resource protection by default
