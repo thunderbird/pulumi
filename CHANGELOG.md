@@ -1,5 +1,18 @@
 # tb_pulumi Changelog
 
+## v0.0.9
+
+  - Remove Insegel theme from docs builds, relying on Furo for its dark/light modes and respect for user preference.
+  - Add several high priority alarms through EC2 and CloudFront.
+  - Allow users to set the function associations for default behaviors in a CloudFront distribution.
+
+## v0.0.8
+
+  - Fix a bug where dimensions for some CloudWatch alarms did not get set correctly, resuling in "Insufficient Data" all
+    the time.
+  - Verification of Pulumi resource dependencies throughout the codebase. This repairs the dependency tree and makes
+    destroys and environment rebuilds smooth.
+
 ## v0.0.7
 
   - Lock the AWS provider to a specific version to avoid errors when CI automation runs pulumi commands with `--target`.
