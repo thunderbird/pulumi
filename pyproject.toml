@@ -14,9 +14,9 @@ dependencies = { file = ["requirements.txt"] }
 
 [project.optional-dependencies]
 dev = [
-    "furo",
     "ruff",
-    "sphinx"
+    "sphinx",
+    "sphinx_rtd_theme",
 ]
 
 # Ruff
