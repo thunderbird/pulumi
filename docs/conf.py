@@ -16,7 +16,7 @@ author = 'Ryan Jung, et al'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc']
+extensions = ['sphinx.ext.autodoc', 'sphinx_rtd_theme']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
@@ -25,7 +25,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'furo'  # Clean, organized theme with dark and light modes
+html_theme = 'sphinx_rtd_theme'  # Classic ReadTheDocs theme
 
 # -- Override path to read our docstrings
 sys.path.insert(0, os.path.abspath('..'))
