@@ -227,7 +227,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             secret_name=secret_fullname,
             secret_value=password.result,
             recovery_window_in_days=secret_recovery_window_in_days,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[password])
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[password]),
         )
 
         # If no ingress CIDRs have been defined, find a reasonable default
@@ -397,7 +397,28 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         port = SERVICE_PORTS.get(engine, 5432)
         inst_addrs = [instance.address for instance in instances]
         load_balancer = pulumi.Output.all(*inst_addrs).apply(
-            lambda addresses: self.__load_balancer(name, project, port, subnets, vpc_cidr, instances, *addresses)
+            lambda addresses: tb_pulumi.ec2.NetworkLoadBalancer(
+                f'{name}-nlb',
+                project=project,
+                listener_port=port,
+                subnets=subnets,
+                target_port=port,
+                ingress_cidrs=[vpc_cidr],
+                internal=True,
+                ips=[socket.gethostbyname(addr) for addr in addresses],
+                security_group_description=f'Allow database traffic for {name}',
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances, *subnets]),
+            )
+        )
+
+        ssm_param_db_read_host = load_balancer.apply(
+            lambda lb: aws.ssm.Parameter(
+                f'{name}-ssm-dbreadhost',
+                name=f'/{self.project.project}/{self.project.stack}/db-read-host',
+                type=aws.ssm.ParameterType.STRING,
+                value=lb.resources['nlb'].dns_name,
+                opts=pulumi.ResourceOptions(depends_on=[load_balancer]),
+            )
         )
 
         if build_jumphost:
@@ -423,7 +444,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 'instances': instances,
                 'jumphost': jumphost if build_jumphost else None,
                 'key': key,
-                'load_balancer': load_balancer['nlb'],
+                'load_balancer': load_balancer,
                 'parameter_group': parameter_group,
                 'password': password,
                 'secret': secret,
@@ -431,32 +452,10 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 'ssm_param_db_name': ssm_param_db_name,
                 'ssm_param_db_write_host': ssm_param_db_write_host,
                 'ssm_param_port': ssm_param_port,
-                'ssm_param_read_host': load_balancer['ssm_param_read_host'],
+                'ssm_param_read_host': ssm_param_db_read_host,
                 'subnet_group': subnet_group,
             },
         )
-
-    def __load_balancer(self, name, project, port, subnets, vpc_cidr, instances, *addresses):
-        # Build a load balancer
-        nlb = tb_pulumi.ec2.NetworkLoadBalancer(
-            f'{name}-nlb',
-            project=project,
-            listener_port=port,
-            subnets=subnets,
-            target_port=port,
-            ingress_cidrs=[vpc_cidr],
-            internal=True,
-            ips=[socket.gethostbyname(addr) for addr in addresses],
-            security_group_description=f'Allow database traffic for {name}',
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances, *subnets]),
-        )
-        ssm_param_read_host = self.__ssm_param(
-            f'{name}-ssm-dbreadhost',
-            f'/{self.project.project}/{self.project.stack}/db-read-host',
-            nlb.resources['nlb'].dns_name.apply(lambda dns_name: dns_name),
-            depends_on=[nlb],
-        )
-        return {'nlb': nlb, 'ssm_param_read_host': ssm_param_read_host}
 
     def __ssm_param(self, name, param_name, value, depends_on: list[pulumi.Output] = None):
         """Build an SSM Parameter."""

@@ -90,6 +90,7 @@ class ThunderbirdPulumiProject:
     def flatten(self) -> set[pulumi.Resource]:
         """Returns a flat set of all resources existing within this project."""
 
+        pulumi.info(f'FLATTENING RESOURCES: {self.resources.keys()}')
         return flatten(self.resources)
 
 
@@ -233,14 +234,17 @@ def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource) 
     # a flat list first, then operate on its items.
     flattened = []
     to_flatten = None
-    pulumi.info(f'Flattening item: {item}')
     if type(item) is list:
+        pulumi.info(f'FOUND LIST: {item}')
         to_flatten = item
     elif type(item) is dict:
+        pulumi.info(f'FOUND DICT: {item}')
         to_flatten = item.values()
     elif isinstance(item, ThunderbirdComponentResource):
+        pulumi.info(f'FOUND TCR: {item._name} -> {item.resources.values()}')
         to_flatten = item.resources.values()
     elif isinstance(item, pulumi.Resource):
+        pulumi.info(f'FOUND RESOURCE: {item._name}, {str(item.__class__)}')
         return [item]
     else:
         pass
