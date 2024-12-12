@@ -7,6 +7,7 @@ import socket
 import tb_pulumi
 import tb_pulumi.ec2
 import tb_pulumi.network
+import tb_pulumi.secrets
 
 from tb_pulumi.constants import SERVICE_PORTS
 
@@ -137,6 +138,11 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
     :param port: Specify a non-default listening port. Defaults to None.
     :type port: int, optional
 
+    :param secret_recovery_window_in_days: Number of days to retain the database_url secret after it has been deleted.
+        Set this to zero in testing environments to avoid issues during stack rebuilds. Defaults to None (which causes
+        AWS to default to 7 days).
+    :type secret_recovery_window_in_days: int, optional
+
     :param sg_cidrs: A list of CIDRs from which ingress should be allowed. If this is left to the default value, a
         sensible default will be selected. If `internal` is True, this will allow access from the `vpc_cidr`. Otherwise,
         traffic will be allowed from anywhere. Defaults to None.
@@ -191,6 +197,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         parameter_group_family: str = 'postgres15',
         performance_insights_enabled: bool = False,
         port: int = None,
+        secret_recovery_window_in_days: int = None,
         sg_cidrs: list[str] = None,
         skip_final_snapshot: bool = False,
         storage_type: str = 'gp3',
@@ -214,16 +221,13 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
 
         # Store the password in Secrets Manager
         secret_fullname = f'{self.project.project}/{self.project.stack}/{name}/root_password'
-        secret = aws.secretsmanager.Secret(
+        secret = tb_pulumi.secrets.SecretsManagerSecret(
             f'{name}-secret',
-            name=secret_fullname,
-            opts=pulumi.ResourceOptions(parent=self),
-        )
-        secret_version = aws.secretsmanager.SecretVersion(
-            f'{name}-secretversion',
-            secret_id=secret.id,
-            secret_string=password.result,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[secret, password]),
+            project=project,
+            secret_name=secret_fullname,
+            secret_value=password.result,
+            recovery_window_in_days=secret_recovery_window_in_days,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[password])
         )
 
         # If no ingress CIDRs have been defined, find a reasonable default
@@ -423,7 +427,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 'parameter_group': parameter_group,
                 'password': password,
                 'secret': secret,
-                'secret_version': secret_version,
                 'security_group': security_group_with_rules,
                 'ssm_param_db_name': ssm_param_db_name,
                 'ssm_param_db_write_host': ssm_param_db_write_host,
@@ -437,10 +440,10 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         # Build a load balancer
         nlb = tb_pulumi.ec2.NetworkLoadBalancer(
             f'{name}-nlb',
-            project,
-            port,
-            subnets,
-            port,
+            project=project,
+            listener_port=port,
+            subnets=subnets,
+            target_port=port,
             ingress_cidrs=[vpc_cidr],
             internal=True,
             ips=[socket.gethostbyname(addr) for addr in addresses],

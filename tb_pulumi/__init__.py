@@ -233,12 +233,13 @@ def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource) 
     # a flat list first, then operate on its items.
     flattened = []
     to_flatten = None
+    pulumi.info(f'Flattening item: {item}')
     if type(item) is list:
         to_flatten = item
     elif type(item) is dict:
-        to_flatten = [value for _, value in item.items()]
+        to_flatten = item.values()
     elif isinstance(item, ThunderbirdComponentResource):
-        to_flatten = [value for _, value in item.resources.items()]
+        to_flatten = item.resources.values()
     elif isinstance(item, pulumi.Resource):
         return [item]
     else:

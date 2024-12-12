@@ -69,7 +69,7 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        super().__init__('tb:ec2:NetworkLoadBalancer', name, project, opts=opts)
+        super().__init__('tb:ec2:NetworkLoadBalancer', name=name, project=project, opts=opts)
 
         # The primary_subnet is just the first subnet listed, used for determining VPC placement
         primary_subnet = subnets[0]
@@ -77,7 +77,7 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         # Build a security group that allows ingress on our listener port
         security_group_with_rules = tb_pulumi.network.SecurityGroupWithRules(
             f'{name}-sg',
-            project,
+            project=project,
             vpc_id=primary_subnet.vpc_id,
             rules={
                 'ingress': [
