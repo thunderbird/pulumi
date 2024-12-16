@@ -228,7 +228,7 @@ def env_var_is_true(name: str) -> bool:
     return env_var_matches(name, ['t', 'true', 'yes'], False)
 
 
-def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource) -> set[pulumi.Resource]:
+def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Output | pulumi.Resource) -> set[pulumi.Resource]:
     """Recursively traverses a nested collection of Pulumi ``Resource`` s, converting them into a flat set which can be
     more easily iterated over.
 
@@ -245,22 +245,26 @@ def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource) 
     flattened = []
     to_flatten = None
     if type(item) is list:
-        pulumi.info(f'FOUND LIST: {item}')
+        # pulumi.info(f'FOUND LIST: {item}')
         to_flatten = item
     elif type(item) is dict:
-        pulumi.info(f'FOUND DICT: {item}')
+        # pulumi.info(f'FOUND DICT: {item}')
         to_flatten = item.values()
     elif isinstance(item, ThunderbirdComponentResource):
-        pulumi.info(f'FOUND TCR: {item._name} -> {item.resources.values()}')
+        # pulumi.info(f'FOUND TCR: {item._name} -> {item.resources.values()}')
         to_flatten = item.resources.values()
-    elif isinstance(item, pulumi.Resource):
-        pulumi.info(f'FOUND RESOURCE: {item._name}, {str(item.__class__)}')
+    elif isinstance(item, pulumi.Resource) or isinstance(item, pulumi.Output):
+        # pulumi.info(f'FOUND RESOURCE: {item._name}, {str(item.__class__)}')
         return [item]
     else:
         pass
 
     if to_flatten is not None:
         for item in to_flatten:
-            flattened.extend(flatten(item))
+            if isinstance(item, pulumi.Output):
+                item.apply(lambda i: flattened.extend(flatten(i)))
+            else:
+                flattened.extend(flatten(item))
 
+    pulumi.info(f'FLATTENED: {set(flattened)}')
     return set(flattened)

@@ -76,8 +76,8 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         # The next two lines are useful for debugging monitoring setups since that logic depends largely on obscure
         # class names. These will show all resources and their classes in a project as well as a filtered list of
         # those resources correctly detected by the logic above.
-        # pulumi.info(f'All resources: {'\n'.join([f'{res._name}: {str(res.__class__)}' for res in self.project.flatten()])}') # noqa: E501
-        # pulumi.info(f'Supported resources: {supported_resources}')
+        pulumi.info(f'All resources: {'\n'.join([f'{res._name}: {str(res.__class__)}' for res in self.project.flatten()])}') # noqa: E501
+        pulumi.info(f'Supported resources: {supported_resources}')
         for res in supported_resources:
             shortname = res._name.replace(f'{self.project.name_prefix}-', '')  # Make this name shorter, less redundant
             alarms[res._name] = supported_types[type(res)](

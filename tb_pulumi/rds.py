@@ -411,9 +411,8 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         # Figure out the IPs once the instances are ready and build a load balancer targeting them
         port = SERVICE_PORTS.get(engine, 5432)
         inst_addrs = [instance.address for instance in instances]
-
-        def __load_balancer(ips):
-            return tb_pulumi.ec2.NetworkLoadBalancer(
+        load_balancer = pulumi.Output.all(*inst_addrs).apply(
+            lambda addresses: tb_pulumi.ec2.NetworkLoadBalancer(
                 f'{name}-nlb',
                 project=project,
                 exclude_from_project=True,
@@ -422,12 +421,11 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 target_port=port,
                 ingress_cidrs=[vpc_cidr],
                 internal=True,
-                ips=ips,
+                ips=[socket.gethostbyname(addr) for addr in addresses],
                 security_group_description=f'Allow database traffic for {name}',
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances, *subnets]),
             )
-
-        load_balancer = pulumi.Output.all(*inst_addrs).apply(lambda ips: __load_balancer(ips))
+        )
 
         ssm_param_db_read_host = load_balancer.apply(
             lambda lb: aws.ssm.Parameter(
