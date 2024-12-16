@@ -84,6 +84,11 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         '15.7'
     :type engine_version: str, optional
 
+    :param exclude_from_project: When ``True`` , this prevents this component resource from being registered directly
+        with the project. This does not prevent the component resource from being discovered by the project's
+        ``flatten`` function, provided that it is nested within some resource that is not excluded from the project.
+    :type exclude_from_project: bool, optional
+
     :param instance_class: One of the database sizes listed
         `in these docs <https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html>`_.
         Defaults to 'db.t3.micro'.
@@ -156,6 +161,10 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         Defaults to 'gp3'.
     :type storage_type: str, optional
 
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
@@ -185,6 +194,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         enabled_instance_cloudwatch_logs_exports: list[str] = [],
         engine: str = 'postgres',
         engine_version: str = '15.7',
+        exclude_from_project: bool = False,
         instance_class: str = 'db.t3.micro',
         internal: bool = True,
         jumphost_public_key: str = None,
@@ -201,10 +211,13 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         sg_cidrs: list[str] = None,
         skip_final_snapshot: bool = False,
         storage_type: str = 'gp3',
+        tags: dict = {},
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        super().__init__('tb:rds:RdsDatabaseGroup', name, project, opts=opts)
+        super().__init__(
+            'tb:rds:RdsDatabaseGroup', name, project, exclude_from_project=exclude_from_project, opts=opts, tags=tags
+        )
 
         # Generate a random password
         password = pulumi_random.RandomPassword(
@@ -224,6 +237,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         secret = tb_pulumi.secrets.SecretsManagerSecret(
             f'{name}-secret',
             project=project,
+            exclude_from_project=True,
             secret_name=secret_fullname,
             secret_value=password.result,
             recovery_window_in_days=secret_recovery_window_in_days,
@@ -247,6 +261,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             f'{name}-sg',
             project,
             vpc_id=vpc_id,
+            exclude_from_project=True,
             rules={
                 'ingress': [
                     {
@@ -400,6 +415,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             lambda addresses: tb_pulumi.ec2.NetworkLoadBalancer(
                 f'{name}-nlb',
                 project=project,
+                exclude_from_project=True,
                 listener_port=port,
                 subnets=subnets,
                 target_port=port,
@@ -426,6 +442,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-jumphost',
                 project,
                 subnets[0].id,
+                exclude_from_project=True,
                 kms_key_id=key.arn,
                 public_key=jumphost_public_key,
                 source_cidrs=jumphost_source_cidrs,

@@ -50,6 +50,10 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+
     :param kwargs: Any other keyword arguments which will be passed as inputs to the LoadBalancer resource. A full
         listing of options is found `here
         <https://www.pulumi.com/registry/packages/aws/api-docs/alb/loadbalancer/#inputs>`_.
@@ -62,14 +66,23 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         listener_port: int,
         subnets: list[str],
         target_port: int,
+        exclude_from_project: bool = False,
         ingress_cidrs: list[str] = None,
         internal: bool = True,
         ips: list[str] = [],
         security_group_description: str = None,
         opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
         **kwargs,
     ):
-        super().__init__('tb:ec2:NetworkLoadBalancer', name=name, project=project, opts=opts)
+        super().__init__(
+            'tb:ec2:NetworkLoadBalancer',
+            name=name,
+            project=project,
+            exclude_from_project=exclude_from_project,
+            opts=opts,
+            tags=tags,
+        )
 
         # The primary_subnet is just the first subnet listed, used for determining VPC placement
         primary_subnet = subnets[0]
@@ -79,6 +92,7 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
             f'{name}-sg',
             project=project,
             vpc_id=primary_subnet.vpc_id,
+            exclude_from_project=True,
             rules={
                 'ingress': [
                     {
@@ -241,6 +255,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-sg',
                 project,
                 vpc_id=vpc_id,
+                exclude_from_project=True,
                 rules={
                     'ingress': [
                         {
@@ -368,6 +383,7 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
                 project,
                 secret_name=priv_secret,
                 secret_value=self.resources['private_key'],
+                exclude_from_project=True,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[private_key]),
             )
             public_key_secret = tb_pulumi.secrets.SecretsManagerSecret(
@@ -375,6 +391,7 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
                 project,
                 secret_name=pub_secret,
                 secret_value=self.resources['public_key'],
+                exclude_from_project=True,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[public_key]),
             )
         else:

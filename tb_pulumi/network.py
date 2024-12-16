@@ -179,6 +179,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-endpoint-sg',
                 project,
                 vpc_id=vpc.id,
+                exclude_from_project=True,
                 rules={
                     'ingress': [
                         {

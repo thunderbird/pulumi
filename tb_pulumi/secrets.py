@@ -17,6 +17,11 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: ThunderbirdPulumiProject
 
+    :param exclude_from_project: When ``True`` , this prevents this component resource from being registered directly
+        with the project. This does not prevent the component resource from being discovered by the project's
+        ``flatten`` function, provided that it is nested within some resource that is not excluded from the project.
+    :type exclude_from_project: bool, optional
+
     :param secret_name: A slash ("/") delimited name for the secret in AWS. The last segment of this will be used as the
         "short name" for abbreviated references.
     :type name: str
@@ -28,6 +33,10 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+
     :param kwargs: Any other keyword arguments which will be passed as inputs to the ``aws.secretsmanager.Secret``
         resource.
     """
@@ -38,10 +47,19 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         secret_name: str,
         secret_value: typing.Any,
+        exclude_from_project: bool = False,
         opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
         **kwargs,
     ):
-        super().__init__('tb:secrets:SecretsManagerSecret', name, project, opts=opts)
+        super().__init__(
+            'tb:secrets:SecretsManagerSecret',
+            name,
+            project,
+            exclude_from_project=exclude_from_project,
+            opts=opts,
+            tags=tags,
+        )
 
         secret = aws.secretsmanager.Secret(
             f'{name}-secret', opts=pulumi.ResourceOptions(parent=self), name=secret_name, **kwargs
@@ -104,6 +122,7 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
                 project=self.project,
                 secret_name=secret_fullname,
                 secret_value=secret_string,
+                exclude_from_project=True,
                 opts=pulumi.ResourceOptions(parent=self),
                 **kwargs,
             )
