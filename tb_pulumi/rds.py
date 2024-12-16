@@ -411,20 +411,21 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         # Figure out the IPs once the instances are ready and build a load balancer targeting them
         port = SERVICE_PORTS.get(engine, 5432)
         inst_addrs = [instance.address for instance in instances]
-        load_balancer = pulumi.Output.all(*inst_addrs).apply(
-            lambda addresses: tb_pulumi.ec2.NetworkLoadBalancer(
-                f'{name}-nlb',
-                project=project,
-                exclude_from_project=True,
-                listener_port=port,
-                subnets=subnets,
-                target_port=port,
-                ingress_cidrs=[vpc_cidr],
-                internal=True,
-                ips=[socket.gethostbyname(addr) for addr in addresses],
-                security_group_description=f'Allow database traffic for {name}',
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances, *subnets]),
-            )
+        load_balancer_ips = pulumi.Output.all(*inst_addrs).apply(
+            lambda addresses: [socket.gethostbyname(addr) for addr in addresses]
+        )
+        load_balancer = tb_pulumi.ec2.NetworkLoadBalancer(
+            f'{name}-nlb',
+            project=project,
+            exclude_from_project=True,
+            listener_port=port,
+            subnets=subnets,
+            target_port=port,
+            ingress_cidrs=[vpc_cidr],
+            internal=True,
+            ips=load_balancer_ips,
+            security_group_description=f'Allow database traffic for {name}',
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances, *subnets]),
         )
 
         ssm_param_db_read_host = load_balancer.apply(
