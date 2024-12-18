@@ -261,10 +261,7 @@ def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Output | p
 
     if to_flatten is not None:
         for item in to_flatten:
-            if isinstance(item, pulumi.Output):
-                item.apply(lambda i: flattened.extend(flatten(i)))
-            else:
-                flattened.extend(flatten(item))
+            flattened.extend(flatten(item))
 
-    pulumi.info(f'FLATTENED: {set(flattened)}')
+    # pulumi.info(f'FLATTENED: {set(flattened)}')
     return set(flattened)

@@ -56,6 +56,40 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
         super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts)
         self.config = config
 
+        # Not all things in a project's `resources` dict are actually Pulumi Resources. Sometimes we build resources
+        # downstream of a Pulumi Output, which makes those resources actually Outputs and not recognizable resource
+        # types. We can only detect what kind of thing those Outputs are from within a function called by an `apply`
+        # function. This necessitates an unpacking process on this end of things.
+
+        # Start with a list of all resources; sort them out into known and unknown things
+        _all_contents = self.project.flatten()
+        _all_resources = [res for res in _all_contents if not isinstance(res, pulumi.Output)]
+
+        def __parse_resource_item(
+            item: list | dict | pulumi.Output | pulumi.Resource | tb_pulumi.ThunderbirdComponentResource,
+        ):
+            """Given a Pulumi resource or output, or a list or dict of such, determine what kind of item we're dealing
+            with and respond appropriately.
+            """
+            
+            if type(item) is list:
+                for i in item:
+                    __parse_resource_item(i)
+            elif type(item) is dict:
+                for i in item.values():
+                    __parse_resource_item(i)
+            elif isinstance(item, tb_pulumi.ThunderbirdComponentResource):
+                __parse_resource_item(item.resources)
+            elif isinstance(item, pulumi.Resource):
+                _all_resources.append(item)
+            elif isinstance(item, pulumi.Output):
+                item.apply(__parse_resource_item)
+
+        _all_outputs = [res for res in _all_contents if isinstance(res, pulumi.Output)]
+        for output in _all_outputs:
+            __parse_resource_item(output)
+        
+        pulumi.Output.all(*_all_outputs).apply(lambda outputs: [pulumi.info(res._name, res) for res in _all_resources])
 
 class AlarmGroup(tb_pulumi.ThunderbirdComponentResource):
     """A collection of alarms set up to monitor a particular single resource. For example, there are multiple metrics to
