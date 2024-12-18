@@ -90,7 +90,6 @@ class ThunderbirdPulumiProject:
     def flatten(self) -> set[pulumi.Resource]:
         """Returns a flat set of all resources existing within this project."""
 
-        pulumi.info(f'FLATTENING RESOURCES: {self.resources.keys()}')
         return flatten(self.resources)
 
 

@@ -39,35 +39,44 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         notify_emails: list[str] = [],
         opts: pulumi.ResourceOptions = None,
     ):
-        super().__init__(
-            pulumi_type='tb:cloudwatch:CloudWatchMonitoringGroup', name=name, project=project, opts=opts, config=config
-        )
-
-        supported_types = {
+        type_map = {
             aws.lb.load_balancer.LoadBalancer: AlbAlarmGroup,
             aws.alb.target_group.TargetGroup: AlbTargetGroupAlarmGroup,
             aws.cloudfront.Distribution: CloudFrontDistributionAlarmGroup,
             aws.cloudfront.Function: CloudFrontFunctionAlarmGroup,
             aws.ecs.Service: EcsServiceAlarmGroup,
         }
-        
-        # Sometimes monitorable resources appear as outputs that we have to wait on resolution for; split them off
-        project_resources = self.project.flatten()
-        supported_resources = [
-            resource for resource in project_resources if type(resource) in supported_types.keys()
-        ]
+
+        self.notify_emails = notify_emails
+
+        super().__init__(
+            pulumi_type='tb:cloudwatch:CloudWatchMonitoringGroup',
+            name=name,
+            project=project,
+            type_map=type_map,
+            opts=opts,
+            config=config,
+        )
+
+    def monitor(self, outputs):
+        """This function gets called only after all outputs in the project have been resolved into values. It constructs
+        all monitors for the resources in this project.
+
+        :param outputs: A list of resolved outputs discovered in the project.
+        :type outputs: list
+        """
 
         sns_topic = aws.sns.Topic(
-            f'{name}-topic', name=f'{self.project.name_prefix}-alarms', opts=pulumi.ResourceOptions(parent=self)
+            f'{self.name}-topic', name=f'{self.project.name_prefix}-alarms', opts=pulumi.ResourceOptions(parent=self)
         )
 
         # API details on SNS topic subscriptions can be found here:
         # https://docs.aws.amazon.com/sns/latest/api/API_Subscribe.html
         subscriptions = []
-        for idx, email in enumerate(notify_emails):
+        for idx, email in enumerate(self.notify_emails):
             subscriptions.append(
                 aws.sns.TopicSubscription(
-                    f'{name}-snssub-{idx}',
+                    f'{self.name}-snssub-{idx}',
                     protocol='email',
                     endpoint=email,
                     topic=sns_topic.arn,
@@ -81,10 +90,10 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         # those resources correctly detected by the logic above.
         # pulumi.info(f'All resources: {'\n'.join([f'{res._name}: {str(res.__class__)}' for res in self.project.flatten()])}') # noqa: E501
         # pulumi.info(f'Supported resources: {supported_resources}')
-        for res in supported_resources:
+        for res in self.supported_resources:
             shortname = res._name.replace(f'{self.project.name_prefix}-', '')  # Make this name shorter, less redundant
-            alarms[res._name] = supported_types[type(res)](
-                name=f'{name}-{shortname}',
+            alarms[res._name] = self.type_map[type(res)](
+                name=f'{self.name}-{shortname}',
                 project=self.project,
                 resource=res,
                 monitoring_group=self,

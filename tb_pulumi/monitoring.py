@@ -3,6 +3,7 @@
 import pulumi
 import tb_pulumi
 
+from abc import abstractclassmethod
 from functools import cached_property
 
 
@@ -19,6 +20,11 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
 
     :param project: The ``ThunderbirdPulumiProject`` to build monitoring resources for.
     :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param type_map: A dict where the keys are ``pulumi.Resource`` derivatives representing types of resources this
+        monitoring group recognizes and the values are ``tb_pulumi.monitoring.AlarmGroup`` derivatives which actually
+        declare those monitors.
+    :type type_map: dict[type, type]
 
     :param config: A configuration dictionary. The specific format and content of this dictionary should be defined by
         classes extending this class. The dictionary should be configured in roughly the following way:
@@ -50,28 +56,49 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
         pulumi_type: str,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
+        type_map: dict,
         config: dict = {},
         opts: pulumi.ResourceOptions = None,
     ):
         super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts)
-        self.config = config
-
-        # Not all things in a project's `resources` dict are actually Pulumi Resources. Sometimes we build resources
-        # downstream of a Pulumi Output, which makes those resources actually Outputs and not recognizable resource
-        # types. We can only detect what kind of thing those Outputs are from within a function called by an `apply`
-        # function. This necessitates an unpacking process on this end of things.
+        self.config: dict = config
+        self.type_map: dict = type_map
 
         # Start with a list of all resources; sort them out into known and unknown things
         _all_contents = self.project.flatten()
-        _all_resources = [res for res in _all_contents if not isinstance(res, pulumi.Output)]
+        self.all_outputs = [res for res in _all_contents if isinstance(res, pulumi.Output)]
+        self.all_resources = [res for res in _all_contents if not isinstance(res, pulumi.Output)]
 
         def __parse_resource_item(
             item: list | dict | pulumi.Output | pulumi.Resource | tb_pulumi.ThunderbirdComponentResource,
         ):
-            """Given a Pulumi resource or output, or a list or dict of such, determine what kind of item we're dealing
-            with and respond appropriately.
+            """Not all items in a project's `resources` dict are actually Pulumi Resources. Sometimes we build resources
+            downstream of a Pulumi Output, which makes those resources (as they are known to the project) actually
+            Outputs and not recognizable resource types. We can only detect what kind of thing those Outputs are from
+            within a function called from within an output's `apply` function. This necessitates an unpacking process on
+            this end of things to recursively resolve those Outputs into Resources that we can build alarms around.
+
+            This function processes and recursively "unpacks" an ``item`` , which could be any of the following things:
+
+                - A Pulumi Resource that we may or may not be able to monitor.
+                - A ``tb_pulumi.ThunderbirdComponentResource`` that potentially contains other Resources or Outputs
+                    in a potentially nested structure.
+                - A Pulumi Output that could represent either of the above things, or could be a collection of a
+                    combination of those things.
+                - A list of any of the above items.
+                - A dict where the values could be any of the above items.
+
+            Given a Pulumi resource or output, or a list or dict of such, this function determines what kind of item
+            we're dealing with and responds appropriately to unpack and resolve the item. It doesn't return any value,
+            but instead manipulates the interal resource listing directly, resulting in an ``all_resources`` list that
+            includes the unpacked and resolved Outputs.
+
+            It is important to note that this listing is **eventually resolved**. Because this function deals in Pulumi
+            Outputs, the ``all_resources`` list **will still contain Outputs, even after running this function!**
+            However, ``all_resources`` will contain valid, resolved values when accessed from within a function that
+            relies upon the application of every item in ``all_outputs``.
             """
-            
+
             if type(item) is list:
                 for i in item:
                     __parse_resource_item(i)
@@ -81,15 +108,39 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
             elif isinstance(item, tb_pulumi.ThunderbirdComponentResource):
                 __parse_resource_item(item.resources)
             elif isinstance(item, pulumi.Resource):
-                _all_resources.append(item)
+                self.all_resources.append(item)
             elif isinstance(item, pulumi.Output):
                 item.apply(__parse_resource_item)
 
-        _all_outputs = [res for res in _all_contents if isinstance(res, pulumi.Output)]
-        for output in _all_outputs:
+        for output in self.all_outputs:
             __parse_resource_item(output)
-        
-        pulumi.Output.all(*_all_outputs).apply(lambda outputs: [pulumi.info(res._name, res) for res in _all_resources])
+
+        # When all outputs are applied, trigger the `on_apply` event.
+        pulumi.Output.all(*self.all_outputs).apply(lambda outputs: self.on_apply(outputs))
+
+    def on_apply(self, outputs):
+        """This function gets called only after all outputs in the project have been resolved into values.
+
+        :param outputs: A list of resolved outputs discovered in the project.
+        :type outputs: list
+        """
+
+        self.supported_resources = [res for res in self.all_resources if type(res) in self.type_map.keys()]
+        self.monitor(outputs)
+
+    @abstractclassmethod
+    def monitor(self, outputs):
+        """This function gets called after all of a project's outputs have been recursively unpacked and resolved, and
+        after this class's post-apply construction has completed.
+
+        This is an abstract method which must be implemented by an inheriting class. That function should construct all
+        monitors for the supported resources in this project.
+
+        :param outputs: A list of resolved outputs discovered in the project.
+        :type outputs: list
+        """
+        raise NotImplementedError()
+
 
 class AlarmGroup(tb_pulumi.ThunderbirdComponentResource):
     """A collection of alarms set up to monitor a particular single resource. For example, there are multiple metrics to
