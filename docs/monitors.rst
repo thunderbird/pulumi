@@ -4,17 +4,19 @@ When you use a ``ThunderbirdPulumiProject`` and add ``ThunderbirdComponentResour
 resources in an internal mapping correlating the name of the module to a collection of its resources. These resources
 can have complex structures with nested lists, dicts, and ``ThunderbirdComponentResource`` s. The project's
 :py:meth:`tb_pulumi.ThunderbirdPulumiProject.flatten` function returns these as a flat list of unlabeled Pulumi
-``Resource`` s.
+``Resource`` s and ``Output`` s.
 
 The ``monitoring`` module contains two base classes intended to provide common interfaces to building monitoring
-patterns. The first is a ``MonitoringGroup``. This is little more than a ``ThunderbirdComponentResource`` that contains
-a config dictionary. The purpose is to contain the resources involved in a monitoring solution. That is, alarms and a
-notification setup.
+patterns. The first is a :py:class:`tb_pulumi.monitoring.MonitoringGroup`. This is a
+:py:class:`tb_pulumi.ThunderbirdComponentResource` which stores a configuration over overrides internally. It also
+recursively unpacks and resolves any ``Output`` s in the resource stack. The purpose is twofold:
 
-You should extend this class such that the resources returned by ``flatten`` are iterated over. If your module
-understands that a resource it comes across can be monitored, the class should create alarms via an extension of the
-second class, ``AlarmGroup``. This base class should be extended such that it creates alarms for a specific single
-resource. For example, a single load balancer might have many different metrics being monitored.
+- To contain and enumerate the resources which can be monitored that exist within the stack.
+- To define the monitoring setup itself, including a method of notification.
+
+The second is a :py:class:`tb_pulumi.monitoring.AlarmGroup`. This class represents an overridable set of alarms for a
+single resource. ``MonitoringGroup`` s must map resource types to ``AlarmGroup`` types that handle those resources in
+their ``monitor`` functions.
 
 As an example, take a look at :py:class:`tb_pulumi.cloudwatch.CloudWatchMonitoringGroup`, a ``MonitoringGroup``
 extension that uses AWS CloudWatch to alarm on metrics produced by AWS resources. It creates an
