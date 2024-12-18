@@ -8,7 +8,7 @@ can have complex structures with nested lists, dicts, and ``ThunderbirdComponent
 
 The ``monitoring`` module contains two base classes intended to provide common interfaces to building monitoring
 patterns. The first is a :py:class:`tb_pulumi.monitoring.MonitoringGroup`. This is a
-:py:class:`tb_pulumi.ThunderbirdComponentResource` which stores a configuration over overrides internally. It also
+:py:class:`tb_pulumi.ThunderbirdComponentResource` which stores a configuration of overrides internally. It also
 recursively unpacks and resolves any ``Output`` s in the resource stack. The purpose is twofold:
 
 - To contain and enumerate the resources which can be monitored that exist within the stack.
