@@ -40,7 +40,7 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         opts: pulumi.ResourceOptions = None,
     ):
         type_map = {
-            aws.lb.load_balancer.LoadBalancer: AlbAlarmGroup,
+            aws.lb.load_balancer.LoadBalancer: LoadBalancerAlarmGroup,
             aws.alb.target_group.TargetGroup: AlbTargetGroupAlarmGroup,
             aws.cloudfront.Distribution: CloudFrontDistributionAlarmGroup,
             aws.cloudfront.Function: CloudFrontFunctionAlarmGroup,
@@ -106,6 +106,60 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         )
 
 
+class LoadBalancerAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """In AWS, a load balancer can have a handful of types: ``application`` , ``gateway`` , or ``network`` . The metrics
+    emitted by the load balancer - and therefore the kinds of alarms we can build - depend on which type it is. However,
+    all types are represented by the same class, ``aws.lb.load_balancer.LoadBalancer`` . This necessitates a class for
+    disambiguation. The ``load_balancer_type`` is an Output, so here we wait until we can determine that type, then
+    build the appropriate AlarmGroup class for the resource.
+
+    :param name: The name of the alarm group resource.
+    :type name: str
+
+    :param monitoring_group: The ``MonitoringGroup`` that this ``AlarmGroup`` belongs to.
+    :type monitoring_group: MonitoringGroup
+
+    :param project: The ``ThunderbirdPulumiProject`` whose resources are being monitored.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param resource: The Pulumi ``Resource`` object this ``AlarmGroup`` is building alarms for.
+    :type resource: pulumi.Resource
+
+    :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        resource: aws.lb.load_balancer.LoadBalancer,
+        monitoring_group: CloudWatchMonitoringGroup,
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        # Internalize the data so we can access it later when we know what LB type we're dealing with
+        self.name = name
+        self.project = project
+        self.resource = resource
+        self.monitoring_group = monitoring_group
+        self.opts = opts
+        self.kwargs = kwargs
+
+        resource.load_balancer_type.apply(lambda lb_type: self.__build_alarm_group(lb_type))
+
+    def __build_alarm_group(self, lb_type: str):
+        if lb_type == 'application':
+            self.alarm_group = AlbAlarmGroup(
+                name=self.name,
+                project=self.project,
+                resource=self.resource,
+                monitoring_group=self.monitoring_group,
+                opts=self.opts,
+                **self.kwargs,
+            )
+
+
 class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     """A set of alarms for Application Load Balancers. Contains the following configurable alarms:
 
@@ -158,96 +212,94 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             **kwargs,
         )
 
-        pulumi.info(f'LB TYPE: {resource.load_balancer_type}')
-        if resource.load_balancer_type == 'application':
-            # Alert if we see sustained 5xx statuses on the ALB itself (not on the target groups)
-            alb_5xx_name = 'alb_5xx'
-            alb_5xx_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
-            alb_5xx_opts.update({'statistic': 'Sum', **self.overrides.get(alb_5xx_name, {})})
-            alb_5xx_enabled = alb_5xx_opts['enabled']
-            del alb_5xx_opts['enabled']
-            alb_5xx_tags = {'tb_pulumi_alarm_name': alb_5xx_name}
-            alb_5xx_tags.update(self.tags)
-            alb_5xx = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
-                lambda outputs: aws.cloudwatch.MetricAlarm(
-                    f'{self.name}-alb5xx',
-                    name=f'{outputs['res_name']}-alb5xx',
-                    alarm_actions=[monitoring_group.resources['sns_topic'].arn],
-                    comparison_operator='GreaterThanOrEqualToThreshold',
-                    dimensions={'LoadBalancer': outputs['res_suffix']},
-                    metric_name='HTTPCode_ELB_5XX_Count',
-                    namespace='AWS/ApplicationELB',
-                    alarm_description=f'Elevated 5xx errors on ALB {outputs['res_name']}',
-                    tags=alb_5xx_tags,
-                    opts=pulumi.ResourceOptions(
-                        parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
-                    ),
-                    **alb_5xx_opts,
-                )
-                if alb_5xx_enabled
-                else None
+        # Alert if we see sustained 5xx statuses on the ALB itself (not on the target groups)
+        alb_5xx_name = 'alb_5xx'
+        alb_5xx_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
+        alb_5xx_opts.update({'statistic': 'Sum', **self.overrides.get(alb_5xx_name, {})})
+        alb_5xx_enabled = alb_5xx_opts['enabled']
+        del alb_5xx_opts['enabled']
+        alb_5xx_tags = {'tb_pulumi_alarm_name': alb_5xx_name}
+        alb_5xx_tags.update(self.tags)
+        alb_5xx = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
+            lambda outputs: aws.cloudwatch.MetricAlarm(
+                f'{self.name}-alb5xx',
+                name=f'{outputs['res_name']}-alb5xx',
+                alarm_actions=[monitoring_group.resources['sns_topic'].arn],
+                comparison_operator='GreaterThanOrEqualToThreshold',
+                dimensions={'LoadBalancer': outputs['res_suffix']},
+                metric_name='HTTPCode_ELB_5XX_Count',
+                namespace='AWS/ApplicationELB',
+                alarm_description=f'Elevated 5xx errors on ALB {outputs['res_name']}',
+                tags=alb_5xx_tags,
+                opts=pulumi.ResourceOptions(
+                    parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
+                ),
+                **alb_5xx_opts,
             )
+            if alb_5xx_enabled
+            else None
+        )
 
-            # Alert if we see sustained 5xx statuses on the targets of the ALB (from the application)
-            target_5xx_name = 'target_5xx'
-            target_5xx_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
-            target_5xx_opts.update({'statistic': 'Sum', **self.overrides.get(target_5xx_name, {})})
-            target_5xx_enabled = target_5xx_opts['enabled']
-            del target_5xx_opts['enabled']
-            target_5xx_tags = {'tb_pulumi_alarm_name': target_5xx_name}
-            target_5xx_tags.update(self.tags)
-            target_5xx = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
-                lambda outputs: aws.cloudwatch.MetricAlarm(
-                    f'{self.name}-target5xx',
-                    name=f'{outputs['res_name']}-target5xx',
-                    alarm_actions=[monitoring_group.resources['sns_topic'].arn],
-                    comparison_operator='GreaterThanOrEqualToThreshold',
-                    dimensions={'LoadBalancer': outputs['res_suffix']},
-                    metric_name='HTTPCode_ELB_5XX_Count',
-                    namespace='AWS/ApplicationELB',
-                    alarm_description=f'Elevated 5xx errors on the targets of ALB {outputs['res_name']}',
-                    tags=target_5xx_tags,
-                    opts=pulumi.ResourceOptions(
-                        parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
-                    ),
-                    **target_5xx_opts,
-                )
-                if target_5xx_enabled
-                else None
+        # Alert if we see sustained 5xx statuses on the targets of the ALB (from the application)
+        target_5xx_name = 'target_5xx'
+        target_5xx_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
+        target_5xx_opts.update({'statistic': 'Sum', **self.overrides.get(target_5xx_name, {})})
+        target_5xx_enabled = target_5xx_opts['enabled']
+        del target_5xx_opts['enabled']
+        target_5xx_tags = {'tb_pulumi_alarm_name': target_5xx_name}
+        target_5xx_tags.update(self.tags)
+        target_5xx = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
+            lambda outputs: aws.cloudwatch.MetricAlarm(
+                f'{self.name}-target5xx',
+                name=f'{outputs['res_name']}-target5xx',
+                alarm_actions=[monitoring_group.resources['sns_topic'].arn],
+                comparison_operator='GreaterThanOrEqualToThreshold',
+                dimensions={'LoadBalancer': outputs['res_suffix']},
+                metric_name='HTTPCode_ELB_5XX_Count',
+                namespace='AWS/ApplicationELB',
+                alarm_description=f'Elevated 5xx errors on the targets of ALB {outputs['res_name']}',
+                tags=target_5xx_tags,
+                opts=pulumi.ResourceOptions(
+                    parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
+                ),
+                **target_5xx_opts,
             )
+            if target_5xx_enabled
+            else None
+        )
 
-            # Alert if response time is elevated over time
-            response_time_name = 'response_time'
-            response_time_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
-            response_time_opts.update({'threshold': 1, **self.overrides.get(response_time_name, {})})
-            response_time_enabled = response_time_opts['enabled']
-            del response_time_opts['enabled']
-            response_time_tags = {'tb_pulumi_alarm_name': response_time_name}
-            response_time_tags.update(self.tags)
-            response_time = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
-                lambda outputs: aws.cloudwatch.MetricAlarm(
-                    f'{self.name}-responsetime',
-                    name=f'{outputs['res_name']}-responsetime',
-                    alarm_actions=[monitoring_group.resources['sns_topic'].arn],
-                    comparison_operator='GreaterThanOrEqualToThreshold',
-                    dimensions={'LoadBalancer': outputs['res_suffix']},
-                    metric_name='TargetResponseTime',
-                    namespace='AWS/ApplicationELB',
-                    alarm_description=f'Average response time is over {response_time_opts['threshold']} second(s) for {response_time_opts['period']} seconds',  # noqa: E501
-                    tags=response_time_tags,
-                    opts=pulumi.ResourceOptions(
-                        parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
-                    ),
-                    **response_time_opts,
-                )
-                if response_time_enabled
-                else None
+        # Alert if response time is elevated over time
+        response_time_name = 'response_time'
+        response_time_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
+        response_time_opts.update({'threshold': 1, **self.overrides.get(response_time_name, {})})
+        response_time_enabled = response_time_opts['enabled']
+        del response_time_opts['enabled']
+        response_time_tags = {'tb_pulumi_alarm_name': response_time_name}
+        response_time_tags.update(self.tags)
+        response_time = pulumi.Output.all(res_name=resource.name, res_suffix=resource.arn_suffix).apply(
+            lambda outputs: aws.cloudwatch.MetricAlarm(
+                f'{self.name}-responsetime',
+                name=f'{outputs['res_name']}-responsetime',
+                alarm_actions=[monitoring_group.resources['sns_topic'].arn],
+                comparison_operator='GreaterThanOrEqualToThreshold',
+                dimensions={'LoadBalancer': outputs['res_suffix']},
+                metric_name='TargetResponseTime',
+                namespace='AWS/ApplicationELB',
+                alarm_description=f'Average response time is over {response_time_opts['threshold']} second(s) for {response_time_opts['period']} seconds',  # noqa: E501
+                tags=response_time_tags,
+                opts=pulumi.ResourceOptions(
+                    parent=self, depends_on=[resource, monitoring_group.resources['sns_topic']]
+                ),
+                **response_time_opts,
             )
+            if response_time_enabled
+            else None
+        )
 
-            self.finish(
-                outputs={},
-                resources={alb_5xx_name: alb_5xx, target_5xx_name: target_5xx, response_time_name: response_time},
-            )
+        self.finish(
+            outputs={},
+            resources={alb_5xx_name: alb_5xx, target_5xx_name: target_5xx, response_time_name: response_time},
+        )
 
 
 class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
