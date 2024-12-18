@@ -62,7 +62,7 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
         )
 
         secret = aws.secretsmanager.Secret(
-            f'{name}-secret', opts=pulumi.ResourceOptions(parent=self), name=secret_name, **kwargs
+            f'{name}-secret', opts=pulumi.ResourceOptions(parent=self), name=secret_name, tags=self.tags, **kwargs
         )
 
         version = aws.secretsmanager.SecretVersion(
@@ -105,9 +105,10 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         secret_names: list[str] = [],
         opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
         **kwargs,
     ):
-        super().__init__('tb:secrets:PulumiSecretsManager', name, project, opts=opts)
+        super().__init__('tb:secrets:PulumiSecretsManager', name, project, opts=opts, tags=tags)
         secrets = []
 
         # First build the secrets
@@ -124,6 +125,7 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
                 secret_value=secret_string,
                 exclude_from_project=True,
                 opts=pulumi.ResourceOptions(parent=self),
+                tags=self.tags,
                 **kwargs,
             )
             secrets.append(secret)
