@@ -52,6 +52,9 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
 
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ``ThunderbirdComponentResource``
+        resource.
     """
 
     def __init__(
@@ -68,7 +71,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        super().__init__('tb:cloudfront:CloudFrontS3Service', name=name, project=project, opts=opts)
+        super().__init__('tb:cloudfront:CloudFrontS3Service', name=name, project=project, opts=opts, **kwargs)
 
         # The function supports supplying the bucket policy at this time, but we have to have the CF distro built first.
         # For this reason, we build the bucket without the policy and attach the policy later on.

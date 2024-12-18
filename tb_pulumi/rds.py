@@ -7,6 +7,7 @@ import socket
 import tb_pulumi
 import tb_pulumi.ec2
 import tb_pulumi.network
+import tb_pulumi.secrets
 
 from tb_pulumi.constants import SERVICE_PORTS
 
@@ -83,6 +84,11 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         '15.7'
     :type engine_version: str, optional
 
+    :param exclude_from_project: When ``True`` , this prevents this component resource from being registered directly
+        with the project. This does not prevent the component resource from being discovered by the project's
+        ``flatten`` function, provided that it is nested within some resource that is not excluded from the project.
+    :type exclude_from_project: bool, optional
+
     :param instance_class: One of the database sizes listed
         `in these docs <https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html>`_.
         Defaults to 'db.t3.micro'.
@@ -137,6 +143,11 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
     :param port: Specify a non-default listening port. Defaults to None.
     :type port: int, optional
 
+    :param secret_recovery_window_in_days: Number of days to retain the database_url secret after it has been deleted.
+        Set this to zero in testing environments to avoid issues during stack rebuilds. Defaults to None (which causes
+        AWS to default to 7 days).
+    :type secret_recovery_window_in_days: int, optional
+
     :param sg_cidrs: A list of CIDRs from which ingress should be allowed. If this is left to the default value, a
         sensible default will be selected. If `internal` is True, this will allow access from the `vpc_cidr`. Otherwise,
         traffic will be allowed from anywhere. Defaults to None.
@@ -149,6 +160,10 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         For details, see `Amazon RDS DB instance storage <https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Storage.html>`_
         Defaults to 'gp3'.
     :type storage_type: str, optional
+
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
 
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
@@ -179,6 +194,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         enabled_instance_cloudwatch_logs_exports: list[str] = [],
         engine: str = 'postgres',
         engine_version: str = '15.7',
+        exclude_from_project: bool = False,
         instance_class: str = 'db.t3.micro',
         internal: bool = True,
         jumphost_public_key: str = None,
@@ -191,13 +207,17 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         parameter_group_family: str = 'postgres15',
         performance_insights_enabled: bool = False,
         port: int = None,
+        secret_recovery_window_in_days: int = None,
         sg_cidrs: list[str] = None,
         skip_final_snapshot: bool = False,
         storage_type: str = 'gp3',
+        tags: dict = {},
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        super().__init__('tb:rds:RdsDatabaseGroup', name, project, opts=opts)
+        super().__init__(
+            'tb:rds:RdsDatabaseGroup', name, project, exclude_from_project=exclude_from_project, opts=opts, tags=tags
+        )
 
         # Generate a random password
         password = pulumi_random.RandomPassword(
@@ -214,16 +234,14 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
 
         # Store the password in Secrets Manager
         secret_fullname = f'{self.project.project}/{self.project.stack}/{name}/root_password'
-        secret = aws.secretsmanager.Secret(
+        secret = tb_pulumi.secrets.SecretsManagerSecret(
             f'{name}-secret',
-            name=secret_fullname,
-            opts=pulumi.ResourceOptions(parent=self),
-        )
-        secret_version = aws.secretsmanager.SecretVersion(
-            f'{name}-secretversion',
-            secret_id=secret.id,
-            secret_string=password.result,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[secret, password]),
+            project=project,
+            exclude_from_project=True,
+            secret_name=secret_fullname,
+            secret_value=password.result,
+            recovery_window_in_days=secret_recovery_window_in_days,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[password]),
         )
 
         # If no ingress CIDRs have been defined, find a reasonable default
@@ -243,6 +261,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             f'{name}-sg',
             project,
             vpc_id=vpc_id,
+            exclude_from_project=True,
             rules={
                 'ingress': [
                     {
@@ -393,7 +412,29 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         port = SERVICE_PORTS.get(engine, 5432)
         inst_addrs = [instance.address for instance in instances]
         load_balancer = pulumi.Output.all(*inst_addrs).apply(
-            lambda addresses: self.__load_balancer(name, project, port, subnets, vpc_cidr, instances, *addresses)
+            lambda addresses: tb_pulumi.ec2.NetworkLoadBalancer(
+                f'{name}-nlb',
+                project=project,
+                exclude_from_project=True,
+                listener_port=port,
+                subnets=subnets,
+                target_port=port,
+                ingress_cidrs=[vpc_cidr],
+                internal=True,
+                ips=[socket.gethostbyname(addr) for addr in addresses],
+                security_group_description=f'Allow database traffic for {name}',
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances, *subnets]),
+            )
+        )
+
+        ssm_param_db_read_host = load_balancer.apply(
+            lambda lb: aws.ssm.Parameter(
+                f'{name}-ssm-dbreadhost',
+                name=f'/{self.project.project}/{self.project.stack}/db-read-host',
+                type=aws.ssm.ParameterType.STRING,
+                value=lb.resources['nlb'].dns_name,
+                opts=pulumi.ResourceOptions(depends_on=[load_balancer]),
+            )
         )
 
         if build_jumphost:
@@ -401,6 +442,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-jumphost',
                 project,
                 subnets[0].id,
+                exclude_from_project=True,
                 kms_key_id=key.arn,
                 public_key=jumphost_public_key,
                 source_cidrs=jumphost_source_cidrs,
@@ -419,41 +461,18 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 'instances': instances,
                 'jumphost': jumphost if build_jumphost else None,
                 'key': key,
-                'load_balancer': load_balancer['nlb'],
+                'load_balancer': load_balancer,
                 'parameter_group': parameter_group,
                 'password': password,
                 'secret': secret,
-                'secret_version': secret_version,
                 'security_group': security_group_with_rules,
                 'ssm_param_db_name': ssm_param_db_name,
                 'ssm_param_db_write_host': ssm_param_db_write_host,
                 'ssm_param_port': ssm_param_port,
-                'ssm_param_read_host': load_balancer['ssm_param_read_host'],
+                'ssm_param_read_host': ssm_param_db_read_host,
                 'subnet_group': subnet_group,
             },
         )
-
-    def __load_balancer(self, name, project, port, subnets, vpc_cidr, instances, *addresses):
-        # Build a load balancer
-        nlb = tb_pulumi.ec2.NetworkLoadBalancer(
-            f'{name}-nlb',
-            project,
-            port,
-            subnets,
-            port,
-            ingress_cidrs=[vpc_cidr],
-            internal=True,
-            ips=[socket.gethostbyname(addr) for addr in addresses],
-            security_group_description=f'Allow database traffic for {name}',
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances, *subnets]),
-        )
-        ssm_param_read_host = self.__ssm_param(
-            f'{name}-ssm-dbreadhost',
-            f'/{self.project.project}/{self.project.stack}/db-read-host',
-            nlb.resources['nlb'].dns_name.apply(lambda dns_name: dns_name),
-            depends_on=[nlb],
-        )
-        return {'nlb': nlb, 'ssm_param_read_host': ssm_param_read_host}
 
     def __ssm_param(self, name, param_name, value, depends_on: list[pulumi.Output] = None):
         """Build an SSM Parameter."""

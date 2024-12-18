@@ -39,32 +39,44 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         notify_emails: list[str] = [],
         opts: pulumi.ResourceOptions = None,
     ):
-        super().__init__(
-            pulumi_type='tb:cloudwatch:CloudWatchMonitoringGroup', name=name, project=project, opts=opts, config=config
-        )
-
-        supported_types = {
-            aws.lb.load_balancer.LoadBalancer: AlbAlarmGroup,
+        type_map = {
+            aws.lb.load_balancer.LoadBalancer: LoadBalancerAlarmGroup,
             aws.alb.target_group.TargetGroup: AlbTargetGroupAlarmGroup,
             aws.cloudfront.Distribution: CloudFrontDistributionAlarmGroup,
             aws.cloudfront.Function: CloudFrontFunctionAlarmGroup,
             aws.ecs.Service: EcsServiceAlarmGroup,
         }
-        supported_resources = [
-            resource for resource in self.project.flatten() if type(resource) in supported_types.keys()
-        ]
+
+        self.notify_emails = notify_emails
+
+        super().__init__(
+            pulumi_type='tb:cloudwatch:CloudWatchMonitoringGroup',
+            name=name,
+            project=project,
+            type_map=type_map,
+            opts=opts,
+            config=config,
+        )
+
+    def monitor(self, outputs):
+        """This function gets called only after all outputs in the project have been resolved into values. It constructs
+        all monitors for the resources in this project.
+
+        :param outputs: A list of resolved outputs discovered in the project.
+        :type outputs: list
+        """
 
         sns_topic = aws.sns.Topic(
-            f'{name}-topic', name=f'{self.project.name_prefix}-alarms', opts=pulumi.ResourceOptions(parent=self)
+            f'{self.name}-topic', name=f'{self.project.name_prefix}-alarms', opts=pulumi.ResourceOptions(parent=self)
         )
 
         # API details on SNS topic subscriptions can be found here:
         # https://docs.aws.amazon.com/sns/latest/api/API_Subscribe.html
         subscriptions = []
-        for idx, email in enumerate(notify_emails):
+        for idx, email in enumerate(self.notify_emails):
             subscriptions.append(
                 aws.sns.TopicSubscription(
-                    f'{name}-snssub-{idx}',
+                    f'{self.name}-snssub-{idx}',
                     protocol='email',
                     endpoint=email,
                     topic=sns_topic.arn,
@@ -76,12 +88,12 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         # The next two lines are useful for debugging monitoring setups since that logic depends largely on obscure
         # class names. These will show all resources and their classes in a project as well as a filtered list of
         # those resources correctly detected by the logic above.
-        # pulumi.info(f'All resources: {'\n'.join([str(res.__class__) for res in self.project.flatten()])}')
+        # pulumi.info(f'All resources: {'\n'.join([f'{res._name}: {str(res.__class__)}' for res in self.project.flatten()])}') # noqa: E501
         # pulumi.info(f'Supported resources: {supported_resources}')
-        for res in supported_resources:
+        for res in self.supported_resources:
             shortname = res._name.replace(f'{self.project.name_prefix}-', '')  # Make this name shorter, less redundant
-            alarms[res._name] = supported_types[type(res)](
-                name=f'{name}-{shortname}',
+            alarms[res._name] = self.type_map[type(res)](
+                name=f'{self.name}-{shortname}',
                 project=self.project,
                 resource=res,
                 monitoring_group=self,
@@ -92,6 +104,60 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
             outputs={'sns_topic_arn': sns_topic.arn},
             resources={'sns_topic': sns_topic, 'sns_subscriptions': subscriptions, 'alarms': alarms},
         )
+
+
+class LoadBalancerAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """In AWS, a load balancer can have a handful of types: ``application`` , ``gateway`` , or ``network`` . The metrics
+    emitted by the load balancer - and therefore the kinds of alarms we can build - depend on which type it is. However,
+    all types are represented by the same class, ``aws.lb.load_balancer.LoadBalancer`` . This necessitates a class for
+    disambiguation. The ``load_balancer_type`` is an Output, so here we wait until we can determine that type, then
+    build the appropriate AlarmGroup class for the resource.
+
+    :param name: The name of the alarm group resource.
+    :type name: str
+
+    :param monitoring_group: The ``MonitoringGroup`` that this ``AlarmGroup`` belongs to.
+    :type monitoring_group: MonitoringGroup
+
+    :param project: The ``ThunderbirdPulumiProject`` whose resources are being monitored.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param resource: The Pulumi ``Resource`` object this ``AlarmGroup`` is building alarms for.
+    :type resource: pulumi.Resource
+
+    :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        resource: aws.lb.load_balancer.LoadBalancer,
+        monitoring_group: CloudWatchMonitoringGroup,
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        # Internalize the data so we can access it later when we know what LB type we're dealing with
+        self.name = name
+        self.project = project
+        self.resource = resource
+        self.monitoring_group = monitoring_group
+        self.opts = opts
+        self.kwargs = kwargs
+
+        resource.load_balancer_type.apply(lambda lb_type: self.__build_alarm_group(lb_type))
+
+    def __build_alarm_group(self, lb_type: str):
+        if lb_type == 'application':
+            self.alarm_group = AlbAlarmGroup(
+                name=self.name,
+                project=self.project,
+                resource=self.resource,
+                monitoring_group=self.monitoring_group,
+                opts=self.opts,
+                **self.kwargs,
+            )
 
 
 class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
