@@ -246,9 +246,9 @@ def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Output | p
     if type(item) is list:
         to_flatten = item
     elif type(item) is dict:
-        to_flatten = item.values()
+        to_flatten = set(item.values())
     elif isinstance(item, ThunderbirdComponentResource):
-        to_flatten = item.resources.values()
+        to_flatten = set(item.resources.values())
     elif isinstance(item, pulumi.Resource) or isinstance(item, pulumi.Output):
         return [item]
     else:
