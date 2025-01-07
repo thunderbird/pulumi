@@ -244,16 +244,12 @@ def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Output | p
     flattened = []
     to_flatten = None
     if type(item) is list:
-        # pulumi.info(f'FOUND LIST: {item}')
         to_flatten = item
     elif type(item) is dict:
-        # pulumi.info(f'FOUND DICT: {item}')
         to_flatten = item.values()
     elif isinstance(item, ThunderbirdComponentResource):
-        # pulumi.info(f'FOUND TCR: {item._name} -> {item.resources.values()}')
         to_flatten = item.resources.values()
     elif isinstance(item, pulumi.Resource) or isinstance(item, pulumi.Output):
-        # pulumi.info(f'FOUND RESOURCE: {item._name}, {str(item.__class__)}')
         return [item]
     else:
         pass
@@ -262,5 +258,4 @@ def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Output | p
         for item in to_flatten:
             flattened.extend(flatten(item))
 
-    # pulumi.info(f'FLATTENED: {set(flattened)}')
     return set(flattened)
