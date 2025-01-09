@@ -48,12 +48,14 @@ jobs:
         uses: astral-sh/ruff-action@v3
         with:
           src: './tb_pulumi'
+          version-file: "pyproject.toml"
 
       - name: Run Ruff linter
         uses: astral-sh/ruff-action@v3
         with:
           src: './tb_pulumi'
           args: 'format --check'
+          version-file: "pyproject.toml"
 
   # Attempt to build the documentation. Fail if there are errors or warnings.
   build_docs:
