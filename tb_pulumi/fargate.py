@@ -259,6 +259,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             fsalb_name,
             project,
             subnets=subnets,
+            exclude_from_project=True,
             internal=internal,
             security_groups=security_groups,
             services=services,

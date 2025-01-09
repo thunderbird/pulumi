@@ -108,6 +108,11 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
     :param project: The project this resource belongs to.
     :type project: :py:class:`tb_pulumi.ThunderbirdPulumiProject`
 
+    :param exclude_from_project: When ``True`` , this prevents this component resource from being registered directly
+        with the project. This does not prevent the component resource from being discovered by the project's
+        ``flatten`` function, provided that it is nested within some resource that is not excluded from the project.
+    :type exclude_from_project: bool, optional
+
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
@@ -121,16 +126,17 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
         pulumi_type: str,
         name: str,
         project: ThunderbirdPulumiProject,
+        exclude_from_project: bool = False,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
     ):
         self.name: str = name  #: Identifier for this set of resources.
         self.project: ThunderbirdPulumiProject = project  #: Project this resource is a member of.
+        self.exclude_from_project = exclude_from_project
 
         if self.protect_resources:
             pulumi.info(
-                f'Resource protection has been enabled on {name}. '
-                'To disable, export TBPULUMI_DISABLE_PROTECTION=True'
+                f'Resource protection has been enabled on {name}. To disable, export TBPULUMI_DISABLE_PROTECTION=True'
             )
 
         # Merge provided opts with defaults before calling superconstructor
@@ -145,18 +151,21 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
 
     def finish(self, outputs: dict[str, Any], resources: dict[str, pulumi.Resource | list[pulumi.Resource]]):
         """Registers the provided ``outputs`` as Pulumi outputs for the module. Also stores the mapping of ``resources``
-        internally as the ``resources`` member where they it be acted on collectively by a ``ThunderbirdPulumiProject``.
-        Any implementation of this class should call this function at the end of its ``__init__`` function to ensure its
-        state is properly represented.
+        internally as the ``resources`` member where they can be acted on collectively by a
+        ``ThunderbirdPulumiProject``. Any implementation of this class should call this function at the end of its
+        ``__init__`` function to ensure its state is properly represented.
 
-        Values in ``resources`` should be either a Resource or derivative (such as a ThunderbirdComponentResource) or a
-        list of such.
+        Values in ``resources`` should be either a Resource or derivative (such as a ThunderbirdComponentResource).
+        Alternatively, supply a list or dict of such.
         """
 
-        # Register outputs both with the ThunderbirdPulumiProject and Pulumi itself
+        # Register resources internally; register outputs with Pulumi
         self.resources = resources
-        self.project.resources[self.name] = self.resources
         self.register_outputs(outputs)
+
+        # Register resources within the project if not excluded
+        if not self.exclude_from_project:
+            self.project.resources[self.name] = self.resources
 
     @property
     def protect_resources(self) -> bool:
@@ -217,7 +226,7 @@ def env_var_is_true(name: str) -> bool:
     return env_var_matches(name, ['t', 'true', 'yes'], False)
 
 
-def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource) -> set[pulumi.Resource]:
+def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Output | pulumi.Resource) -> set[pulumi.Resource]:
     """Recursively traverses a nested collection of Pulumi ``Resource`` s, converting them into a flat set which can be
     more easily iterated over.
 
@@ -236,13 +245,11 @@ def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Resource) 
     if type(item) is list:
         to_flatten = item
     elif type(item) is dict:
-        to_flatten = [value for _, value in item.items()]
+        to_flatten = item.values()
     elif isinstance(item, ThunderbirdComponentResource):
-        to_flatten = [value for _, value in item.resources.items()]
-    elif isinstance(item, pulumi.Resource):
+        to_flatten = item.resources.values()
+    elif isinstance(item, pulumi.Resource) or isinstance(item, pulumi.Output):
         return [item]
-    else:
-        pass
 
     if to_flatten is not None:
         for item in to_flatten:
