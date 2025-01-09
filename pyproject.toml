@@ -19,10 +19,6 @@ dev = [
     "sphinx"
 ]
 
-# Ruff
-# [tool.ruff]
-# line-length = 120
-
 # Exclude a variety of commonly ignored directories.
 exclude = [
     ".eggs",
@@ -36,10 +32,6 @@ exclude = [
 
 # Always generate Python 3.12-compatible code.
 target-version = "py312"
-
-# [tool.ruff.format]
-# # Prefer single quotes over double quotes.
-# quote-style = "single"
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
