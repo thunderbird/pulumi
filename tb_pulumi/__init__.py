@@ -136,8 +136,7 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
 
         if self.protect_resources:
             pulumi.info(
-                f'Resource protection has been enabled on {name}. '
-                'To disable, export TBPULUMI_DISABLE_PROTECTION=True'
+                f'Resource protection has been enabled on {name}. To disable, export TBPULUMI_DISABLE_PROTECTION=True'
             )
 
         # Merge provided opts with defaults before calling superconstructor
