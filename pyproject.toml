@@ -18,6 +18,3 @@ dev = [
     "ruff",
     "sphinx"
 ]
-
-# Always generate Python 3.12-compatible code.
-target-version = "py312"
