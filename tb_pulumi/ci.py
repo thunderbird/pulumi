@@ -265,6 +265,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                                 'ec2:Get*',
                                 'ec2:Describe*',
                                 'ecs:DeregisterTaskDefinition',
+                                'elasticloadbalancing:Describe:*',
                                 's3:ListAllMyBuckets',
                             ],
                             'Resource': ['*'],
