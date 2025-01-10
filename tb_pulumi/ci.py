@@ -152,7 +152,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 policy_json = json.dumps(policy_dict)
                 ecr_image_push_policy = aws.iam.Policy(
                     f'{name}-policy-ecrpush',
-                    name=f'{name}-ci-ecr-push',
+                    name=f'{name}-ecr-push',
                     description=f'Allows CI automation for {project.project} to push container images to ECR.',
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
@@ -182,7 +182,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 policy_json = json.dumps(policy_dict)
                 s3_upload_policy = aws.iam.Policy(
                     f'{name}-policy-s3upload',
-                    name=f'{name}-ci-s3-upload',
+                    name=f'{name}-s3-upload',
                     description=f'Allows CI automation for {project.project} to upload files to certain S3 buckets.',
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
@@ -280,7 +280,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 policy_json = json.dumps(policy_dict)
                 fargate_deployment_policy = aws.iam.Policy(
                     f'{name}-policy-fargatedeploy',
-                    name=f'{name}-ci-s3-fargatedeploy',
+                    name=f'{name}-s3-fargatedeploy',
                     description=f'Allggows CI automation for {project.project} to deploy images to Fargate clusters.',
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
