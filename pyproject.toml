@@ -19,16 +19,5 @@ dev = [
     "sphinx"
 ]
 
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".eggs",
-    ".git",
-    ".ruff_cache",
-    ".venv",
-    "__pycache__",
-    "__pypackages__",
-    "venv",
-]
-
 # Always generate Python 3.12-compatible code.
 target-version = "py312"
