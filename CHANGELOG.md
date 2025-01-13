@@ -1,5 +1,11 @@
 # tb_pulumi Changelog
 
+## v0.0.10
+
+  - Can now declare recovery period for Secrets Manager Secrets built by the `RdsDatabaseGroup` class.
+  - `ThunderbirdPulumiProject`s now detect resources "hidden" by output resolution through the `flatten` function. This may result in some new monitors being created in your stack.
+  - Top level `ThunderbirdPulumiProject` resource namespace pollution problem is solved by optional `exclude_from_project` parameter.
+
 ## v0.0.9
 
   - Remove Insegel theme from docs builds, relying on Furo for its dark/light modes and respect for user preference.
