@@ -17,6 +17,7 @@ from typing import Any
 #: Type alias representing valid types to be found among a ThunderbirdPulumiProject's resources
 type Flattenable = dict | list | ThunderbirdComponentResource | pulumi.Output | pulumi.Resource
 
+
 class ThunderbirdPulumiProject:
     """A collection of related Pulumi resources upon which we can take bulk/collective actions. This class enforces some
     usage conventions that help keep us organized and consistent.
