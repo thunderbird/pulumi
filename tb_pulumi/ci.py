@@ -261,6 +261,9 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                             'Sid': 'GlobalObjectReadAccess',
                             'Effect': 'Allow',
                             'Action': [
+                                'cloudwatch:Describe*',
+                                'cloudwatch:List*',
+                                'cloudwatch:TagResource',
                                 'ec2:List*',
                                 'ec2:Get*',
                                 'ec2:Describe*',
