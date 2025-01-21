@@ -85,7 +85,7 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
         self.supported_resources = []
 
         def __parse_resource_item(
-            item: list | dict | pulumi.Output | pulumi.Resource | tb_pulumi.ThunderbirdComponentResource,
+            item: tb_pulumi.Flattenable,
         ):
             """Not all items in a project's ``resources`` dict are actually Pulumi Resources. Sometimes we build
             resources downstream of a Pulumi Output, which makes those resources (as they are known to the project)

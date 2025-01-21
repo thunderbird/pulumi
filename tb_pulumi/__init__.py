@@ -14,6 +14,10 @@ from tb_pulumi.constants import DEFAULT_PROTECTED_STACKS
 from typing import Any
 
 
+#: Type alias representing valid types to be found among a ThunderbirdPulumiProject's resources
+type Flattenable = dict | list | ThunderbirdComponentResource | pulumi.Output | pulumi.Resource
+
+
 class ThunderbirdPulumiProject:
     """A collection of related Pulumi resources upon which we can take bulk/collective actions. This class enforces some
     usage conventions that help keep us organized and consistent.
@@ -226,12 +230,12 @@ def env_var_is_true(name: str) -> bool:
     return env_var_matches(name, ['t', 'true', 'yes'], False)
 
 
-def flatten(item: dict | list | ThunderbirdComponentResource | pulumi.Output | pulumi.Resource) -> set[pulumi.Resource]:
+def flatten(item: Flattenable) -> set[pulumi.Resource]:
     """Recursively traverses a nested collection of Pulumi ``Resource`` s, converting them into a flat set which can be
     more easily iterated over.
 
-    :param item: Either a Pulumi ``Resource`` object, or some collection thereof. The following types of collections are
-        supported: ``dict``, ``list``, ``ThunderbirdComponentResource``.
+    :param item: An item which we intend to flatten. Must be one of the recognized types or collections defined in
+        the Flattenable type alias.
     :type item: dict | list | ThunderbirdComponentResource
 
     :return: A ``set`` of Pulumi ``Resource`` s contained within the collection.
