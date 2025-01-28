@@ -5,17 +5,17 @@
 #     Run this script, supplying the arguments outlined below in this specific order:
 #
 #         ./quickstart.sh \
-#             /path/to/project/root \        # The root of your code project where you want to set up a pulumi project
-#             pulumi-state-s3-bucket-name \  # S3 bucket where you'll store your pulumi state files
-#             project_name, \                # Name of your project as it will be known to pulumi
-#             stack_name, \                  # Name of the first stack you want to create
-#             [code_version]                 # Code version (git branch) that you want to pin. Optional; defaults to "main"
+#             /path/to/project/root \ # The root of your code project where you want to set up a pulumi project
+#             pulumi-login-url      \ # URL to use with `pulumi login`; use "https://api.pulumi.com" for Pulumi Cloud
+#             project_name, \         # Name of your project as it will be known to pulumi
+#             stack_name, \           # Name of the first stack you want to create
+#             [code_version]          # Code version (git branch) that you want to pin. Optional; defaults to "main"
 #
 ###
 
 # Internalize some variables
 CODE_PATH=$1
-BUCKET_NAME=$2
+LOGIN_URL=$2
 PROJECT_NAME=$3
 STACK_NAME=$4
 
@@ -60,7 +60,7 @@ if [ -f Pulumi.yaml ]; then
 fi
 
 echo "Logging in to pulumi"
-pulumi login s3://$BUCKET_NAME
+pulumi login $LOGIN_URL
 
 echo "Setting up new pulumi project"
 pulumi new aws-python --name $PROJECT_NAME --stack $STACK_NAME
