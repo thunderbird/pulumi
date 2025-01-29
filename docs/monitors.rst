@@ -1,3 +1,5 @@
+.. _monitoring_resources:
+
 Monitoring Resources
 ====================
 When you use a ``ThunderbirdPulumiProject`` and add ``ThunderbirdComponentResource`` s to it, the project tracks the
