@@ -27,7 +27,7 @@ To use this module, you'll need to get through this checklist first:
   `read how to here <https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html>`_.
   Some of these docs refer to helpful awscli commands.) The Pulumi AWS provider relies on the same configuration,
   though, so you must create the config file.
-* Set up an `S3 bucket`_ to store your Pulumi state in.
+* Optionally, set up an `S3 bucket`_ to store your Pulumi state in.
 
 The `Troubleshooting`_ section has some details on how to work through some issues related to setup.
 
@@ -52,6 +52,13 @@ This will...
 * install a simple Pulumi program intended to set up a basic networking landscape,
 * run a ``pulumi preview`` command to finish setting up the environment and confirm the project is working.
 
+If you are using an S3 bucket to privately store your state, you'll need to make sure you have configured your AWSCLI
+tool with an account that has permission to manipulate that bucket. Prefix your bucket name with `s3://` to use as your
+`pulumi_login_url` value (f/ex: `s3://acme-awesomeapi-pulumi`). If you will use Pulumi Cloud, use
+`https://api.pulumi.com`. If you have a
+`self-hosted Pulumi Cloud API <https://www.pulumi.com/docs/pulumi-cloud/admin/self-hosted/components/api/>`_, you may
+specify your custom URL here.
+
 The output should look something like this:
 ::
 
@@ -74,11 +81,14 @@ The output should look something like this:
 Manual Setup
 ------------
 
+If you want to do everything the Quickstart script does manually (or just understand this project framework better),
+follow this guide.
+
 S3 bucket
 ^^^^^^^^^
 
 .. note:: This step is optional. If you do not set up an S3 bucket, you can use Pulumi Cloud instead by specifying
-  ``https://api.pulumi.com`` as the ``pulumi-login-url``.
+  ``https://api.pulumi.com`` or a custom self-hosted URL when you run ``pulumi login`` in the next step.
 
 Create an S3 bucket in which to store state for the project. You must have one bucket devoted to your project, but you
 can store multiple stacks' state files in that one bucket. The bucket should not be public (treat these files as
@@ -97,8 +107,8 @@ Repo setup
 You probably already have a code repo with your application code in it. If not, create such a repo.
 
 Create a directory there called ``pulumi`` and create a new project and stack in it. You'll need the name of the S3
-bucket from the previous step here. If you are operating in an AWS region other than what is set as your default for
-AWSCLI, be sure to ``export AWS_REGION=us-east-1`` or whatever else you may need to do to override that.
+bucket or cloud host from the previous step here. If you are operating in an AWS region other than what is set as your
+default for AWSCLI, be sure to ``export AWS_REGION=us-east-1`` or whatever else you may need to do to override that.
 
 .. code-block:: bash
 
@@ -120,7 +130,7 @@ Ensure your pulumi code directory contains a ``requirements.txt`` file with at l
 You can pin your code to a specific version of this module by appending ``@branch_name`` to that. For example:
 ::
 
-  git+https://github.com/thunderbird/pulumi.git@v0.0.9
+  git+https://github.com/thunderbird/pulumi.git@v0.0.10
 
 Pulumi will need these requirements installed. On your first run of a ``pulumi preview`` command (or some others),
 Pulumi will attempt to set up its working environment. If this fails, or you need to make adjustments later, you can
@@ -186,6 +196,9 @@ In your ``__main__.py`` file, start with a simple skeleton (or use ``__main__.py
 If you have followed the conventions outlined above, ``project.config`` is now a dict representation of the YAML file.
 You can use this in the next step to feed parameters into resource declarations.
 
+Moreover, as you create resources with this library, the ``project`` will track them, making them available to you later
+to act on as a group. This is explained in more detail on the :ref:`monitoring_resources` page.
+
 
 Declare ThunderbirdComponentResources
 """""""""""""""""""""""""""""""""""""
@@ -195,9 +208,6 @@ collection of related resources. In an effort to follow consistent patterns acro
 patterns available in this module all extend a custom class called a :py:class:`tb_pulumi.ThunderbirdComponentResource`.
 If you have followed the conventions outlined so far, it should be easy to stamp out infrastructure with them by passing
 ``project.config`` config options into the constructors for these classes.
-
-.. note::
-   The `Quickstart`_ section provides a working minimal example of code that follows these patterns.
 
 
 Implementing ThunderbirdComponentResources
@@ -225,8 +235,8 @@ So you want to develop a new pattern to stamp out? Here's what you'll need to do
       should apply to. If this is implemented, its function should be clearly documented in the class. If this isn't
       passed into the superconstructor, you will need to implement all superconstructor arguments into your constructor.
     * The class should extend :py:class:`tb_pulumi.ThunderbirdComponentResource`.
-    * The class should be sure to make an appropriate call to its superconstructor, which ensures the resources can be
-      properly tracked in the project (and other things).
+    * The class should make an appropriate call to its superconstructor, which ensures the resources can be properly
+      tracked in the project (and other things).
     * Any resources you create must have the ``parent=self`` ``pulumi.ResourceOption`` set. Set an appropriate
       ``depends_on`` value.
     * At the end of the ``__init__`` function, you must call ``self.finish()``, passing in a dictionary of ``outputs``
