@@ -39,12 +39,12 @@ refer to your particular project details:
 
 .. code-block:: bash
 
-  ./quickstart.sh \
-    /path/to/project/root          # The root of your code project where you want to set up a pulumi project
-    pulumi-state-s3-bucket-name \  # S3 bucket where you'll store your pulumi state files
-    project_name, \                # Name of your project as it will be known to pulumi
-    stack_name, \                  # Name of the first stack you want to create
-    [code_version]                 # Code version (git branch) that you want to pin. Optional; defaults to "main"
+ ./quickstart.sh \
+     /path/to/project/root \ # The root of your code project where you want to set up a pulumi project
+     pulumi_login_url      \ # URL to use with `pulumi login`; use "https://api.pulumi.com" for Pulumi Cloud
+     project_name, \         # Name of your project as it will be known to pulumi
+     stack_name, \           # Name of the first stack you want to create
+     [code_version]          # Code version (git branch) that you want to pin. Optional; defaults to "main"
 
 This will...
 
@@ -77,7 +77,8 @@ Manual Setup
 S3 bucket
 ^^^^^^^^^
 
-.. note:: This step is optional. If you do not set up an S3 bucket, you can use Pulumi Cloud instead.
+.. note:: This step is optional. If you do not set up an S3 bucket, you can use Pulumi Cloud instead by specifying
+  ``https://api.pulumi.com`` as the ``pulumi-login-url``.
 
 Create an S3 bucket in which to store state for the project. You must have one bucket devoted to your project, but you
 can store multiple stacks' state files in that one bucket. The bucket should not be public (treat these files as
