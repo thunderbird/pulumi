@@ -6,7 +6,7 @@
 #
 #         ./quickstart.sh \
 #             /path/to/project/root \ # The root of your code project where you want to set up a pulumi project
-#             pulumi-login-url      \ # URL to use with `pulumi login`; use "https://api.pulumi.com" for Pulumi Cloud
+#             pulumi_login_url      \ # URL to use with `pulumi login`; use "https://api.pulumi.com" for Pulumi Cloud
 #             project_name, \         # Name of your project as it will be known to pulumi
 #             stack_name, \           # Name of the first stack you want to create
 #             [code_version]          # Code version (git branch) that you want to pin. Optional; defaults to "main"
