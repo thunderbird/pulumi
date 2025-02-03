@@ -41,7 +41,7 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
     ):
         type_map = {
             aws.lb.load_balancer.LoadBalancer: LoadBalancerAlarmGroup,
-            aws.alb.target_group.TargetGroup: AlbTargetGroupAlarmGroup,
+            aws.alb.target_group.TargetGroup: TargetGroupAlarmGroup,
             aws.cloudfront.Distribution: CloudFrontDistributionAlarmGroup,
             aws.cloudfront.Function: CloudFrontFunctionAlarmGroup,
             aws.ecs.Service: EcsServiceAlarmGroup,
@@ -149,15 +149,20 @@ class LoadBalancerAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         resource.load_balancer_type.apply(lambda lb_type: self.__build_alarm_group(lb_type))
 
     def __build_alarm_group(self, lb_type: str):
+        alarm_group_opts = {
+            'name': self.name,
+            'project': self.project,
+            'resource': self.resource,
+            'monitoring_group': self.monitoring_group,
+            'opts': self.opts**self.kwargs,
+        }
         if lb_type == 'application':
-            self.alarm_group = AlbAlarmGroup(
-                name=self.name,
-                project=self.project,
-                resource=self.resource,
-                monitoring_group=self.monitoring_group,
-                opts=self.opts,
-                **self.kwargs,
-            )
+            self.alarm_group = AlbAlarmGroup(**alarm_group_opts)
+        elif lb_type == 'network':
+            self.alarm_group = NlbAlarmGroup(**alarm_group_opts)
+        elif lb_type == 'gateway':
+            # This is a valid type, but we have no use case for it currently.
+            self.alarm_group = None
 
 
 class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
@@ -302,8 +307,8 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         )
 
 
-class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
-    """A set of alarms for ALB target groups. Contains the following configurable alarms:
+class TargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """A set of alarms for load balancer target groups. Contains the following configurable alarms:
 
         - ``unhealthy_hosts``: Alarms on the number of unhealthy hosts in a target group. Defaults to alarm when the
             average of unhealthy hosts is over 1 in 1 minute.
@@ -689,3 +694,10 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             outputs={},
             resources={cpu_utilization_name: cpu_utilization, memory_utilization_name: memory_utilization},
         )
+
+
+class NlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """A set of alarms for Network Load Balancers. Contains the following configurable alarms:
+
+    """
+    pass
