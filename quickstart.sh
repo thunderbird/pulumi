@@ -66,7 +66,7 @@ echo "Setting up new pulumi project"
 pulumi new aws-python --name $PROJECT_NAME --stack $STACK_NAME
 
 echo "Setting up tb_pulumi"
-echo "git+https://github.com/thunderbird/pulumi.git@$CODE_VERSION" > requirements.txt
+echo "tb_pulumi @ git+https://github.com/thunderbird/pulumi.git@$CODE_VERSION" > requirements.txt
 pip install -r requirements.txt
 
 cp $REPO_DIR/__main__.py.example ./__main__.py
