@@ -55,7 +55,7 @@
 
   - Overhauled documentation.
   - Only docstrings have changed with this version.
-  - No actual code changes have been altered.
+  - No actual code changes have been made.
 
 
 ## v0.0.2
