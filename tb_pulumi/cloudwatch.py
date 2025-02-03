@@ -154,15 +154,15 @@ class LoadBalancerAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             'project': self.project,
             'resource': self.resource,
             'monitoring_group': self.monitoring_group,
-            'opts': self.opts**self.kwargs,
+            'opts': self.opts,
+            **self.kwargs,
         }
         if lb_type == 'application':
             self.alarm_group = AlbAlarmGroup(**alarm_group_opts)
         elif lb_type == 'network':
             self.alarm_group = NlbAlarmGroup(**alarm_group_opts)
         elif lb_type == 'gateway':
-            # This is a valid type, but we have no use case for it currently.
-            self.alarm_group = None
+            self.alarm_group = GlbAlarmGroup(**alarm_group_opts)
 
 
 class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
@@ -696,8 +696,52 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         )
 
 
-class NlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
-    """A set of alarms for Network Load Balancers. Contains the following configurable alarms:
+class GlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """A set of alarms for Gateway Load Balancers. There are currently no actual alarms here."""
 
-    """
-    pass
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        resource: aws.lb.target_group.TargetGroup,
+        monitoring_group: CloudWatchMonitoringGroup,
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        # This is a valid type, but we currently have no environments generating sufficient data to build alarms.
+        # For now, establish the type.
+        super().__init__(
+            pulumi_type='tb:cloudwatch:GlbAlarmGroup',
+            name=name,
+            monitoring_group=monitoring_group,
+            project=project,
+            resource=resource,
+            opts=opts,
+            **kwargs
+        )
+
+
+
+class NlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """A set of alarms for Network Load Balancers. There are currently no actual alarms here."""
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        resource: aws.lb.target_group.TargetGroup,
+        monitoring_group: CloudWatchMonitoringGroup,
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        # This is a valid type, but we currently have no environments generating sufficient data to build alarms.
+        # For now, establish the type.
+        super().__init__(
+            pulumi_type='tb:cloudwatch:NlbAlarmGroup',
+            name=name,
+            monitoring_group=monitoring_group,
+            project=project,
+            resource=resource,
+            opts=opts,
+            **kwargs
+        )
