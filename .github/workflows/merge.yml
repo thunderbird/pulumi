@@ -38,7 +38,7 @@ jobs:
 
           # Compress for archival
           cd _build/html
-          tar -cvjf ../../docs.tbz ./*
+          tar -cvjf ../../../docs.tbz ./*
 
       - name: Archive docs
         id: archive
