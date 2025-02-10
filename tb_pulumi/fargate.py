@@ -26,6 +26,10 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         Fargate-backed containers to talk out to the net. Defaults to False.
     :type assign_public_ip: bool, optional
 
+    :param container_security_groups: List of security group IDs which will attach to the containers/tasks running in
+        this cluster. Defaults to [].
+    :type container_security_groups: list[str], optional
+
     :param desired_count: The number of containers the service should target to run. Defaults to 1.
     :type desired_count: int, optional
 
@@ -48,8 +52,9 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         need to forcibly delete a key, set this to 0. Defaults to 7.
     :type key_deletion_window_in_days: int, optional
 
-    :param security_groups: A list of security group IDs to attach to the load balancer. Defaults to [].
-    :type security_groups: list[str], optional
+    :param load_balancer_security_groups: List of security group IDs which will attach to the load balancers created for
+        these services.
+    :type load_balancer_security_groups: list[str], optional
 
     :param services: A dict defining the ports to use when routing requests to each service. The keys should be the name
         of the service as described in a container definition. The values should be dicts supporting the options shown
