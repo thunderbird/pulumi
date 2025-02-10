@@ -130,7 +130,7 @@ Ensure your pulumi code directory contains a ``requirements.txt`` file with at l
 You can pin your code to a specific version of this module by appending ``@branch_name`` to that. For example:
 ::
 
-  git+https://github.com/thunderbird/pulumi.git@v0.0.10
+  git+https://github.com/thunderbird/pulumi.git@v0.0.11
 
 Pulumi will need these requirements installed. On your first run of a ``pulumi preview`` command (or some others),
 Pulumi will attempt to set up its working environment. If this fails, or you need to make adjustments later, you can
