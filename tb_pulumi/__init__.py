@@ -5,7 +5,6 @@ to use this library, read the :ref:`getting_started` page.
 # <https://thunderbird.github.io/pulumi/getting-started.html>`_
 import boto3
 import pulumi
-import string
 import yaml
 
 from functools import cached_property
