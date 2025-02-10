@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 
-AMAZON_LINUX_AMI = 'ami-0427090fd1714168b'  #: AMI for Amazon Linux
+AMAZON_LINUX_AMI = 'ami-02ccbe126fe6afe82'  #: AMI for Amazon Linux
 
 
 class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):

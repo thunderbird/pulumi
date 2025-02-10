@@ -26,6 +26,10 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         Fargate-backed containers to talk out to the net. Defaults to False.
     :type assign_public_ip: bool, optional
 
+    :param container_security_groups: List of security group IDs which will attach to the containers/tasks running in
+        this cluster. Defaults to [].
+    :type container_security_groups: list[str], optional
+
     :param desired_count: The number of containers the service should target to run. Defaults to 1.
     :type desired_count: int, optional
 
@@ -48,8 +52,9 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         need to forcibly delete a key, set this to 0. Defaults to 7.
     :type key_deletion_window_in_days: int, optional
 
-    :param security_groups: A list of security group IDs to attach to the load balancer. Defaults to [].
-    :type security_groups: list[str], optional
+    :param load_balancer_security_groups: List of security group IDs which will attach to the load balancers created for
+        these services.
+    :type load_balancer_security_groups: list[str], optional
 
     :param services: A dict defining the ports to use when routing requests to each service. The keys should be the name
         of the service as described in a container definition. The values should be dicts supporting the options shown
@@ -91,13 +96,14 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         subnets: list[str],
         assign_public_ip: bool = False,
+        container_security_groups: list[str] = [],
         desired_count: int = 1,
         ecr_resources: list = ['*'],
         enable_container_insights: bool = False,
         health_check_grace_period_seconds: int = None,
         internal: bool = True,
         key_deletion_window_in_days: int = 7,
-        security_groups: list[str] = [],
+        load_balancer_security_groups: list[str] = [],
         services: dict = {},
         task_definition: dict = {},
         opts: pulumi.ResourceOptions = None,
@@ -261,7 +267,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             subnets=subnets,
             exclude_from_project=True,
             internal=internal,
-            security_groups=security_groups,
+            security_groups=load_balancer_security_groups,
             services=services,
             opts=pulumi.ResourceOptions(parent=self),
         )
@@ -289,7 +295,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             network_configuration={
                 'subnets': subnets,
                 'assign_public_ip': assign_public_ip,
-                'security_groups': security_groups,
+                'security_groups': container_security_groups,
             },
             task_definition=task_definition_res,
             tags=self.tags,
