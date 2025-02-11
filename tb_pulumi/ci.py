@@ -16,18 +16,23 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
 
     Produces the following ``resources``:
 
-    - *user* - `aws.iam.User <https://www.pulumi.com/registry/packages/aws/api-docs/iam/user/>`_ to run CI operations.
-    - *access_key* - `aws.iam.AccessKey <https://www.pulumi.com/registry/packages/aws/api-docs/iam/accesskey/>`_ for
-      that user's authentication.
-    - *secret* - :py:class:`tb_pulumi.secrets.SecretsManagerSecret` where the access key data is stored.
-    - *ecr_image_push_policy* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
-      defining permissions required to push container images to an ECR repository.
-    - *s3_upload_policy* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
-      defining permissions required to upload files to S3 buckets.
-    - *s3_full_access_policy* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
-      defining complete, unfettered access to S3 buckets and their contents.
-    - *fargate_deployment_policy* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
-      defining permissions needed to deploy images to a Fargate service.
+        - *user* - `aws.iam.User <https://www.pulumi.com/registry/packages/aws/api-docs/iam/user/>`_ to run CI
+          operations.
+        - *access_key* - `aws.iam.AccessKey <https://www.pulumi.com/registry/packages/aws/api-docs/iam/accesskey/>`_ for
+          that user's authentication.
+        - *secret* - :py:class:`tb_pulumi.secrets.SecretsManagerSecret` where the access key data is stored.
+        - *ecr_image_push_policy* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
+          defining permissions required to push container images to an ECR repository, but only if
+          ``enable_ecr_image_push`` is ``True``.
+        - *s3_upload_policy* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
+          defining permissions required to upload files to S3 buckets, but only if ``enable_s3_bucket_upload`` is
+          ``True``.
+        - *s3_full_access_policy* - `aws.iam.Policy
+          <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_ defining complete, unfettered access to
+          S3 buckets and their contents, but only if ``enable_full_s3_access`` is ``True``.
+        - *fargate_deployment_policy* - `aws.iam.Policy
+          <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_ defining permissions needed to deploy
+          images to a Fargate service, but only if ``enable_fargate_deployments`` is ``True``.
 
 
     :param name: Name of the IAM user to create.

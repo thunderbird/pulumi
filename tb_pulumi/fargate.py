@@ -13,6 +13,27 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
     """Builds a Fargate cluster running a variable number of tasks. Logs from these tasks will be
     sent to CloudWatch.
 
+    Produces the following ``resources``:
+
+        - *cluster* - The `aws.ecs.Cluster <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/cluster/>`_.
+        - *log_group* - `aws.cloudwatch.LogGroup
+          <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/loggroup/>`_ where these tasks send their
+          logs.
+        - *log_key* - `aws.kms.Key <https://www.pulumi.com/registry/packages/aws/api-docs/kms/key/>`_ used to encrypt
+          log contents.
+        - *fargate_service_alb* - :py:class:`tb_pulumi.fargate.FargateServiceAlb` balancing traffic between these tasks.
+        - *policy_exec* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_ allowing
+          the service access to other resources needed to launch tasks.
+        - *policy_log_sending* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
+          allowing tasks to send logs to their log group.
+        - *service* - `aws.ecs.Service <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/service/>`_ managing
+          the tasks.
+        - *task_role* - `aws.iam.Role <https://www.pulumi.com/registry/packages/aws/api-docs/iam/role/>`_ used for
+          executing tasks in this cluster.
+        - *task_definition* - `aws.ecs.TaskDefinition
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/taskdefinition/>`_ describing the properties of the
+          tasks being managed.
+
     :param name: A string identifying this set of resources.
     :type name: str
 
@@ -303,10 +324,6 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         )
 
         self.finish(
-            outputs={
-                'cluster_id': cluster.id,
-                'service_id': service.id,
-            },
             resources={
                 'cluster': cluster,
                 'log_group': log_group,
@@ -391,6 +408,19 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
     """Builds an ALB with all of its constituent components to serve traffic for a set of ECS
     services. ECS does not allow reuse of a single ALB with multiple listeners, so if there are
     multiple services, multiple ALBs will be constructed.
+
+    Produces the following ``resources``:
+
+        - *albs* - Dict where the keys match the keys of the ``services`` parameter and the values are the
+          `aws.lb.LoadBalancers <https://www.pulumi.com/registry/packages/aws/api-docs/lb/loadbalancer/>`_ created for
+          those services.
+        - *listeners* - Dict where the keys match the keys of the ``services`` parameter and the values are the
+          `aws.lb.Listeners <https://www.pulumi.com/registry/packages/aws/api-docs/lb/listener/>`_ created for the
+          load balancers for those services.
+        - *target_groups* - Dict where the keys match the keys of the ``services`` parameter and the values are the
+          `aws.lb.TargetGroups <https://www.pulumi.com/registry/packages/aws/api-docs/lb/targetgroup/>`_ created for the
+          listeners for those services. Importantly, Fargate services manage their own targets, so this module does not
+          track any target group attachments.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -518,4 +548,4 @@ class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[albs[svc_name]]),
             )
 
-        self.finish(outputs={}, resources={'albs': albs, 'listeners': listeners, 'target_groups': target_groups})
+        self.finish(resources={'albs': albs, 'listeners': listeners, 'target_groups': target_groups})

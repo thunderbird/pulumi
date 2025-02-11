@@ -17,8 +17,8 @@ from typing import Any
 #: Type alias representing valid types to be found among a ThunderbirdPulumiProject's resources
 type Flattenable = dict | list | ThunderbirdComponentResource | pulumi.Output | pulumi.Resource
 
-FINISH_OUTPUTS_DEPRECATION_MESSAGE = """Calling ThunderbirdComponentResource.finish with the "outputs" parameter is DEPRECATED. This parameter will be
-    removed in a future version."""
+FINISH_OUTPUTS_DEPRECATION_MESSAGE = """Calling ThunderbirdComponentResource.finish with the "outputs" parameter is
+    DEPRECATED. This parameter will be removed in a future version."""
 
 
 class ThunderbirdPulumiProject:
