@@ -239,10 +239,19 @@ So you want to develop a new pattern to stamp out? Here's what you'll need to do
       tracked in the project (and other things).
     * Any resources you create must have the ``parent=self`` ``pulumi.ResourceOption`` set. Set an appropriate
       ``depends_on`` value.
-    * At the end of the ``__init__`` function, you must call ``self.finish()``, passing in a dictionary of ``outputs``
-      and one of ``resources`` (see :py:meth:`tb_pulumi.ThunderbirdComponentResource.finish`). For
+    * At the end of the ``__init__`` function, you must call ``self.finish()``, passing in a dictionary of ``resources``
+      (see :py:meth:`tb_pulumi.ThunderbirdComponentResource.finish`). For
       :py:class:`tb_pulumi.monitoring.MonitoringGroup` derivatives, call this at the end of the
       :py:meth:`tb_pulumi.monitoring.MonitoringGroup.monitor` function instead.
+
+The ``finish`` function also supports an ``outputs`` option, a dict containing outputs to register with Pulumi using
+their ``register_outputs`` function. However,
+`Pulumi's documentation <https://www.pulumi.com/docs/iac/concepts/resources/components/#registering-component-outputs>`_`
+is unclear on the purpose of this, you cannot access these outputs programmatically, and the
+`Pulumi developers also don't know <https://github.com/pulumi/pulumi/issues/2653#issuecomment-484956028>`_ why you
+should call it. Its only purpose is within the CLI tool, as simple output at the end of the run. As such, we will stop
+allowing this in a future version, opting to make the ``register_outputs`` call with an empty dict, as is common among
+Pulumi developers.
 
 
 Troubleshooting

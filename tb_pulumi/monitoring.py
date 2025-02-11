@@ -29,21 +29,17 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
 
     :param config: A configuration dictionary. The specific format and content of this dictionary is defined in part by
         classes extending this class. However, the dictionary should be configured in the following broad way, with
-        downstream monitoring groups defining the specifics of the monitor configs:
+        downstream monitoring groups defining the specifics of the monitor configs (shown here as YAML):
 
-        .. code-block:: javascript
+        .. code-block:: yaml
             :linenos:
 
-            {
-                "alarms": {
-                    "name-of-the-resource-being-monitored": {
-                        "monitor_name": {
-                            "enabled": False
-                            // Downstream monitoring groups tell you what else goes right here
-                        }
-                    }
-                }
-            }
+            ---
+            alarms:
+                name-of-the-resource-being-monitored:
+                    monitor_name:
+                        enabled: False
+                        # Downstream monitoring groups tell you what else goes right here
 
         This config defines override settings for alarms whose default configurations are insufficient for a specific
         use case. Since each resource can have multiple alarms associated with it, the ``"alarm"`` dict's keys should be
