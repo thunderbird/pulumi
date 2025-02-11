@@ -1,5 +1,17 @@
 # tb_pulumi Changelog
 
+## v0.0.11
+
+  - Improved documentation around starting new projects.
+  - The Quickstart script now supports Pulumi Cloud and private cloud hosts.
+  - Fixed CI bugs where the CI user wasn't able to read details about load balancers and target gropus while deploying
+    Fargate images.
+  - Under the hood, refactored a custom "Flattenable" type that represents the various types and collections we support
+    when auto-identifying resources in a `ThunderbirdPulumiProject`. This should be completely transparent to users.
+  - Fixed a bug where one single security group with a combined set of rules would be applied to both a load balancer
+    and its container targets in a `FargateClusterWithLogging`. This is not secure, as it is permissive in each case of
+    traffic not intended to reach the target. With this release, we support defining these groups separately.
+
 ## v0.0.10
 
   - Can now declare recovery period for Secrets Manager Secrets built by the `RdsDatabaseGroup` class.
@@ -55,7 +67,7 @@
 
   - Overhauled documentation.
   - Only docstrings have changed with this version.
-  - No actual code changes have been altered.
+  - No actual code changes have been made.
 
 
 ## v0.0.2
