@@ -16,6 +16,31 @@ ORIGIN_REQUEST_POLICY_ID_ALLVIEWER = '216adef6-5c7f-47e4-b989-5492eafa07d3'  # "
 class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
     """Serve the static contents of an S3 bucket over a CloudFront Distribution.
 
+    Produces the following ``resources``:
+
+    - *service_bucket* - `aws.s3.Bucket <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucket/>`_ in which to
+      store the static content to be served over the CloudFront Distribution.
+    - *logging_bucket* - `aws.s3.Bucket <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucket/>`_ in which to
+      store the access logs for the service bucket.
+    - *logging_bucket_ownership* - `aws.s3.BucketOwnershipControls
+      <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketownershipcontrols/>`_ which allow CloudFront to
+      upload logs into the logging bucket.
+    - *logging_bucket_acl* - `aws.s3.BucketAclV2
+      <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketaclv2/>`_ allowing CloudFront to control the
+      logging bucket via the AWS account's canonical user.
+    - *origin_access_control* - `aws.cloudfront.OriginAccessControl
+      <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/originaccesscontrol/>`_ allowing the CloudFront
+      Distribution to service the service bucket's content via CDN.
+    - *cloudfront_distribution* - `aws.cloudfront.Distribution
+      <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/>`_ that serves the service bucket
+      content over a CDN and produces output logs in the logging bucket.
+    - *service_bucket_policy* - `aws.s3.BucketPolicy
+      <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpolicy/>`_ allowing the CloudFront Distribution
+      read access to the objects in the service bucket.
+    - *invalidation_policy* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
+      that allows an IAM entity to create cache invalidations in the CloudFront Distribution, which must be done when
+      the contents of the service bucket are updated.
+
     :param name: A string identifying this set of resources.
     :type name: str
 
@@ -233,11 +258,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         )
 
         self.finish(
-            outputs={
-                'service_bucket': service_bucket.id,
-                'logging_bucket': logging_bucket.id,
-                'cloudfront_domain': cloudfront_distribution.domain_name,
-            },
             resources={
                 'service_bucket': service_bucket,
                 'logging_bucket': logging_bucket,
