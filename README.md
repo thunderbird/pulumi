@@ -13,7 +13,7 @@ Full documentation is found on [Github Pages](https://thunderbird.github.io/pulu
 If you require documentation for a specific version, check out that branch and build the docs yourself:
 
 ```bash
-git checkout v0.0.7
+git checkout v0.0.11
 virtualenv venv
 . ./venv/bin/activate
 pip install .[dev]
@@ -41,6 +41,6 @@ module.
 7. Add these files to a commit and open a PR. Get approval and merge the PR.
 8. Again, `checkout` and `pull` the `main` branch, which now includes the right version data.
 9. Checkout and push a branch named after your version. This should always begin with the lowercase letter `v`, which
-    should be followed by the correct [semantic version](https://semver.org), such as `v0.0.10`.
-    - `git checkout -b v0.0.10`
-    - `git push -u origin v0.0.10`
+    should be followed by the correct [semantic version](https://semver.org), such as `v0.0.11`.
+    - `git checkout -b v0.0.11`
+    - `git push -u origin v0.0.11`
