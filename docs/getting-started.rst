@@ -142,7 +142,7 @@ run:
   source ./venv/bin/activate
   pip install -U -r requirements.txt
 
-You can now develop Python Pulumi code in that directory, as shown in the follow section.
+You can now develop Python Pulumi code in that directory, as shown in the following section.
 
 Use this module
 ^^^^^^^^^^^^^^^
