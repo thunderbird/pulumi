@@ -22,7 +22,7 @@ To use this module, you'll need to get through this checklist first:
 * Understand the `basic concepts of Pulumi <https://www.pulumi.com/docs/iac/concepts/>`_, particularly `Resources
   <https://www.pulumi.com/docs/iac/concepts/resources/>`_ and `Component Resources
   <https://www.pulumi.com/docs/iac/concepts/resources/components/>`_.
-* `Configure awscli <https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html>`_ with
+* Provide an `awscli configuration <https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html>`_ with
   your credentials and default region. (You do not have to install awscli, though you can
   `read how to here <https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html>`_.
   Some of these docs refer to helpful awscli commands.) The Pulumi AWS provider relies on the same configuration,
@@ -54,7 +54,7 @@ This will...
 
 If you are using an S3 bucket to privately store your state, you'll need to make sure you have configured your AWSCLI
 tool with an account that has permission to manipulate that bucket. Prefix your bucket name with `s3://` to use as your
-`pulumi_login_url` value (f/ex: `s3://acme-awesomeapi-pulumi`). If you will use Pulumi Cloud, use
+`pulumi_login_url` value (e.g.,: `s3://acme-awesomeapi-pulumi`). If you will use Pulumi Cloud, use
 `https://api.pulumi.com`. If you have a
 `self-hosted Pulumi Cloud API <https://www.pulumi.com/docs/pulumi-cloud/admin/self-hosted/components/api/>`_, you may
 specify your custom URL here.
@@ -104,9 +104,9 @@ to handle this is to include an organization name in your bucket name. As a temp
 Repo setup
 ^^^^^^^^^^
 
-You probably already have a code repo with your application code in it. If not, create such a repo.
+You probably already have a repository with your application code in it. If not, create one now.
 
-Create a directory there called ``pulumi`` and create a new project and stack in it. You'll need the name of the S3
+Create a subdirectory called ``pulumi`` and create a new project and stack in it. You'll need the name of the S3
 bucket or cloud host from the previous step here. If you are operating in an AWS region other than what is set as your
 default for AWSCLI, be sure to ``export AWS_REGION=us-east-1`` or whatever else you may need to do to override that.
 
@@ -142,7 +142,15 @@ run:
   source ./venv/bin/activate
   pip install -U -r requirements.txt
 
-You can now develop Python Pulumi code in that directory, referring to this module with imports such as these:
+You can now develop Python Pulumi code in that directory, as shown in the follow section.
+
+Use this module
+^^^^^^^^^^^^^^^
+
+When you issue ``pulumi`` commands (like "up" and "preview" and so on), it looks for a ``__main__.py`` file in your
+current directory and executes the code in that file.
+
+``__main__.py` imports and uses the `tb_pulumi` module:
 
 .. code-block:: python
 
@@ -152,35 +160,97 @@ You can now develop Python Pulumi code in that directory, referring to this modu
 
   from tb_pulumi import (ec2, fargate, secrets)
 
-
-Use this module
-^^^^^^^^^^^^^^^
-
-When you issue ``pulumi`` commands (like "up" and "preview" and so on), it looks for a ``__main__.py`` file in your
-current directory and executes the code in that file. To use this module, you'll import it into that file and write up
-some code and configuration files.
-
-
 Create a config file
 """"""""""""""""""""
 
-It is assumed that a config file will exist at ``config.$STACK.yaml`` where ``$STACK`` is the currently selected Pulumi
-stack. This file must contain a mapping of names of config settings to their desired values. Currently, only one such
-setting is formally recognized. That is ``resources``.
+Create a config file for each stack, i.e., ``config.$STACK.yaml`` (where ``$STACK`` is the currently selected Pulumi
+stack). This file maps config settings to their desired values. Currently, only the ``resources``
+setting is formally recognized.
 
-This is a mostly arbitary mapping that you will have to interpret on your own. This allows for flexibility, but we
-recommend some conventions here. Namely:
+Let's look at an example configuration file.
 
-* ``resources`` should be a mapping where the keys are the Pulumi type-strings for the resources they are configuring.
-  For example, if you want to build a VPC with several subnets, you might use the ``tb_pulumi.network.MultiCidrVpc``
-  class. Following this convention, that should be accompanied by a ``tb:network:MultiCidrVpc`` key in this mapping.
-* The values these keys map to should themselves be mappings. This provides a convention where more than one of each
-  pattern are configurable. The keys here should be arbitrary but unique identifiers for the resources being configured.
-  F/ex: ``backend`` or ``api``.
-* The values these keys map to should be a mapping where each key/value combo is a valid configuration option for the
-  resources being built. The full listing of these values can be found by browsing the :py:mod:`tb_pulumi` 
-  documentation. A barebones example can be found in our `sample config
-  <https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example>`_.
+.. code-block:: yaml
+  resources:
+    tb:network:MultiCidrVpc:
+      vpc:
+        cidr_block: 10.0.0.0/16
+        egress_via_internet_gateway: True
+        enable_dns_hostnames: True
+        enable_internet_gateway: True
+        endpoint_interfaces:
+          - ecr.api
+          - ecr.dkr
+          - logs
+          - secretsmanager
+        subnets:
+          us-east-2a:
+            - 10.0.101.0/24
+          us-east-2b:
+            - 10.0.102.0/24
+          us-east-2c:
+            - 10.0.103.0/24
+
+At the top-level is the ``resources`` key. Nested inside are configurations for kinds of resources.
+This resource uses the ``tb_pulumi.network.MultiCidrVpc`` class. We recommend using resource key names that are similar to the class names.
+
+Based on the class name, we have chosen ``tb:network:MultiCidrVpc`` as the key for the resource.
+
+
+Next, we see a resource named ``tb:fargate:FargateClusterWithLogging``:
+
+.. code-block:: yaml
+    tb:fargate:FargateClusterWithLogging:
+      backend:
+        assign_public_ip: True
+        ecr_resources:
+          - arn:aws:ecr:us-east-2:1234567890123:repository/rockroll*
+        health_check_grace_period_seconds: 60
+        internal: False
+      api:
+        assign_public_ip: True
+        ecr_resources:
+          - arn:aws:ecr:us-east-2:1234567890124:repository/rockrollapi*
+        health_check_grace_period_seconds: 60
+        internal: False
+
+It configures two Fargate clusters named ``backend`` and an ``api``.
+
+Note that the specific names ``backend`` and ``api`` are reusable for other resources:
+
+.. code-block:: yaml
+    tb:network:SecurityGroupWithRules:
+      backend:
+        rules:
+          ingress:
+            - cidr_blocks: ["0.0.0.0/0"]
+              description: TLS port for the load balancer
+              protocol: tcp
+              from_port: 443
+              to_port: 443
+          egress:
+            - cidr_blocks: ["0.0.0.0/0"]
+              description: Outbound traffic
+              protocol: tcp
+              from_port: 0
+              to_port: 65535
+      api:
+        rules:
+          ingress:
+            - description: Private backend port
+              protocol: tcp
+              from_port: 8080
+              to_port: 8080
+          egress:
+            - cidr_blocks: ["0.0.0.0/0"]
+              description: Outbound traffic
+              protocol: tcp
+              from_port: 0
+              to_port: 65535
+
+The only other requirement is that you provide valid options and values in your configuration.
+The full listing of these values can be found by browsing the :py:mod:`tb_pulumi` documentation.
+
+A barebones example can be found in our `sample config <https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example>`_.
 
 
 Define a ThunderbirdPulumiProject
@@ -218,7 +288,7 @@ So you want to develop a new pattern to stamp out? Here's what you'll need to do
 * Determine the best place to put the code. Is there an existing module that fits the bill?
 * Determine the Pulumi type string for it. This goes: ``org:module:class``. The ``org`` should be unique to your
   organization. For Thunderbird projects, it should be ``tb``. The ``module`` will be the Python submodule you're
-  placing the new class in (f/ex, classes in ``network.py`` should use ``network`` here). The ``class`` is whatever
+  placing the new class in (e.g., classes in ``network.py`` should use ``network`` here). The ``class`` is whatever
   you've called the class.
 * Design the class following these guidelines:
     * The constructor should always accept, before any other arguments, the following positional options:
