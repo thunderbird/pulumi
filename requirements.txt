@@ -4,3 +4,7 @@ pulumi>=3.130.0,<4.0.0
 pulumi-aws==6.65.0
 pulumi-random>=4.16,<5.0
 # pyyaml is also a requirement, but is installed for us by pulumi
+
+# needed to build documentation
+sphinx
+furo
