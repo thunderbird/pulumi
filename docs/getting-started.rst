@@ -170,25 +170,26 @@ setting is formally recognized.
 Let's look at an example configuration file.
 
 .. code-block:: yaml
-  resources:
-    tb:network:MultiCidrVpc:
-      vpc:
-        cidr_block: 10.0.0.0/16
-        egress_via_internet_gateway: True
-        enable_dns_hostnames: True
-        enable_internet_gateway: True
-        endpoint_interfaces:
-          - ecr.api
-          - ecr.dkr
-          - logs
-          - secretsmanager
-        subnets:
-          us-east-2a:
-            - 10.0.101.0/24
-          us-east-2b:
-            - 10.0.102.0/24
-          us-east-2c:
-            - 10.0.103.0/24
+
+    resources:
+      tb:network:MultiCidrVpc:
+        vpc:
+          cidr_block: 10.0.0.0/16
+          egress_via_internet_gateway: True
+          enable_dns_hostnames: True
+          enable_internet_gateway: True
+          endpoint_interfaces:
+            - ecr.api
+            - ecr.dkr
+            - logs
+            - secretsmanager
+          subnets:
+            us-east-2a:
+              - 10.0.101.0/24
+            us-east-2b:
+              - 10.0.102.0/24
+            us-east-2c:
+              - 10.0.103.0/24
 
 At the top-level is the ``resources`` key. Nested inside are configurations for kinds of resources.
 This resource uses the ``tb_pulumi.network.MultiCidrVpc`` class. We recommend using resource key names that are similar to the class names.
@@ -199,6 +200,7 @@ Based on the class name, we have chosen ``tb:network:MultiCidrVpc`` as the key f
 Next, we see a resource named ``tb:fargate:FargateClusterWithLogging``:
 
 .. code-block:: yaml
+
     tb:fargate:FargateClusterWithLogging:
       backend:
         assign_public_ip: True
@@ -218,6 +220,7 @@ It configures two Fargate clusters named ``backend`` and an ``api``.
 Note that the specific names ``backend`` and ``api`` are reusable for other resources:
 
 .. code-block:: yaml
+
     tb:network:SecurityGroupWithRules:
       backend:
         rules:
