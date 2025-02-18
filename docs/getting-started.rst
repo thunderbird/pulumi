@@ -165,9 +165,15 @@ Create a config file
 
 Create a config file for each stack, i.e., ``config.$STACK.yaml`` (where ``$STACK`` maps to a Pulumi stack/application
 environment). This file maps parameters for tb_pulumi resources to their desired values. Currently, only the
-``resources`` setting is formally recognized. When you run `pulumi stack select $STACK` commands to switch between
-Pulumi stacks, these configurations for tb_pulumi will follow along with the ``Pulumi.$STACK.yaml`` files in which
-Pulumi tracks its internal configuration.
+``resources`` setting is formally recognized.
+
+.. note::
+
+   When you run ``pulumi stack select $STACK``, these two files become active:
+   ``Pulumi.$STACK.yaml`` and ``config.$STACK.yaml``.
+   If you're already familiar with Pulumi, you might recognize that this
+   patterns follows Pulumi's conventions.
+
 
 Let's look at an example tb_pulumi configuration file.
 
