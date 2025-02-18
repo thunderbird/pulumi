@@ -13,7 +13,9 @@ from tb_pulumi.constants import SERVICE_PORTS
 
 
 class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
-    """Using RDS, construct a primary database and zero or more read replicas. A Network Load Balancer (NLB) is
+    """**Pulumi Type:** ``tb:rds:RdsDatabaseGroup``
+
+    Using RDS, construct a primary database and zero or more read replicas. A Network Load Balancer (NLB) is
     created to spread load across the read replicas.
 
     Produces the following ``resources``:

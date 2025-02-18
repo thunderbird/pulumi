@@ -7,7 +7,9 @@ import tb_pulumi
 
 
 class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
-    """Creates an IAM user, then creates a keypair for it. The keypair data is stored in Secrets Manager. Several
+    """**Pulumi Type:** ``tb:ci:AutomationUser``
+
+    Creates an IAM user, then creates a keypair for it. The keypair data is stored in Secrets Manager. Several
     options, documented below, exist to provide some common permission sets for build and deployment patterns used
     in these modules. Additional policies can be added arbitrarily to expand these permissions.
 
@@ -91,7 +93,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
 
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
-
     """
 
     def __init__(
@@ -112,7 +113,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        super().__init__('tb:ci:Automationuser', name=name, project=project, opts=opts, **kwargs)
+        super().__init__('tb:ci:AutomationUser', name=name, project=project, opts=opts, **kwargs)
 
         if project.stack == active_stack:
             user = aws.iam.User(

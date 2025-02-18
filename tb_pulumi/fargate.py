@@ -10,7 +10,9 @@ from tb_pulumi.constants import ASSUME_ROLE_POLICY, DEFAULT_AWS_SSL_POLICY
 
 
 class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
-    """Builds a Fargate cluster running a variable number of tasks. Logs from these tasks will be
+    """**Pulumi Type:** ``tb:fargate:FargateClusterWithLogging``
+
+    Builds a Fargate cluster running a variable number of tasks. Logs from these tasks will be
     sent to CloudWatch.
 
     Produces the following ``resources``:
@@ -405,7 +407,9 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
 
 
 class FargateServiceAlb(tb_pulumi.ThunderbirdComponentResource):
-    """Builds an ALB with all of its constituent components to serve traffic for a set of ECS
+    """**Pulumi Type:** ``tb:fargate:FargateServiceAlb``
+
+    Builds an ALB with all of its constituent components to serve traffic for a set of ECS
     services. ECS does not allow reuse of a single ALB with multiple listeners, so if there are
     multiple services, multiple ALBs will be constructed.
 

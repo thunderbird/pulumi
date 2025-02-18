@@ -14,7 +14,9 @@ AMAZON_LINUX_AMI = 'ami-02ccbe126fe6afe82'  #: AMI for Amazon Linux
 
 
 class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
-    """Construct a NetworkLoadBalancer to route TCP traffic to a collection of backends. This targets backend services
+    """**Pulumi Type:** ``tb:ec2:NetworkLoadBalancer``
+
+    Construct a NetworkLoadBalancer to route TCP traffic to a collection of backends. This targets backend services
     by IP address, connecting a frontend listening port to a backend port on the round-robin load balanced targets.
 
     Produces the following ``resources``:
@@ -203,7 +205,9 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
 
 
 class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
-    """Builds an EC2 instance which can be accessed with SSH from somewhere on the Internet.
+    """**Pulumi Type:** ``tb:ec2:SshableInstance``
+
+    Builds an EC2 instance which can be accessed with SSH from somewhere on the Internet.
 
     Produces the following ``resources``:
 
@@ -331,7 +335,9 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
 
 
 class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
-    """Builds an SSH keypair and stores its values in Secrets Manager.
+    """**Pulumi Type:** ``tb:ec2:SshKeyPair``
+
+    Builds an SSH keypair and stores its values in Secrets Manager.
 
     You should usually specify the ``public_key`` when using this module. If you do not, Pulumi will generate a new key
     for you. However, at the moment, it appears there's no way to have Pulumi generate a private key ONE TIME and ONLY
