@@ -8,7 +8,7 @@ import tb_pulumi
 
 class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:ci:AutomationUser``
-    
+
     Creates an IAM user, then creates a keypair for it. The keypair data is stored in Secrets Manager. Several
     options, documented below, exist to provide some common permission sets for build and deployment patterns used
     in these modules. Additional policies can be added arbitrarily to expand these permissions.

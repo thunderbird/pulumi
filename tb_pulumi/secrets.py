@@ -10,7 +10,7 @@ import typing
 
 class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:secrets:SecretsManagerSecret``
-    
+
     Stores a value as a Secrets Manager secret, which is composed of a "Secret" and a "SecretVersion".
 
     Produces the following ``resources``:
@@ -87,7 +87,7 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
 
 class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:secrets:PulumiSecretsManager``
-    
+
     Builds a set of AWS SecretsManager Secrets based on specific secrets in Pulumi's config.
 
     Produces the following ``resources``:

@@ -10,7 +10,7 @@ from tb_pulumi.constants import CLOUDWATCH_METRIC_ALARM_DEFAULTS
 
 class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
     """**Pulumi Type:** ``tb:cloudwatch:CloudWatchMonitoringGroup``
-    
+
     A ``MonitoringGroup`` that monitors AWS-based resources using AWS's CloudWatch service and sends alerts using
     SNS-to-email.
 
@@ -173,7 +173,7 @@ class LoadBalancerAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
 class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     """**Pulumi Type:** ``tb:cloudwatch:AlbAlarmGroup``
-    
+
     A set of alarms for Application Load Balancers. Contains the following configurable alarms:
 
         - ``alb_5xx``: Alarms on the number of HTTP responses sourced within the load balancer with status codes in the
@@ -317,7 +317,7 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
 class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     """**Pulumi Type:** ``tb:cloudwatch:CloudFrontDistributionAlarmGroup``
-    
+
     A set of alarms for ALB target groups. Contains the following configurable alarms:
 
         - ``unhealthy_hosts``: Alarms on the number of unhealthy hosts in a target group. Defaults to alarm when the
@@ -435,7 +435,7 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
 class CloudFrontDistributionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     """**Pulumi type:** ``tb:cloudwatch:CloudFrontDistributionAlarmGroup``
-    
+
     A set of alarms for CloudFront distributions. Contains the following configurable alarms:
 
 
@@ -515,7 +515,7 @@ class CloudFrontDistributionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
 class CloudFrontFunctionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     """**Pulumi Type:** ``tb:cloudwatch:CloudFrontFunctionAlarmGroup``
-    
+
     A set of alarms for CloudFront functions. Contains the following configurable alarms:
 
         - ``cpu_utilization``: Alarms when the function's compute utilization is excessive. This value is reported as a
@@ -596,7 +596,7 @@ class CloudFrontFunctionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
 class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     """**Pulumi Type:** ``tb:cloudwatch:EcsServiceAlarmGroup``
-    
+
     A set of alarms for ECS services. Contains the following configurable alarms:
 
         - ``cpu_utilization``: Alarms on the overall CPU usage of the entire service, all tasks combined. Threshold is a

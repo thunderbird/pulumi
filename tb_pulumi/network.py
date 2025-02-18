@@ -7,7 +7,7 @@ import tb_pulumi
 
 class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:network:MultiCidrVpc``
-    
+
     Builds a VPC with configurable network space.
 
     Produces the following ``resources``:
@@ -284,7 +284,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
 
 class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:network:SecurityGroupWithRules``
-    
+
     Builds a security group and sets rules for it.
 
     Produces the following ``resources``:

@@ -15,7 +15,7 @@ ORIGIN_REQUEST_POLICY_ID_ALLVIEWER = '216adef6-5c7f-47e4-b989-5492eafa07d3'  # "
 
 class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:cloudfront:CloudFrontS3Service``
-    
+
     Serve the static contents of an S3 bucket over a CloudFront Distribution.
 
     Produces the following ``resources``:
