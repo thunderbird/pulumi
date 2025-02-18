@@ -150,7 +150,7 @@ Use this module
 When you issue ``pulumi`` commands (like "up" and "preview" and so on), it looks for a ``__main__.py`` file in your
 current directory and executes the code in that file.
 
-``__main__.py` imports and uses the `tb_pulumi` module:
+``__main__.py` imports and uses the ``tb_pulumi`` module:
 
 .. code-block:: python
 
@@ -163,11 +163,13 @@ current directory and executes the code in that file.
 Create a config file
 """"""""""""""""""""
 
-Create a config file for each stack, i.e., ``config.$STACK.yaml`` (where ``$STACK`` is the currently selected Pulumi
-stack). This file maps config settings to their desired values. Currently, only the ``resources``
-setting is formally recognized.
+Create a config file for each stack, i.e., ``config.$STACK.yaml`` (where ``$STACK`` maps to a Pulumi stack/application
+environment). This file maps parameters for tb_pulumi resources to their desired values. Currently, only the
+``resources`` setting is formally recognized. When you run `pulumi stack select $STACK` commands to switch between
+Pulumi stacks, these configurations for tb_pulumi will follow along with the ``Pulumi.$STACK.yaml`` files in which
+Pulumi tracks its internal configuration.
 
-Let's look at an example configuration file.
+Let's look at an example tb_pulumi configuration file.
 
 .. code-block:: yaml
 
@@ -191,11 +193,16 @@ Let's look at an example configuration file.
             us-east-2c:
               - 10.0.103.0/24
 
-At the top-level is the ``resources`` key. Nested inside are configurations for kinds of resources.
-This resource uses the ``tb_pulumi.network.MultiCidrVpc`` class. We recommend using resource key names that are similar to the class names.
+At the top-level is the ``resources`` key. Nested inside are configurations for kinds of resources. This resource uses
+the ``tb_pulumi.network.MultiCidrVpc`` class.
 
-Based on the class name, we have chosen ``tb:network:MultiCidrVpc`` as the key for the resource.
+.. note::
+    We recommend using resource key names that are named after the Pulumi Types for each resource. These are documented
+    alongside each class in the :py:mod:`tb_pulumi` module.
 
+The Pulumi Type for a ``MultiCidrVpc`` is ``tb:network:MultiCidrVpc``, so we have chosen that as a name under which we
+define our MultiCidrVpc configs. We call this one particular config ``vpc`` (you normally need only one, though this
+convention allows for as many as you like).
 
 Next, we see a resource named ``tb:fargate:FargateClusterWithLogging``:
 
@@ -217,7 +224,7 @@ Next, we see a resource named ``tb:fargate:FargateClusterWithLogging``:
 
 It configures two Fargate clusters named ``backend`` and an ``api``.
 
-Note that the specific names ``backend`` and ``api`` are reusable for other resources:
+Note that the specific names ``backend`` and ``api`` are reusable for other resources, such as these security groups:
 
 .. code-block:: yaml
 
@@ -250,10 +257,11 @@ Note that the specific names ``backend`` and ``api`` are reusable for other reso
               from_port: 0
               to_port: 65535
 
-The only other requirement is that you provide valid options and values in your configuration.
-The full listing of these values can be found by browsing the :py:mod:`tb_pulumi` documentation.
+The only other requirement is that you provide valid options and values in your configuration. The full listing of these
+values can be found by browsing the :py:mod:`tb_pulumi` documentation.
 
-A barebones example can be found in our `sample config <https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example>`_.
+A barebones example can be found in our `sample config
+<https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example>`_.
 
 
 Define a ThunderbirdPulumiProject
