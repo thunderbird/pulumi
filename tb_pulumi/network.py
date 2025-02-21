@@ -6,7 +6,38 @@ import tb_pulumi
 
 
 class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
-    """Builds a VPC with configurable network space.
+    """**Pulumi Type:** ``tb:network:MultiCidrVpc``
+
+    Builds a VPC with configurable network space.
+
+    Produces the following ``resources``:
+
+        - *endpoint_sg* - If the ``endpoint_interfaces`` or ``endpoint_gateways`` parameters are provided, this is a
+          :py:class:`tb_pulumi.network.SecurityGroupWithRules` used to define traffic through these endpoints.
+        - *gateways* - If there are any ``endpoint_gateways`` defined, this is a list of `aws.ec2.VpcEndpoints
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcendpoint/>`_ with a ``vpc_endpoint_type`` of
+          ``Gateway``.
+        - *interfaces* - If there are any ``endpoint_interfaces`` defined, this is a list of `aws.ec2.VpcEndpoints
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcendpoint/>`_ with a ``vpc_endpoint_type`` of
+          ``Interface``.
+        - *internet_gateway* - If ``enable_internet_gateway`` is ``True``, this is the `aws.ec2.InternetGateway
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/internetgateway/>`_.
+        - *nat_eip* - If ``enable_nat_gateway`` is ``True``, this is the `aws.ec2.Eip
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/eip/>`_ used for the NAT Gateway.
+        - *nat_gateway* - If ``enable_nat_gateway`` is ``True``, this is the `aws.ec2.NatGateway
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/natgateway/>`_.
+        - *route_table_subnet_associations* - List of `aws.ec2.RouteTableAssociations
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/routetableassociation/>`_ associating the subnets
+          to the VPC's default route table, enabling traffic among those subnets.
+        - *subnets* - List of `aws.ec2.Subnets <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/subnet/>`_ in
+          this VPC.
+        - *subnet_ig_route* - If ``enable_internet_gateway`` and ``egress_via_internet_gateway`` are both ``True``,
+          this is the `aws.ec2.Route <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/route/>`_ that enables
+          outbound traffic through the Internet Gateway.
+        - *subnet_ng_route* - If ``enable_nat_gateway`` and ``egress_via_nat_gateway`` are both ``True``, this is the
+          `aws.ec2.Route <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/route/>`_ that enables outbound
+          traffic through the NAT Gateway.
+        - *vpc* - The `aws.ec2.Vpc <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpc/>`_.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -235,10 +266,6 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
             )
 
         self.finish(
-            outputs={
-                'subnets': [subnet.id for subnet in subnet_rs],
-                'vpc': vpc.id,
-            },
             resources={
                 'endpoint_sg': endpoint_sg if len(endpoint_interfaces + endpoint_gateways) > 0 else None,
                 'gateways': gateways,
@@ -256,7 +283,18 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
 
 
 class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
-    """Builds a security group and sets rules for it.
+    """**Pulumi Type:** ``tb:network:SecurityGroupWithRules``
+
+    Builds a security group and sets rules for it.
+
+    Produces the following ``resources``:
+
+        - *egress_rules* - List of `aws.ec2.SecurityGroupRules
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/securitygrouprule/>`_ describing outbound traffic.
+        - *ingress_rules* - List of `aws.ec2.SecurityGroupRules
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/securitygrouprule/>`_ describing inbound traffic.
+        - *sg* - The `aws.ec2.SecurityGroup <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/securitygroup/>`_
+          containing these rules.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -319,29 +357,28 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         egress_rules = []
 
         ingress_ruledefs = rules['ingress']
-        for idx, rule in enumerate(ingress_ruledefs):
+        for rule in ingress_ruledefs:
             rule.update({'type': 'ingress', 'security_group_id': sg.id})
             ingress_rules.append(
                 aws.ec2.SecurityGroupRule(
-                    f'{name}-ingress-{idx}',
+                    f'{name}-ingress-{rule["to_port"]}',
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[sg]),
                     **rule,
                 )
             )
 
         egress_ruledefs = rules['egress']
-        for idx, rule in enumerate(egress_ruledefs):
+        for rule in egress_ruledefs:
             rule.update({'type': 'egress', 'security_group_id': sg.id})
             egress_rules.append(
                 aws.ec2.SecurityGroupRule(
-                    f'{name}-egress-{idx}',
+                    f'{name}-egress-{rule["to_port"]}',
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[sg]),
                     **rule,
                 )
             )
 
         self.finish(
-            outputs={'sg': sg.id},
             resources={
                 'egress_rules': egress_rules,
                 'ingress_rules': ingress_rules,

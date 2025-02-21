@@ -14,8 +14,24 @@ AMAZON_LINUX_AMI = 'ami-02ccbe126fe6afe82'  #: AMI for Amazon Linux
 
 
 class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
-    """Construct a NetworkLoadBalancer to route TCP traffic to a collection of backends. This targets backend services
+    """**Pulumi Type:** ``tb:ec2:NetworkLoadBalancer``
+
+    Construct a NetworkLoadBalancer to route TCP traffic to a collection of backends. This targets backend services
     by IP address, connecting a frontend listening port to a backend port on the round-robin load balanced targets.
+
+    Produces the following ``resources``:
+
+        - *security_group_with_rules* - :py:class:`tb_pulumi.network.SecurityGroupWithRules` defining ingress and egress
+          rules for the NLB.
+        - *nlb* - `aws.lb.LoadBalancer <https://www.pulumi.com/registry/packages/aws/api-docs/lb/loadbalancer/>`_ with a
+          ``load_balancer_type`` of ``network``.
+        - *target_group* - `aws.lb.TargetGroup <https://www.pulumi.com/registry/packages/aws/api-docs/lb/targetgroup/>`_
+          containing the IPs the NLB is balancing.
+        - *target_group_attachments* - List of `aws.lb.TargetGroupAttachments
+          <https://www.pulumi.com/registry/packages/aws/api-docs/lb/targetgroupattachment/>`_, one for each IP address
+          registered with the NLB.
+        - *listener* - `aws.lb.Listener <https://www.pulumi.com/registry/packages/aws/api-docs/lb/listener/>`_ for the
+          NLB.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -178,7 +194,6 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         )
 
         self.finish(
-            outputs={'dns_name': nlb.dns_name},
             resources={
                 'security_group_with_rules': security_group_with_rules,
                 'nlb': nlb,
@@ -190,7 +205,16 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
 
 
 class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
-    """Builds an EC2 instance which can be accessed with SSH from somewhere on the Internet.
+    """**Pulumi Type:** ``tb:ec2:SshableInstance``
+
+    Builds an EC2 instance which can be accessed with SSH from somewhere on the Internet.
+
+    Produces the following ``resources``:
+
+        - *instance* - The `aws.ec2.Instance <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/instance/>`_.
+        - *keypair* - :py:class:`tb_pulumi.ec2.SshKeyPair` used for authenticating to the instance.
+        - *security_group* - :py:class:`tb_pulumi.network.SecurityGroupWithRules` defining network access to the
+          instance.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -302,10 +326,6 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         )
 
         self.finish(
-            outputs={
-                'instance_dns': instance.public_dns,
-                'instance_ip': instance.public_ip,
-            },
             resources={
                 'instance': instance,
                 'keypair': keypair,
@@ -315,12 +335,21 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
 
 
 class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
-    """Builds an SSH keypair and stores its values in Secrets Manager.
+    """**Pulumi Type:** ``tb:ec2:SshKeyPair``
+
+    Builds an SSH keypair and stores its values in Secrets Manager.
 
     You should usually specify the ``public_key`` when using this module. If you do not, Pulumi will generate a new key
     for you. However, at the moment, it appears there's no way to have Pulumi generate a private key ONE TIME and ONLY
     ONE TIME. Each ``pulumi up/preview`` command generates a new keypair, which generates new secret versions (and if
     this is attached to an instance downstream, it triggers the recreation of that instance).
+
+    Produces the following ``resources``:
+
+        - *keypair* - `aws.ec2.KeyPair <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/keypair/>`_ containing
+          the keypair content.
+        - *private_key_secret* :py:class:`tb_pulumi.secrets.SecretsManagerSecret` containing the private key data.
+        - *public_key_secret* :py:class:`tb_pulumi.secrets.SecretsManagerSecret` containing the public key data.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -404,9 +433,7 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
             )
 
         self.finish(
-            outputs={'keypair': keypair.id},
             resources={
-                'private_key': private_key if not public_key else None,
                 'keypair': keypair,
                 'private_key_secret': private_key_secret if not public_key else None,
                 'public_key_secret': public_key_secret if not public_key else None,

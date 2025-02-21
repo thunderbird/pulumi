@@ -13,8 +13,41 @@ from tb_pulumi.constants import SERVICE_PORTS
 
 
 class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
-    """Using RDS, construct a primary database and zero or more read replicas. A Network Load Balancer (NLB) is
+    """**Pulumi Type:** ``tb:rds:RdsDatabaseGroup``
+
+    Using RDS, construct a primary database and zero or more read replicas. A Network Load Balancer (NLB) is
     created to spread load across the read replicas.
+
+    Produces the following ``resources``:
+
+        - *instances* - A list of `aws.rds.Instances
+          <https://www.pulumi.com/registry/packages/aws/api-docs/rds/instance/>`_ in the group. The zeroth index will
+          always be the primary/writer instance. If there are any replica/reader instances, those will follow.
+        - *jumphost* - If ``build_jumphost`` is ``True``, this is the :py:class:`tb_pulumi.ec2.SshableInstance` to be
+          used to access the DBs.
+        - *key* - `aws.kms.Key <https://www.pulumi.com/registry/packages/aws/api-docs/kms/key/>`_ used to encrypt
+          database storage.
+        - *load_balancer* - :py:class:`tb_pulumi.ec2.NetworkLoadBalancer` routing traffic to the read databases.
+        - *parameter_group* - `aws.rds.ParameterGroup
+          <https://www.pulumi.com/registry/packages/aws/api-docs/rds/parametergroup/>`_ defining how these databases
+          operate.
+        - *password* - `pulumi_random.RandomPassword
+          <https://www.pulumi.com/registry/packages/random/api-docs/randompassword/>`_ for the database.
+        - *secret* - :py:class:`tb_pulumi.secrets.SecretsManagerSecret` storing the password within AWS.
+        - *security_group* - :py:class:`tb_pulumi.network.SecurityGroupWithRules` defining access to the database.
+        - *ssm_param_db_name* - `aws.ssm.Parameter
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ssm/parameter/>`_ containing the database name.
+        - *ssm_param_db_write_host* - `aws.ssm.Parameter
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ssm/parameter/>`_ containing the write instance's
+          hostname.
+        - *ssm_param_port* - `aws.ssm.Parameter
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ssm/parameter/>`_ containing the database port.
+        - *ssm_param_read_host* - `aws.ssm.Parameter
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ssm/parameter/>`_ containing the hostname of the read
+          traffic load balancer.
+        - *subnet_group* - `aws.rds.SubnetGroup
+          <https://www.pulumi.com/registry/packages/aws/api-docs/rds/subnetgroup/>`_, a logical grouping of subnets in
+          which to build database instances.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -452,11 +485,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             )
 
         self.finish(
-            outputs={
-                'password_secret': password.id,
-                'primary_address': primary.address,
-                'replica_addresses': [inst.address for inst in instances[1:]],
-            },
             resources={
                 'instances': instances,
                 'jumphost': jumphost if build_jumphost else None,
@@ -474,7 +502,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             },
         )
 
-    def __ssm_param(self, name, param_name, value, depends_on: list[pulumi.Output] = None):
+    def __ssm_param(self, name, param_name, value, depends_on: list[pulumi.Output] = None) -> aws.ssm.Parameter:
         """Build an SSM Parameter."""
         return aws.ssm.Parameter(
             name,

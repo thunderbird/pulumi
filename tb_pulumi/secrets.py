@@ -9,7 +9,17 @@ import typing
 
 
 class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
-    """Stores a value as a Secrets Manager secret.
+    """**Pulumi Type:** ``tb:secrets:SecretsManagerSecret``
+
+    Stores a value as a Secrets Manager secret, which is composed of a "Secret" and a "SecretVersion".
+
+    Produces the following ``resources``:
+
+        - *secret* - `aws.secretsmanager.Secret
+          <https://www.pulumi.com/registry/packages/aws/api-docs/secretsmanager/secret/>`_ describing secret metadata.
+        - *version* - `aws.secretsmanager.SecretVersion
+          <https://www.pulumi.com/registry/packages/aws/api-docs/secretsmanager/secretversion/>`_ containing the actual
+          secret data.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -72,11 +82,21 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(parent=self, depends_on=[secret]),
         )
 
-        self.finish(outputs={'secret_id': secret.id}, resources={'secret': secret, 'version': version})
+        self.finish(resources={'secret': secret, 'version': version})
 
 
 class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
-    """Builds a set of AWS SecretsManager Secrets based on specific secrets in Pulumi's config.
+    """**Pulumi Type:** ``tb:secrets:PulumiSecretsManager``
+
+    Builds a set of AWS SecretsManager Secrets based on specific secrets in Pulumi's config.
+
+    Produces the following ``resources``:
+
+        - *secrets* - List of :py:class:`tb_pulumi.secrets.SecretsManagerSecret` s storing Pulumi config secrets in AWS.
+        - *policy* - `aws.iam.Policy
+          <https://www.pulumi.com/registry/packages/aws/api-docs/secretsmanager/secretversion/>`_ granting access to the
+          secrets managed by this module. This doesn't get attached to any entities, but is intended for use in things
+          like CI flows or ECS task execution roles.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -156,6 +176,5 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
         )
 
         self.finish(
-            outputs={'policy_id': policy.policy_id, 'secret_ids': [secret.id for secret in secrets]},
             resources={'secrets': secrets, 'policy': policy},
         )
