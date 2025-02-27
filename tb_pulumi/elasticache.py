@@ -27,6 +27,64 @@ class ElastiCacheReplicationGroup(tb_pulumi.ThunderbirdComponentResource):
         Although this replica group is marked as "single-az" the nodes will be deployed across the range of subnets
         provided as you add nodes. A single-node deployment will be truly single-AZ, while multi-node deployments will
         spread their nodes across the subnets, allowing you to build read replicas in other AZs.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param subnets: List of subnet IDs in which to build the replication group.
+    :type subnets: list[str]
+
+    :param description: Common description of the replication group. Defaults to None.
+    :type description: str, optional
+
+    :param engine: Which cache engine to use. Must be either 'valkey' or 'redis'. Defaults to 'redis'.
+    :type engine: str, optional
+
+    :param engine_version: Engine version to use. Defaults to '7.1', which is valid for Redis groups.
+    :type engine_version: str, optional
+
+    :param node_type: Instance type to build nodes with. Defaults to 'cache.t3.micro'.
+    :type node_type: str, optional
+
+    :param num_cache_nodes: Number of nodes to build. If building only one node, ``automatic_failover_enabled`` must
+        be False. Defaults to 1.
+    :type num_cache_nodes: int, optional
+
+    :param parameter_group_family: Parameter group family to build this parameter group from. Defaults to 'redis7',
+        which comports with the default engine version.
+    :type parameter_group_family: str, optional
+
+    :param parameter_group_params: List of dicts defining default parameter value overrides. Should be strucutured
+        as a `ParameterGroupParameter
+        <https://www.pulumi.com/registry/packages/aws/api-docs/elasticache/parametergroup/#parametergroupparameter>`_.
+        Defaults to [].
+    :type parameter_group_params: list[dict], optional
+
+    :param port: Port to listen on. Defaults to 6379, the default Redis port.
+    :type port: int, optional
+
+    :param source_cidrs: List of CIDRs which should have access to the replication group. Defaults to [].
+    :type source_cidrs: list[str], optional
+
+    :param source_sgids: List of security group IDs which should have access to the replication group. Defaults to
+        [].
+    :type source_sgids: list[str], optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ReplicationGroup resource. A
+        full listing of options is found `here
+        <https://www.pulumi.com/registry/packages/aws/api-docs/elasticache/replicationgroup/#inputs>`_.
+
+    :raises IndexError: Thrown if an empty list of subnets is supplied.
     """
 
     def __init__(
@@ -45,6 +103,7 @@ class ElastiCacheReplicationGroup(tb_pulumi.ThunderbirdComponentResource):
         source_cidrs: list[str] = [],
         source_sgids: list[str] = [],
         opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
         **kwargs,
     ):
         if len(subnets) < 1:
@@ -53,7 +112,7 @@ class ElastiCacheReplicationGroup(tb_pulumi.ThunderbirdComponentResource):
         if description is None:
             description = f'{name}-{engine}-{engine_version}'
 
-        super().__init__('tb:elasticache:ElastiCacheReplicationGroup', name=name, project=project, opts=opts)
+        super().__init__('tb:elasticache:ElastiCacheReplicationGroup', name=name, project=project, opts=opts, tags=tags)
 
         __sg_rules = {
             'ingress': [],

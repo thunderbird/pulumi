@@ -10,6 +10,7 @@ tb_pulumi
    cloudwatch
    constants
    ec2
+   elasticache
    fargate
    monitoring
    network
