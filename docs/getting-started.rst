@@ -31,6 +31,9 @@ To use this module, you'll need to get through this checklist first:
 
 The `Troubleshooting`_ section has some details on how to work through some issues related to setup.
 
+
+.. _quickstart:
+
 Quickstart
 ----------
 
