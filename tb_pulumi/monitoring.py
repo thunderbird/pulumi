@@ -66,7 +66,7 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
         type_map: dict,
         config: dict = {},
         opts: pulumi.ResourceOptions = None,
-        tags: dict = {}
+        tags: dict = {},
     ):
         super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts, tags=tags)
         self.config: dict = config
