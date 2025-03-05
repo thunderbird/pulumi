@@ -173,6 +173,7 @@ class PulumiSecretsManager(tb_pulumi.ThunderbirdComponentResource):
             description=f'Allows access to secrets related to {name}',
             policy=policy_json,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[*secrets]),
+            tags=self.tags,
         )
 
         self.finish(

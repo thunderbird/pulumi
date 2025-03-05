@@ -258,6 +258,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             description=f'Allows for the invalidation of CDN cache for CloudFront distribution {name}',
             policy=invalidation_policy_json,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[cloudfront_distribution]),
+            tags=self.tags,
         )
 
         self.finish(

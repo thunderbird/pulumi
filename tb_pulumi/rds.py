@@ -275,6 +275,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             secret_value=password.result,
             recovery_window_in_days=secret_recovery_window_in_days,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[password]),
+            tags=self.tags,
         )
 
         # If no ingress CIDRs have been defined, find a reasonable default
@@ -308,6 +309,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 'egress': {},
             },
             opts=pulumi.ResourceOptions(parent=self),
+            tags=self.tags,
         )
 
         # Build a subnet group to launch instances in
@@ -326,6 +328,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             family=parameter_group_family,
             parameters=parameters,
             opts=pulumi.ResourceOptions(parent=self),
+            tags=self.tags,
         )
 
         # Build a KMS Key
@@ -457,6 +460,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 ips=[socket.gethostbyname(addr) for addr in addresses],
                 security_group_description=f'Allow database traffic for {name}',
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances, *subnets]),
+                tags=self.tags,
             )
         )
 
@@ -467,6 +471,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 type=aws.ssm.ParameterType.STRING,
                 value=lb.resources['nlb'].dns_name,
                 opts=pulumi.ResourceOptions(depends_on=[load_balancer]),
+                tags=self.tags,
             )
         )
 
@@ -482,6 +487,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 user_data=jumphost_user_data,
                 vpc_id=vpc_id,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[key]),
+                tags=self.tags,
             )
 
         self.finish(
@@ -510,4 +516,5 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             type=aws.ssm.ParameterType.STRING,
             value=value,
             opts=pulumi.ResourceOptions(depends_on=depends_on),
+            tags=self.tags,
         )

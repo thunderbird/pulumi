@@ -179,6 +179,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     description=f'Allows CI automation for {project.project} to push container images to ECR.',
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
+                    tags=self.tags,
                 )
 
                 # Ignore unused variable rules for attachments like this using "noqa" statements for rule F841.
@@ -209,6 +210,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     description=f'Allows CI automation for {project.project} to upload files to certain S3 buckets.',
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
+                    tags=self.tags,
                 )
                 s3_upload_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
                     f'{name}-polatt-s3upload',
@@ -240,6 +242,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     description=f'Allows CI automation for {project.project} to do anything with certain S3 buckets.',
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
+                    tags=self.tags,
                 )
                 s3_full_access_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
                     f'{name}-polatt-s3fullaccess',
@@ -311,6 +314,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                     description=f'Allggows CI automation for {project.project} to deploy images to Fargate clusters.',
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
+                    tags=self.tags,
                 )
                 fargate_deployment_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
                     f'{name}-polatt-fargatedeploy',
