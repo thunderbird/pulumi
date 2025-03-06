@@ -141,7 +141,7 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
         """
 
         # From this side of an apply, we can see the resource types and look for ones we know about
-        self.supported_resources = [res for res in self.all_resources if type(res) in self.type_map.keys()]
+        self.supported_resources = [res for res in self.all_resources + outputs if type(res) in self.type_map.keys()]
 
         # Call downstream monitoring setups
         self.monitor(outputs)
