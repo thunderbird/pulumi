@@ -37,6 +37,8 @@ module.
 4. Create a new branch in which we will update the release data.
     - `git checkout -b release-prep`
 5. Update `CHANGELOG.md` to include a common-language listing of the major changes. Use the Github milestone as a guide.
+   If a change to the module introduces breaking changes or changes which potentially cause downtime while upgrading,
+   leave a note to this effect in **bolded text!**
 6. Update `pyproject.toml` so the version matches the version you are trying to release.
 7. Add these files to a commit and open a PR. Get approval and merge the PR.
 8. Again, `checkout` and `pull` the `main` branch, which now includes the right version data.
