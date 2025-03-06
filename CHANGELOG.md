@@ -1,16 +1,31 @@
 # tb_pulumi Changelog
 
+
+## v0.0.12
+
+  - Added a class (and documentation for it) to build an ElastiCache replication group.
+  - Improved tagging overall, adding tags to resources that were erroneously untagged before this version, and adding
+    the special `Name` tag in a couple places.
+  - Fixed a bug where security group rules made by the `SecurityGroupWithRules` class had their Pulumi names generated
+    partially using the `to_port` value. This creates a lot of room for name clobbers, which are a show-stopper for
+    Pulumi. Now these are indexed with sequential integers. **Upgrading `SecurityGroupWithRules` resources to this
+    version of tb_pulumi will require some `pulumi state mv` commands to resolve without downtime!**
+  - Many documentation updates, including more detail on how monitoring works, explicit listing of Pulumi "type" strings
+    for all tb_pulumi classes, and explicit listings of all resources managed by each class.
+
+
 ## v0.0.11
 
   - Improved documentation around starting new projects.
   - The Quickstart script now supports Pulumi Cloud and private cloud hosts.
-  - Fixed CI bugs where the CI user wasn't able to read details about load balancers and target gropus while deploying
+  - Fixed CI bugs where the CI user wasn't able to read details about load balancers and target groups while deploying
     Fargate images.
   - Under the hood, refactored a custom "Flattenable" type that represents the various types and collections we support
     when auto-identifying resources in a `ThunderbirdPulumiProject`. This should be completely transparent to users.
   - Fixed a bug where one single security group with a combined set of rules would be applied to both a load balancer
     and its container targets in a `FargateClusterWithLogging`. This is not secure, as it is permissive in each case of
     traffic not intended to reach the target. With this release, we support defining these groups separately.
+
 
 ## v0.0.10
 
@@ -19,11 +34,13 @@
   - Top level `ThunderbirdPulumiProject` resource namespace pollution problem is solved by optional `exclude_from_project` parameter.
   - Remove some redundancy in naming some CI-related IAM resources.
 
+
 ## v0.0.9
 
   - Remove Insegel theme from docs builds, relying on Furo for its dark/light modes and respect for user preference.
   - Add several high priority alarms through EC2 and CloudFront.
   - Allow users to set the function associations for default behaviors in a CloudFront distribution.
+
 
 ## v0.0.8
 
@@ -32,16 +49,19 @@
   - Verification of Pulumi resource dependencies throughout the codebase. This repairs the dependency tree and makes
     destroys and environment rebuilds smooth.
 
+
 ## v0.0.7
 
   - Lock the AWS provider to a specific version to avoid errors when CI automation runs pulumi commands with `--target`.
   - Add an `environment` tag to all AWS resources for cost tracking purposes.
   - Build the initial patterns to use for developing project-at-once monitoring solutions.
 
+
 ## v0.0.6
 
   - Fixed bugs in the new CI features of v0.0.5 where certain permissions were lacking in some of the IAM polices.
   - Added documentation of the CI module.
+
 
 ## v0.0.5
 
@@ -52,8 +72,10 @@
     2.  The `PulumiSecretsManager` class no longer manages its own `Secret` and `SecretVersion` resources, relying
         instead on the `SecretsManagerSecrets` class to better organize things. **This particular change may present
         challenges at the time your Pulumi code is upgraded to v0.0.5, as it will cause a recreation of all secrets
-        managed through this module. This will result in new ARNs which you will have to update anywhere they are used.
+        managed through this module. This will result in new ARNs which you will have to update anywhere they are
+        used.**
   - These features both serve to make destroying and rebuilding stacks less painful.
+
 
 ## v0.0.4
 
