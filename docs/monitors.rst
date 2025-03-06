@@ -32,7 +32,7 @@ single resource (which may produce any number of metrics which we want to monito
 resource types to ``AlarmGroup`` types that handle those resources in their ``monitor`` functions.
 
 As an example, take a look at :py:class:`tb_pulumi.cloudwatch.CloudWatchMonitoringGroup`, a ``MonitoringGroup``
-implementation that uses AWS CloudWatch to alarm on metrics produced by AWS resources. It creates an
+implementation that uses AWS CloudWatch to alarm on metrics produced by AWS resources. It creates a
 :py:class:`tb_pulumi.cloudwatch.LoadBalancerAlarmGroup` when it encounters a resource of type
 ``aws.lb.load_balancer.LoadBalancer``. That alarm group monitors status codes and response times, among other things.
 
