@@ -184,6 +184,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             description='Allows Fargate tasks to log to their log group',
             policy=log_doc,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[log_group]),
+            tags=self.tags,
         )
 
         # IAM policy for accessing container dependencies
@@ -228,6 +229,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             description=f'Allows {self.project.project} tasks access to resources they need to run',
             policy=container_doc,
             opts=pulumi.ResourceOptions(parent=self),
+            tags=self.tags,
         )
 
         # Create an IAM role for tasks to run as
@@ -276,6 +278,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 log_group_name=outputs[0],
                 aws_region=outputs[1],
                 task_role_arn=outputs[2],
+                tags=self.tags,
                 dependencies=[log_group, task_role],
             )
         )
@@ -293,6 +296,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             security_groups=load_balancer_security_groups,
             services=services,
             opts=pulumi.ResourceOptions(parent=self),
+            tags=self.tags,
         )
 
         # We only need one Fargate Service config, but that might have multiple load balancer
@@ -345,6 +349,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         family: str,
         log_group_name: str,
         aws_region: str,
+        tags: dict,
         task_role_arn: str,
         dependencies: list[pulumi.Resource] = [],
     ) -> aws.ecs.TaskDefinition:
@@ -361,6 +366,10 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
 
         :param aws_region: AWS region to build in.
         :type aws_region: str
+
+        :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+            Defaults to {}.
+        :type tags: dict, optional
 
         :param task_role_arn: ARN of the IAM role the task will run as.
         :type task_role_arn: str
@@ -400,6 +409,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         task_def_res = aws.ecs.TaskDefinition(
             f'{family}-taskdef',
             opts=pulumi.ResourceOptions(parent=self, depends_on=[*dependencies]),
+            tags=tags,
             **task_def,
         )
 

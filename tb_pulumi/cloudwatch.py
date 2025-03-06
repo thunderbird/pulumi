@@ -41,6 +41,11 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
 
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+
     """
 
     def __init__(
@@ -50,6 +55,7 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         config: dict = {},
         notify_emails: list[str] = [],
         opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
     ):
         type_map = {
             aws.lb.load_balancer.LoadBalancer: LoadBalancerAlarmGroup,
@@ -67,6 +73,7 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
             project=project,
             type_map=type_map,
             opts=opts,
+            tags=tags,
             config=config,
         )
 
@@ -79,7 +86,10 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         """
 
         sns_topic = aws.sns.Topic(
-            f'{self.name}-topic', name=f'{self.project.name_prefix}-alarms', opts=pulumi.ResourceOptions(parent=self)
+            f'{self.name}-topic',
+            name=f'{self.project.name_prefix}-alarms',
+            opts=pulumi.ResourceOptions(parent=self),
+            tags=self.tags,
         )
 
         # API details on SNS topic subscriptions can be found here:
@@ -110,6 +120,7 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
                 resource=res,
                 monitoring_group=self,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[res]),
+                tags=self.tags,
             )
 
         self.finish(
@@ -138,6 +149,9 @@ class LoadBalancerAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the
+        :py:class:`tb_pulumi.monitoring.AlarmGroup` superconstructor.
     """
 
     def __init__(
@@ -204,6 +218,9 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the
+        :py:class:`tb_pulumi.monitoring.AlarmGroup` superconstructor.
     """
 
     def __init__(
@@ -340,6 +357,9 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the
+        :py:class:`tb_pulumi.monitoring.AlarmGroup` superconstructor.
     """
 
     def __init__(
@@ -460,6 +480,9 @@ class CloudFrontDistributionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the
+        :py:class:`tb_pulumi.monitoring.AlarmGroup` superconstructor.
     """
 
     def __init__(
@@ -539,6 +562,9 @@ class CloudFrontFunctionAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the
+        :py:class:`tb_pulumi.monitoring.AlarmGroup` superconstructor.
     """
 
     def __init__(
@@ -621,6 +647,9 @@ class EcsServiceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the
+        :py:class:`tb_pulumi.monitoring.AlarmGroup` superconstructor.
 
     """
 

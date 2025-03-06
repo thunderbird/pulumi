@@ -185,6 +185,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 public_ipv4_pool='amazon',
                 network_border_group=self.project.aws_region,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
+                tags=self.tags,
             )
             ng_tags = {'Name': name}
             ng_tags.update(self.tags)
@@ -343,6 +344,8 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         super().__init__('tb:network:SecurityGroupWithRules', name, project, opts=opts, **kwargs)
 
         # Build a security group in the provided VPC
+        sg_tags = {'Name': name}
+        sg_tags.update(self.tags)
         sg = aws.ec2.SecurityGroup(
             f'{name}-sg',
             name=name,

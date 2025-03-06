@@ -301,6 +301,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
                     ],
                 },
                 opts=pulumi.ResourceOptions(parent=self),
+                tags=self.tags,
             )
             sg_ids = [security_group_with_rules.resources['sg'].id]
         else:
@@ -414,6 +415,7 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
                 secret_value=self.resources['private_key'],
                 exclude_from_project=True,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[private_key]),
+                tags=self.tags,
             )
             public_key_secret = tb_pulumi.secrets.SecretsManagerSecret(
                 f'{name}/publickey',
@@ -422,6 +424,7 @@ class SshKeyPair(tb_pulumi.ThunderbirdComponentResource):
                 secret_value=self.resources['public_key'],
                 exclude_from_project=True,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[public_key]),
+                tags=self.tags,
             )
         else:
             keypair = aws.ec2.KeyPair(

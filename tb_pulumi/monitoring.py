@@ -52,6 +52,10 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
 
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
     """
 
     def __init__(
@@ -62,8 +66,9 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
         type_map: dict,
         config: dict = {},
         opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
     ):
-        super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts)
+        super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts, tags=tags)
         self.config: dict = config
         self.type_map: dict = type_map
 
@@ -189,6 +194,10 @@ class AlarmGroup(tb_pulumi.ThunderbirdComponentResource):
 
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
     """
 
     def __init__(
@@ -199,8 +208,9 @@ class AlarmGroup(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         resource: pulumi.Resource,
         opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
     ):
-        super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts)
+        super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts, tags=tags)
         self.monitoring_group = monitoring_group
         self.resource = resource
 
