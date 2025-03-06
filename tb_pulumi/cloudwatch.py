@@ -42,7 +42,10 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
-    :
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+
     """
 
     def __init__(
