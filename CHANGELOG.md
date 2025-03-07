@@ -12,6 +12,8 @@
     version of tb_pulumi will require some `pulumi state mv` commands to resolve without downtime!**
   - Many documentation updates, including more detail on how monitoring works, explicit listing of Pulumi "type" strings
     for all tb_pulumi classes, and explicit listings of all resources managed by each class.
+  - Fixed a simple type (Automationuser -> AutomationUser, with a capital U), but **this will cause CI stacks to have to
+    be recreated** since this represents a type change in Pulumi.
 
 
 ## v0.0.11
