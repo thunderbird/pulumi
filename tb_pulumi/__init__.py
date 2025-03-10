@@ -108,9 +108,11 @@ class ThunderbirdPulumiProject:
         return self.__aws_clients[key]
 
     def get_latest_amazon_linux_ami(self, region_name: str = None, name_alias: str = 'amzn2-ami-hvm-x86_64-gp2') -> str:
-        """Returns the AMI ID of the latest Amazon Linux 2 image for x86-archictecture HVM instances with GP2 storage
-        for the given region. This is accomplished by checking an `SSM parameter that AWS publishes
-        <https://aws.amazon.com/blogs/compute/query-for-the-latest-amazon-linux-ami-ids-using-aws-systems-manager-parameter-store/>`_
+        """Returns the AMI ID of the latest Amazon Linux 2 image for the given region. AWS provides many such AMIs for
+        various purposes. By default, this returns the AMI for the x86-architecture HVM image with GP2 storage. You can
+        specify a different image by providing the appropriate ``name_alias``. This is accomplished by checking an
+        `SSM parameter that AWS publishes
+        <https://aws.amazon.com/blogs/compute/query-for-the-latest-amazon-linux-ami-ids-using-aws-systems-manager-parameter-store/>`_.
 
         :param region_name: Name of the region to get the localized AMI ID for. Defaults to the project's region.
         :type region_name: str, optional
