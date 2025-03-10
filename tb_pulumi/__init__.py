@@ -132,7 +132,7 @@ class ThunderbirdPulumiProject:
             Defaults to `amzn2-ami-hvm-x86_64-gp2`.
         :type name_alias: str, optional
         """
-    
+
         ssm = self.get_aws_client(service='ssm', region_name=region_name)
         param = ssm.get_parameter(
             Name=f'/aws/service/ami-amazon-linux-latest/{name_alias}',

@@ -10,8 +10,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 
-
-
 class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:ec2:NetworkLoadBalancer``
 
