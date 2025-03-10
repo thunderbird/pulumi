@@ -123,9 +123,9 @@ class ThunderbirdPulumiProject:
 
             .. code-block:: bash
 
-                aws ssm describe-parameters \
-                    --region eu-central-1 \
-                    --filters 'Key=Name,Values=/aws/service/ami-amazon-linux-latest/' \
+                aws ssm describe-parameters \\
+                    --region $your_region_here \\
+                    --filters 'Key=Name,Values=/aws/service/ami-amazon-linux-latest/' \\
                     --query 'Parameters[*].Name' |
                     sed 's/\/aws\/service\/ami-amazon-linux-latest\///g'
 
