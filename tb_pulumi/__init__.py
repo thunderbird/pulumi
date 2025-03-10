@@ -98,11 +98,8 @@ class ThunderbirdPulumiProject:
         :type region_name: str
         """
 
-        # Don't use "None" as part of the key; use "default" instead
-        if region_name is None:
-            key = f'{service}-default'
-        else:
-            key = f'{service}-{region_name}'
+        # Don't use "None" as part of the key; use the default for the project instead
+        key = f'{service}-{self.aws_region}' if region_name is None else f'{service}-{region_name}'
 
         # If there isn't a client for this service/region, build one
         if key not in self.__aws_clients.keys():
