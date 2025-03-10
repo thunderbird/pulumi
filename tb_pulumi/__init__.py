@@ -72,18 +72,6 @@ class ThunderbirdPulumiProject:
         #: Currently configured AWS region
         self.aws_region: str = self.__aws_session.region_name
 
-    def get_aws_client(self, service: str):
-        """Retrieves an AWS client for the requested service, preferably from a cache. Caches any clients it creates.
-
-        :param service: Name of the service as described in
-            `boto3 docs <https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/index.html>`_
-        :type service: str
-        """
-        if service not in self.__aws_clients.keys():
-            self.__aws_clients[service] = self.__aws_session.client(service)
-
-        return self.__aws_clients[service]
-
     @cached_property
     def config(self) -> dict:
         """Provides read-only access to the project configuration, which is expected to be in the root of your Pulumi
@@ -98,6 +86,58 @@ class ThunderbirdPulumiProject:
         """Returns a flat set of all resources existing within this project."""
 
         return flatten(self.resources)
+
+    def get_aws_client(self, service: str, region_name: str = None):
+        """Retrieves an AWS client for the requested service, preferably from a cache. Caches any clients it creates.
+
+        :param service: Name of the service as described in
+            `boto3 docs <https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/index.html>`_
+        :type service: str
+
+        :param region_name: Name of the AWS region to set the client up for, such as "us-east-1".
+        :type region_name: str
+        """
+
+        # Don't use "None" as part of the key; use "default" instead
+        if region_name is None:
+            key = f'{service}-default'
+        else:
+            key = f'{service}-{region_name}'
+
+        # If there isn't a client for this service/region, build one
+        if key not in self.__aws_clients.keys():
+            self.__aws_clients[key] = self.__aws_session.client(service, region_name=region_name)
+
+        return self.__aws_clients[key]
+
+    def get_latest_amazon_linux_ami(self, region_name: str = None, name_alias: str = 'amzn2-ami-hvm-x86_64-gp2') -> str:
+        """Returns the AMI ID of the latest Amazon Linux 2 image for x86-archictecture HVM instances with GP2 storage
+        for the given region. This is accomplished by checking an `SSM parameter that AWS publishes
+        <https://aws.amazon.com/blogs/compute/query-for-the-latest-amazon-linux-ami-ids-using-aws-systems-manager-parameter-store/>`_
+
+        :param region_name: Name of the region to get the localized AMI ID for. Defaults to the project's region.
+        :type region_name: str, optional
+
+        :param name_alias: AMI name alias describing the image to look up. To see what values are valid for your region,
+            run this AWSCLI command:
+
+            .. code-block:: bash
+
+                aws ssm describe-parameters \
+                    --region eu-central-1 \
+                    --filters 'Key=Name,Values=/aws/service/ami-amazon-linux-latest/' \
+                    --query 'Parameters[*].Name' |
+                    sed 's/\/aws\/service\/ami-amazon-linux-latest\///g'
+
+            Defaults to `amzn2-ami-hvm-x86_64-gp2`.
+        :type name_alias: str, optional
+        """
+    
+        ssm = self.get_aws_client(service='ssm', region_name=region_name)
+        param = ssm.get_parameter(
+            Name=f'/aws/service/ami-amazon-linux-latest/{name_alias}',
+        )
+        return param['Parameter']['Value']
 
 
 class ThunderbirdComponentResource(pulumi.ComponentResource):

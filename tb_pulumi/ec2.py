@@ -10,7 +10,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 
-AMAZON_LINUX_AMI = 'ami-02ccbe126fe6afe82'  #: AMI for Amazon Linux
 
 
 class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
@@ -225,7 +224,8 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
     :param subnet_id: The ID of the subnet to build the instance in.
     :type subnet_id: str
 
-    :param ami: ID of the AMI to build the instance with. Defaults to {AMAZON_LINUX_AMI}.
+    :param ami: ID of the AMI to build the instance with. Defaults to the latest image returned by
+        :py:meth:`tb_pulumi.ec2.get_latest_amazon_linux_ami`.
     :type ami: str, optional
 
     :param kms_key_id: ID of the KMS key for encrypting all database storage. Defaults to None.
@@ -260,7 +260,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         subnet_id: str,
-        ami: str = AMAZON_LINUX_AMI,
+        ami: str = None,
         kms_key_id: str = None,
         public_key: str = None,
         source_cidrs: list[str] = ['0.0.0.0/0'],
@@ -271,6 +271,9 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         **kwargs,
     ):
         super().__init__('tb:ec2:SshableInstance', name=name, project=project, opts=opts, **kwargs)
+
+        if not ami:
+            ami = project.get_latest_amazon_linux_ami()
 
         keypair = SshKeyPair(f'{name}-keypair', project, public_key=public_key)
 
