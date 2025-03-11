@@ -23,8 +23,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         - *instances* - A list of `aws.rds.Instances
           <https://www.pulumi.com/registry/packages/aws/api-docs/rds/instance/>`_ in the group. The zeroth index will
           always be the primary/writer instance. If there are any replica/reader instances, those will follow.
-        - *jumphost* - If ``build_jumphost`` is ``True``, this is the :py:class:`tb_pulumi.ec2.SshableInstance` to be
-          used to access the DBs.
         - *key* - `aws.kms.Key <https://www.pulumi.com/registry/packages/aws/api-docs/kms/key/>`_ used to encrypt
           database storage.
         - *load_balancer* - :py:class:`tb_pulumi.ec2.NetworkLoadBalancer` routing traffic to the read databases.
@@ -91,10 +89,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         Defaults to False.
     :type blue_green_update: bool, optional
 
-    :param build_jumphost: When True, an EC2 instance in the same network space but with a public IP address will be
-        built, allowing access to a database that's only internally accessible. Defaults to False.
-    :type build_jumphost: bool, optional
-
     :param db_username: The username to use for the root-level administrative user in the database. Defaults to
         'root'.
     :type db_username: str, optional
@@ -130,18 +124,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
     :param internal: When True, if no sg_cidrs are set, allows ingress only from what `vpc_cidr` is set to. If False
         and no sg_cidrs are set, allows ingress from anywhere. Defaults to True.
     :type internal: bool, optional
-
-    :param jumphost_public_key: The public key you want to use when authenticating against the jumphost's SSH
-        service. Defaults to None.
-    :type jumphost_public_key: str, optional
-
-    :param jumphost_source_cidrs: List of CIDRs to allow SSH ingress to the jump host from. Defaults to
-        ['0.0.0.0/0'].
-    :type jumphost_source_cidrs: list[str], optional
-
-    :param jumphost_user_data: Plaintext value (not base64-encoded) of the user data to pass the jumphost. Use this
-        to launch the server with your database client of choice pre-installed, for example. Defaults to None.
-    :type jumphost_user_data: str, optional
 
     :param max_allocated_storage: Gigabytes of storage which storage autoscaling will refuse to increase beyond. To
         disable autoscaling, set this to zero. Defaults to 0.
@@ -221,7 +203,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         apply_immediately: bool = False,
         backup_retention_period: int = 7,
         blue_green_update: bool = False,
-        build_jumphost: bool = False,
         db_username: str = 'root',
         enabled_cluster_cloudwatch_logs_exports: list[str] = [],
         enabled_instance_cloudwatch_logs_exports: list[str] = [],
@@ -230,9 +211,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         exclude_from_project: bool = False,
         instance_class: str = 'db.t3.micro',
         internal: bool = True,
-        jumphost_public_key: str = None,
-        jumphost_source_cidrs: list[str] = ['0.0.0.0/0'],
-        jumphost_user_data: str = None,
         max_allocated_storage: int = 0,
         num_instances: int = 1,
         override_special='!#$%&*()-_=+[]{}<>:?',
@@ -251,6 +229,17 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         super().__init__(
             'tb:rds:RdsDatabaseGroup', name, project, exclude_from_project=exclude_from_project, opts=opts, tags=tags
         )
+
+        unsupported_opts = ['build_jumphost', 'jumphost_public_key', 'jumphost_source_cidrs', 'jumphost_user_data']
+        invalid_opts = [opt for opt in unsupported_opts if opt in kwargs]
+        if len(invalid_opts) > 0:
+            pulumi.warn(
+                'The tb_pulumi.rds.RdsDatabaseGroup class no longer support the following arguments:',
+                f'{", ".join(unsupported_opts)}. ',
+                'Instead, build a `tb_pulumi.ec2.SshableInstance`.',
+            )
+            for opt in invalid_opts:
+                del kwargs[opt]
 
         # Generate a random password
         password = pulumi_random.RandomPassword(
@@ -475,25 +464,9 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             )
         )
 
-        if build_jumphost:
-            jumphost = tb_pulumi.ec2.SshableInstance(
-                f'{name}-jumphost',
-                project,
-                subnets[0].id,
-                exclude_from_project=True,
-                kms_key_id=key.arn,
-                public_key=jumphost_public_key,
-                source_cidrs=jumphost_source_cidrs,
-                user_data=jumphost_user_data,
-                vpc_id=vpc_id,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[key]),
-                tags=self.tags,
-            )
-
         self.finish(
             resources={
                 'instances': instances,
-                'jumphost': jumphost if build_jumphost else None,
                 'key': key,
                 'load_balancer': load_balancer,
                 'parameter_group': parameter_group,
