@@ -318,8 +318,7 @@ So you want to develop a new pattern to stamp out? Here's what you'll need to do
         * ``opts``: A ``pulumi.ResourceOptions`` object which will get merged into the default set of arguments managed
           by the project.
     * The constructor should explicitly define only those arguments that you intend to have default values which differ
-      from the default values the provider will set, or which imply larger patterns (such as ``build_jumphost`` implying
-      other resources, like a security group and its rules, not just an EC2 instance).
+      from the default values the provider will set, or which imply larger patterns.
     * The constructor may accept a final ``**kwargs`` argument with arbitrary meaning. Because the nature of a component
       resource is to compile many other resources into one class, it is not implicitly clear what "everything else"
       should apply to. If this is implemented, its function should be clearly documented in the class. If this isn't
