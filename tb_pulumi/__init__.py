@@ -65,7 +65,7 @@ class ThunderbirdPulumiProject:
         # AWS client setup
         self.__aws_clients = {}
         self.__aws_session = boto3.session.Session()
-        sts = self.get_aws_client('sts')
+        sts = self.get_aws_client(service='sts', region_name=self.__aws_session.region_name)
 
         #: Account number that the currently configured AWS user/role is a member of, in which Pulumi will act.
         self.aws_account_id: str = sts.get_caller_identity()['Account']
