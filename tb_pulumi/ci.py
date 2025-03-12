@@ -254,7 +254,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
             if enable_fargate_deployments:
                 ecs_write_resources = []
                 for cluster in fargate_clusters:
-                    ecs_write_resources.append(f'arn:aws:ecs:{project.aws_region}:{project.aws_account_id}:*/{cluster}')
+                    ecs_write_resources.append(f'arn:aws:ecs:{project.aws_region}:{project.aws_account_id}:*/{cluster}*')
                     ecs_write_resources.append(
                         f'arn:aws:ecs:{project.aws_region}:{project.aws_account_id}:*/{cluster}/*'
                     )
