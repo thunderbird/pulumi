@@ -13,13 +13,13 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
     Produces the following ``resources``:
 
         - *bucket* - The `aws.s3.BucketV2 <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketv2/>`_
-            resource.
+          resource.
         - *encryption_config* - The `aws.s3.BucketServerSideEncryptionConfigurationV2
-            <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketserversideencryptionconfigurationv2/>`_ if
-            ``enable_server_side_encryption`` is ``True``.
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketserversideencryptionconfigurationv2/>`_ if
+          ``enable_server_side_encryption`` is ``True``.
         - *versioning_config* - The `aws.s3.BucketVersioningV2
-            <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketversioningv2/>`_ resource if
-            ``enable_versioning`` is ``True``.
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketversioningv2/>`_ resource if
+          ``enable_versioning`` is ``True``.
 
     :param name: A string identifying this set of resources.
     :type name: str
