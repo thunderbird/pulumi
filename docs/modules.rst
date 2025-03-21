@@ -15,4 +15,5 @@ tb_pulumi
    monitoring
    network
    rds
+   s3
    secrets
