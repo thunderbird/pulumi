@@ -27,6 +27,9 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
+    :param bucket_name: The name of the S3 bucket to create.
+    :type bucket_name: str
+
     :param enable_server_side_encryption: Enables AWS-managed AES256 server-side encryption on bucket objects. Defaults
         to True.
     :type enable_server_side_encryption: bool, optional
@@ -40,6 +43,9 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
     :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
         Defaults to {}.
     :type tags: dict, optional
+
+    :param kwargs: Additional arguments to pass into the `aws.s3.S3BucketV2
+        <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketv2/>`_ constructor.
     """
 
     def __init__(
@@ -56,7 +62,7 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
         super().__init__('tb:s3:S3Bucket', name=name, project=project, opts=opts, tags=tags)
 
         bucket = aws.s3.BucketV2(
-            f'{self.name}-s3', bucket=bucket_name, tags=self.tags, opts=pulumi.ResourceOptions(parent=self)
+            f'{self.name}-s3', bucket=bucket_name, tags=self.tags, opts=pulumi.ResourceOptions(parent=self), **kwargs
         )
 
         encryption_config = (
