@@ -12,6 +12,7 @@ tb_pulumi
    ec2
    elasticache
    fargate
+   iam
    monitoring
    network
    rds
