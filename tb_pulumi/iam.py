@@ -82,6 +82,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # The secret can only be created after the key has been created, so do it in a post-apply function
+        secret_name = f'{self.project.project}/{self.project.stack}/iam.user.{user_name}.access_key'
         def __secret(access_key_id: str, secret_access_key: str):
             return tb_pulumi.secrets.SecretsManagerSecret(
                 name=f'{name}-keysecret',
@@ -92,7 +93,6 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[access_key]),
             )
 
-        secret_name = f'{self.project.project}/{self.project.stack}/iam.user.{user_name}.access_key'
         secret = pulumi.Output.all(access_key_id=access_key.id, secret_access_key=access_key.secret).apply(
             lambda outputs: __secret(
                 access_key_id=outputs['access_key_id'], secret_access_key=outputs['secret_access_key']
@@ -118,7 +118,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
             )
             return aws.iam.Policy(
                 f'{self.name}-keypolicy',
-                name=f'{user_name}_KeyAccess',
+                name=f'{user_name}-key-access',
                 policy=json.dumps(policy_doc),
                 description=f'Allows access to the secret which stores access key data for use {user_name}',
                 path='/',
