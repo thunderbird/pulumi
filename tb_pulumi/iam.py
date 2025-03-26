@@ -83,6 +83,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
 
         # The secret can only be created after the key has been created, so do it in a post-apply function
         secret_name = f'{self.project.project}/{self.project.stack}/iam.user.{user_name}.access_key'
+
         def __secret(access_key_id: str, secret_access_key: str):
             return tb_pulumi.secrets.SecretsManagerSecret(
                 name=f'{name}-keysecret',
