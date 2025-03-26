@@ -152,7 +152,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                 'user': user,
                 'access_key': access_key,
                 'secret': secret,
-                'policy': policy,
+                'policy': secret_policy,
                 'policy_attachments': policy_attachments,
             }
         )
