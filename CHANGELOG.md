@@ -2,12 +2,21 @@
 
 ## v0.0.13
 
+### Breaking Changes
+
+  - Removed a hardcoded value in the `description` field of `tb_pulumi.network.SecurityGroupWithRule`'s security group
+    resource. **!! WARNING !! This is a particularly ugly change to have to apply. The description field on a security
+    group is considered immutable, so this will cause every security group created through this module to be recreated.
+    This will almost certainly cause downtime in your application, and so should be applied with caution.**
   - The `build_jumphost` option has been removed from the
     [`tb_pulumi.elasticache.ElastiCacheReplicationGroup`](https://thunderbird.github.io/pulumi/elasticache.html#tb_pulumi.elasticache.ElastiCacheReplicationGroup)
     module. This is because this sort of server is not necessarily purpose-built for testing ElastiCache. If you require
     an SSH bastion or "jump host", you should just construct a
     [`tb_pulumi.ec2.SshableInstance`](https://thunderbird.github.io/pulumi/ec2.html#tb_pulumi.ec2.SshableInstance) on
     your network.
+
+### Improvements
+
   - Your project's region will now be automatically used when creating AWS clients using the boto3 library, which solves
     problems when your environment's configured default region is different from your project's region.
   - Fixed a bug in the `ci` module where an IAM policy was granting write access to tags for most ECS resources, but not
@@ -20,10 +29,6 @@
     buckets.
   - Added the [`tb_pulumi.iam`](https://thunderbird.github.io/pulumi/iam.html) module, with a pattern for building an
     IAM user with an access key. The secret key data is stored in AWS Secrets Manager.
-  - Removed a hardcoded value in the `description` field of `tb_pulumi.network.SecurityGroupWithRule`'s security group
-    resource. **!! WARNING !! This is a particularly ugly change to have to apply. The description field on a security
-    group is considered immutable, so this will cause every security group created through this module to be recreated.
-    This will almost certainly cause downtime in your application, and so should be applied with caution.**
 
 
 ## v0.0.12
