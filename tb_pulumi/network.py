@@ -303,6 +303,9 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
+    :param description: Description of the security group
+    :type description: str
+
     :param rules: A dict describing in/egress rules of the following construction:
         ::
 
@@ -334,13 +337,12 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
+        description: str = None,
         rules: dict = {},
         vpc_id: str = None,
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """ """
-
         super().__init__('tb:network:SecurityGroupWithRules', name, project, opts=opts, **kwargs)
 
         # Build a security group in the provided VPC
@@ -349,7 +351,7 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
         sg = aws.ec2.SecurityGroup(
             f'{name}-sg',
             name=name,
-            description=f'Send Suite backend security group ({self.project.stack})',
+            description=description,
             vpc_id=vpc_id,
             tags=self.tags,
             opts=pulumi.ResourceOptions(parent=self),
@@ -365,7 +367,7 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
             ingress_rules.append(
                 aws.ec2.SecurityGroupRule(
                     f'{name}-ingress-{idx}',
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[sg]),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[sg], delete_before_replace=True),
                     **rule,
                 )
             )
@@ -376,7 +378,7 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
             egress_rules.append(
                 aws.ec2.SecurityGroupRule(
                     f'{name}-egress-{idx}',
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[sg]),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[sg], delete_before_replace=True),
                     **rule,
                 )
             )
