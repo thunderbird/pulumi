@@ -82,6 +82,8 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # The secret can only be created after the key has been created, so do it in a post-apply function
+        secret_name = f'{self.project.project}/{self.project.stack}/iam.user.{user_name}.access_key'
+
         def __secret(access_key_id: str, secret_access_key: str):
             return tb_pulumi.secrets.SecretsManagerSecret(
                 name=f'{name}-keysecret',
@@ -92,7 +94,6 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[access_key]),
             )
 
-        secret_name = f'{self.project.project}/{self.project.stack}/iam.user.{user_name}.access_key'
         secret = pulumi.Output.all(access_key_id=access_key.id, secret_access_key=access_key.secret).apply(
             lambda outputs: __secret(
                 access_key_id=outputs['access_key_id'], secret_access_key=outputs['secret_access_key']
@@ -118,7 +119,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
             )
             return aws.iam.Policy(
                 f'{self.name}-keypolicy',
-                name=f'{user_name}_KeyAccess',
+                name=f'{user_name}-key-access',
                 policy=json.dumps(policy_doc),
                 description=f'Allows access to the secret which stores access key data for use {user_name}',
                 path='/',
@@ -129,20 +130,20 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         # We need the secret to build the policy. The `secret` here is a ThunderbirdComponentResource, so Pulumi doesn't
         # know it even has a `resources` member until it has been applied. So we first apply `secret`, then Pulumi can
         # get to its `resources`, then we apply the actual AWS `Secret` object to get its ARN for the policy.
-        policy = secret.apply(
+        secret_policy = secret.apply(
             lambda secret_tcp: secret_tcp.resources['secret'].arn.apply(
                 lambda secret_arn: __policy(secret_arn=secret_arn)
             )
         )
 
         # Collect all policy ARNs and attach them
-        policy_arns = [policy.arn, *[pol.arn for pol in policies]]
+        policy_arns = [secret_policy.arn, *[pol.arn for pol in policies]]
         policy_attachments = [
             aws.iam.PolicyAttachment(
                 f'{name}-polatt-{idx}',
                 policy_arn=arn,
                 users=[user.name],
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[user, policy, *policies]),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[user, secret_policy, *policies]),
             )
             for idx, arn in enumerate(policy_arns)
         ]
@@ -152,7 +153,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                 'user': user,
                 'access_key': access_key,
                 'secret': secret,
-                'policy': policy,
+                'policy': secret_policy,
                 'policy_attachments': policy_attachments,
             }
         )
