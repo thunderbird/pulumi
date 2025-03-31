@@ -206,6 +206,13 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
 
     Builds an EC2 instance which can be accessed with SSH from somewhere on the Internet.
 
+    .. note::
+        If you supply the ``public_key`` parameter, a new EC2 keypair will be created by importing that key, and that
+        keypair will be used for SSH access to the machine. If you supply an ``ssh_keypair_name`` parameter instead, you
+        may use an existing EC2 keypair. If you supply neither option, a new Keypair will be randomly generated and the
+        values stored in a SecretsManager secret for your retrieval. You cannot supply both options, though, as EC2
+        requires a single keypair for the instance.
+
     Produces the following ``resources``:
 
         - *instance* - The `aws.ec2.Instance <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/instance/>`_.
@@ -229,12 +236,17 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
     :param kms_key_id: ID of the KMS key for encrypting all data storage. Defaults to None.
     :type kms_key_id: str, optional
 
-    :param public_key: The RSA public key used for SSH authentication. Defaults to None.
+    :param public_key: The RSA public key used for SSH authentication. Defaults to None. Incompatible with
+        ``ssh_keypair_name``.
     :type public_key: str, optional
 
     :param source_cidrs: List of CIDRs which should be allowed to open SSH connections to the instance. Defaults to
         ['0.0.0.0/0'].
     :type source_cidrs: list[str], optional
+
+    :param ssh_keypair_name: Name of an EC2 keypair you wish to set up for SSH access. Defaults to None. Incompatible
+        with ``public_key``.
+    :type ssh_keypair_name: str
 
     :param user_data: Custom user data to launch the instance with. Defaults to None.
     :type user_data: str, optional
