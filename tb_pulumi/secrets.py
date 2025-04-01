@@ -27,11 +27,6 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: ThunderbirdPulumiProject
 
-    :param exclude_from_project: When ``True`` , this prevents this component resource from being registered directly
-        with the project. This does not prevent the component resource from being discovered by the project's
-        ``flatten`` function, provided that it is nested within some resource that is not excluded from the project.
-    :type exclude_from_project: bool, optional
-
     :param secret_name: A slash ("/") delimited name for the secret in AWS. The last segment of this will be used as the
         "short name" for abbreviated references.
     :type name: str
@@ -57,11 +52,15 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         secret_name: str,
         secret_value: typing.Any,
-        exclude_from_project: bool = False,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
         **kwargs,
     ):
+
+        if 'exclude_from_project' in kwargs:
+            exclude_from_project = kwargs['exclude_from_project'] or False
+            del kwargs['exclude_from_project']
+
         super().__init__(
             'tb:secrets:SecretsManagerSecret',
             name,

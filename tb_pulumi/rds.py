@@ -111,11 +111,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         '15.7'
     :type engine_version: str, optional
 
-    :param exclude_from_project: When ``True`` , this prevents this component resource from being registered directly
-        with the project. This does not prevent the component resource from being discovered by the project's
-        ``flatten`` function, provided that it is nested within some resource that is not excluded from the project.
-    :type exclude_from_project: bool, optional
-
     :param instance_class: One of the database sizes listed
         `in these docs <https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html>`_.
         Defaults to 'db.t3.micro'.
@@ -208,7 +203,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         enabled_instance_cloudwatch_logs_exports: list[str] = [],
         engine: str = 'postgres',
         engine_version: str = '15.7',
-        exclude_from_project: bool = False,
         instance_class: str = 'db.t3.micro',
         internal: bool = True,
         max_allocated_storage: int = 0,
@@ -226,6 +220,11 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
+
+        if 'exclude_from_project' in kwargs:
+            exclude_from_project = kwargs['exclude_from_project'] or False
+            del kwargs['exclude_from_project']
+
         super().__init__(
             'tb:rds:RdsDatabaseGroup', name, project, exclude_from_project=exclude_from_project, opts=opts, tags=tags
         )
