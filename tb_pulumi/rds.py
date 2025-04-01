@@ -220,7 +220,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-
         if 'exclude_from_project' in kwargs:
             exclude_from_project = kwargs['exclude_from_project'] or False
             del kwargs['exclude_from_project']
