@@ -44,7 +44,7 @@ all resources in the secret to be applied, then return the ARN of the secret.
    :linenos:
 
    secret = tb_pulumi.secrets.SecretsManagerSecret(
-      name=mysecretname,
+      name='mysecretname',
       secret_name='app/env/mysecret',
       secret_value='super duper secret',
    )
