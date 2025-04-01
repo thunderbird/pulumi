@@ -49,7 +49,7 @@ all resources in the secret to be applied, then return the ARN of the secret.
       secret_value='super duper secret',
    )
 
-   secret_arn = pulumi.Output.all(**secret).apply(
+   secret_arn = pulumi.Output.all(**secret.resources).apply(
       lambda resources: resources['secret'].arn
    )
 
