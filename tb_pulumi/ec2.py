@@ -206,6 +206,13 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
 
     Builds an EC2 instance which can be accessed with SSH from somewhere on the Internet.
 
+    .. note::
+        If you supply the ``public_key`` parameter, a new EC2 keypair will be created by importing that key, and that
+        keypair will be used for SSH access to the machine. If you supply an ``ssh_keypair_name`` parameter instead, you
+        may use an existing EC2 keypair. If you supply neither option, a new Keypair will be randomly generated and the
+        values stored in a SecretsManager secret for your retrieval. You cannot supply both options, though, as EC2
+        requires a single keypair for the instance.
+
     Produces the following ``resources``:
 
         - *instance* - The `aws.ec2.Instance <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/instance/>`_.
@@ -226,15 +233,20 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         :py:meth:`tb_pulumi.ec2.get_latest_amazon_linux_ami`.
     :type ami: str, optional
 
-    :param kms_key_id: ID of the KMS key for encrypting all database storage. Defaults to None.
+    :param kms_key_id: ID of the KMS key for encrypting all data storage. Defaults to None.
     :type kms_key_id: str, optional
 
-    :param public_key: The RSA public key used for SSH authentication. Defaults to None.
+    :param public_key: The RSA public key used for SSH authentication. Defaults to None. Incompatible with
+        ``ssh_keypair_name``.
     :type public_key: str, optional
 
     :param source_cidrs: List of CIDRs which should be allowed to open SSH connections to the instance. Defaults to
         ['0.0.0.0/0'].
     :type source_cidrs: list[str], optional
+
+    :param ssh_keypair_name: Name of an EC2 keypair you wish to set up for SSH access. Defaults to None. Incompatible
+        with ``public_key``.
+    :type ssh_keypair_name: str
 
     :param user_data: Custom user data to launch the instance with. Defaults to None.
     :type user_data: str, optional
@@ -262,6 +274,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         kms_key_id: str = None,
         public_key: str = None,
         source_cidrs: list[str] = ['0.0.0.0/0'],
+        ssh_keypair_name: str = None,
         user_data: str = None,
         vpc_id: str = None,
         vpc_security_group_ids: list[str] = None,
@@ -270,11 +283,24 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
     ):
         super().__init__('tb:ec2:SshableInstance', name=name, project=project, opts=opts, **kwargs)
 
+        # Validate options
+        if ssh_keypair_name and public_key:
+            raise ValueError('Configuration may not specify both "public_key" and "ssh_keypair_name"')
+
         if not ami:
             ami = project.get_latest_amazon_linux_ami()
 
-        keypair = SshKeyPair(f'{name}-keypair', project, public_key=public_key)
+        # Build an SSH keypair if none was supplied
+        if ssh_keypair_name:
+            ssh_keypair = None
+            key_name = ssh_keypair_name
+        else:
+            ssh_keypair = SshKeyPair(f'{name}-keypair', project, public_key=public_key)
+            key_name = pulumi.Output.all(**ssh_keypair.resources).apply(
+                lambda resources: resources['keypair'].key_name,
+            )
 
+        # Build a security group if none was supplied
         if not vpc_security_group_ids:
             security_group_with_rules = tb_pulumi.network.SecurityGroupWithRules(
                 f'{name}-sg',
@@ -308,8 +334,10 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         else:
             sg_ids = vpc_security_group_ids
 
+        # Build the instance
         instance_tags = {'Name': name}
         instance_tags.update(self.project.common_tags)
+        instance_dependencies = [ssh_keypair] if ssh_keypair else []
         instance = aws.ec2.Instance(
             f'{name}-instance',
             ami=ami,
@@ -317,20 +345,20 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
             disable_api_stop=False,  # Jump hosts should never contain live services or
             disable_api_termination=False,  # be the source of data; they don't need protection.
             instance_type='t3.micro',
-            key_name=keypair.resources['keypair'].key_name,
+            key_name=key_name,
             root_block_device={'encrypted': True, 'kms_key_id': kms_key_id, 'volume_size': 10, 'volume_type': 'gp3'},
             subnet_id=subnet_id,
             user_data=user_data,
             volume_tags=self.tags,
             vpc_security_group_ids=sg_ids,
             tags=instance_tags,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[keypair.resources['keypair']]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=instance_dependencies),
         )
 
         self.finish(
             resources={
                 'instance': instance,
-                'keypair': keypair,
+                'keypair': ssh_keypair,
                 'security_group': security_group_with_rules,
             },
         )
