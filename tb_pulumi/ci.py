@@ -313,7 +313,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 fargate_deployment_policy = aws.iam.Policy(
                     f'{name}-policy-fargatedeploy',
                     name=f'{name}-s3-fargatedeploy',
-                    description=f'Allggows CI automation for {project.project} to deploy images to Fargate clusters.',
+                    description=f'Allows CI automation for {project.project} to deploy images to Fargate clusters.',
                     policy=policy_json,
                     opts=pulumi.ResourceOptions(parent=self),
                     tags=self.tags,
