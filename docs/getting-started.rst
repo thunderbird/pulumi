@@ -126,14 +126,16 @@ Set up this module
 ^^^^^^^^^^^^^^^^^^
 
 Ensure your pulumi code directory contains a ``requirements.txt`` file with at least this repo listed:
-::
 
-  git+https://github.com/thunderbird/pulumi.git
+.. code-block:: text
+
+  tb_pulumi @ git+https://github.com/thunderbird/pulumi.git
 
 You can pin your code to a specific version of this module by appending ``@branch_name`` to that. For example:
-::
 
-  git+https://github.com/thunderbird/pulumi.git@v0.0.11
+.. code-block:: text
+
+  tb_pulumi @ git+https://github.com/thunderbird/pulumi.git@v0.0.13
 
 Pulumi will need these requirements installed. On your first run of a ``pulumi preview`` command (or some others),
 Pulumi will attempt to set up its working environment. If this fails, or you need to make adjustments later, you can
@@ -153,13 +155,13 @@ Use this module
 When you issue ``pulumi`` commands (like "up" and "preview" and so on), it looks for a ``__main__.py`` file in your
 current directory and executes the code in that file.
 
-``__main__.py` imports and uses the ``tb_pulumi`` module:
+``__main__.py`` imports and uses the ``tb_pulumi`` library:
 
 .. code-block:: python
 
   import tb_pulumi
 
-  # ...or...
+  # ...or you can import specific modules...
 
   from tb_pulumi import (ec2, fargate, secrets)
 
@@ -172,11 +174,9 @@ environment). This file maps parameters for tb_pulumi resources to their desired
 
 .. note::
 
-   When you run ``pulumi stack select $STACK``, these two files become active:
-   ``Pulumi.$STACK.yaml`` and ``config.$STACK.yaml``.
-   If you're already familiar with Pulumi, you might recognize that this
-   patterns follows Pulumi's conventions.
-
+   When you run ``pulumi stack select $STACK`` on a tb_pulumi project, these two files become active in the Pulumi run:
+   ``Pulumi.$STACK.yaml`` and ``config.$STACK.yaml``. The former configures Pulumi for your stack (in addition to
+   ``Pulumi.yaml``) while the latter configures your tb_pulumi project.
 
 Let's look at an example tb_pulumi configuration file.
 
@@ -207,84 +207,36 @@ the ``tb_pulumi.network.MultiCidrVpc`` class.
 
 .. note::
     We recommend using resource key names that are named after the Pulumi Types for each resource. These are documented
-    alongside each class in the :py:mod:`tb_pulumi` module.
+    alongside each class in the :py:mod:`tb_pulumi` module. This is, however, completely optional convention.
 
 The Pulumi Type for a ``MultiCidrVpc`` is ``tb:network:MultiCidrVpc``, so we have chosen that as a name under which we
 define our MultiCidrVpc configs. We call this one particular config ``vpc`` (you normally need only one, though this
 convention allows for as many as you like).
 
-Next, we see a resource named ``tb:fargate:FargateClusterWithLogging``:
+These resources must still be defined in code (more on that later), but that code will largely just establish
+relationships between resource patterns (like using the ID of a VPC built by a MultiCidrVpc pattern as an input to a
+SecurityGroupWithRules pattern) and pass the YAML configuration through to those patterns. This simple relationship
+between the ``__main__.py`` code and the tb_pulumi YAML config is one core function of this project's conventions.
 
-.. code-block:: yaml
-
-    tb:fargate:FargateClusterWithLogging:
-      backend:
-        assign_public_ip: True
-        ecr_resources:
-          - arn:aws:ecr:us-east-2:1234567890123:repository/rockroll*
-        health_check_grace_period_seconds: 60
-        internal: False
-      api:
-        assign_public_ip: True
-        ecr_resources:
-          - arn:aws:ecr:us-east-2:1234567890124:repository/rockrollapi*
-        health_check_grace_period_seconds: 60
-        internal: False
-
-It configures two Fargate clusters named ``backend`` and an ``api``.
-
-Note that the specific names ``backend`` and ``api`` are reusable for other resources, such as these security groups:
-
-.. code-block:: yaml
-
-    tb:network:SecurityGroupWithRules:
-      backend:
-        rules:
-          ingress:
-            - cidr_blocks: ["0.0.0.0/0"]
-              description: TLS port for the load balancer
-              protocol: tcp
-              from_port: 443
-              to_port: 443
-          egress:
-            - cidr_blocks: ["0.0.0.0/0"]
-              description: Outbound traffic
-              protocol: tcp
-              from_port: 0
-              to_port: 65535
-      api:
-        rules:
-          ingress:
-            - description: Private backend port
-              protocol: tcp
-              from_port: 8080
-              to_port: 8080
-          egress:
-            - cidr_blocks: ["0.0.0.0/0"]
-              description: Outbound traffic
-              protocol: tcp
-              from_port: 0
-              to_port: 65535
-
-The only other requirement is that you provide valid options and values in your configuration. The full listing of these
-values can be found by browsing the :py:mod:`tb_pulumi` documentation.
-
-A barebones example can be found in our `sample config
+The full listing of values supported by each pattern can be found by browsing the detailed :py:mod:`tb_pulumi`
+documentation. The barebones config example used in the quickstart can be found in our `sample config
 <https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example>`_.
 
 
 Define a ThunderbirdPulumiProject
 """""""""""""""""""""""""""""""""
 
-In your ``__main__.py`` file, start with a simple skeleton (or use ``__main__.py.example`` to start):
+In your ``__main__.py`` file, start with a simple skeleton (or use our
+`__main__.py example <https://github.com/thunderbird/pulumi/blob/main/__main__.py.example>`_ to start):
 
 .. code-block:: python
 
   import tb_pulumi
   project = tb_pulumi.ThunderbirdPulumiProject()
 
-If you have followed the conventions outlined above, ``project.config`` is now a dict representation of the YAML file.
-You can use this in the next step to feed parameters into resource declarations.
+If you have followed the conventions outlined above, ``project.config`` is now a dict representation of the YAML file
+(see :py:data:`tb_pulumi.ThunderbirdPulumiProject.config`). You can use this in the next step to feed parameters
+into resource declarations.
 
 Moreover, as you create resources with this library, the ``project`` will track them, making them available to you later
 to act on as a group. This is explained in more detail on the :ref:`monitoring_resources` page.
@@ -299,6 +251,72 @@ patterns available in this module all extend a custom class called a :py:class:`
 If you have followed the conventions outlined so far, it should be easy to stamp out infrastructure with them by passing
 ``project.config`` config options into the constructors for these classes.
 
+To start, for convenience, let's pull the ``resources`` dict into a variable:
+
+.. code-block:: python
+
+  # Pull the "resources" config mapping
+  resources = project.config.get('resources')
+  
+Continuing the ``MultiCidrVpc`` example, let's now pull the config for our ``vpc`` resource:
+
+.. code-block:: python
+
+  vpc_opts = resources['tb:network:MultiCidrVpc']['vpc']
+
+And then define the ``MultiCidrVpc``:
+
+.. code-block:: python
+
+  vpc = tb_pulumi.network.MultiCidrVpc(
+      name=f'{project.name_prefix}-vpc',
+      project=project,
+      **vpc_opts)
+
+The :py:data:`tb_pulumi.ThunderbirdPulumiProject.name_prefix` value combines the project and stack name to form a
+convenient identifier to give your resources useful names. Here, we add ``-vpc`` to it, giving us something like
+``myproject-stage-vpc``.
+
+Passing in the ``project`` created beforehand ensures the resources created by the MultiCidrVpc get tracked and become
+accessible to later aggregate functions. Skipping this will still result in the creation of these resources, but things
+like the :py:class:`tb_pulumi.monitoring.MonitoringGroup` will not be able to detect it.
+
+In Python, the double-star (``**variable``) notation unpacks a dict's top level keys and values into named function
+parameters (called "keyword arguments" and often referred to as "kwargs"). In this case, all of the key/value pairs in
+the YAML configuration for the MultiCidrVpc called "vpc" get passed in as arguments to the function.
+
+As a demonstration of this (and as a demonstration of code you *should not write* when using tb_pulumi), here is the
+equivalent function call without the YAML conversion:
+
+.. code-block:: python
+
+  vpc = tb_pulumi.network.MultiCidrVpc(
+      name=f'{project.name_prefix}-vpc',
+      project=project,
+      cidr_block='10.0.0.0/16',
+      subnets={
+        'us-east-1a': '10.0.101.0/24',
+        'us-east-1b': '10.0.102.0/24',
+        'us-east-1c': '10.0.103.0/24',
+      },
+  )
+
+You may note some disadvantages to this:
+
+- Making configuration changes to an environment means editing code as opposed to adjusting YAML. We find the YAML to be
+  more legible, and we find that after an environment is initially built, the infrastructural patterns do not often
+  change. Rather, we adjust the details; we scale out new servers or use a larger instance type or allow a new IP
+  address access to a system. These are easier to adjust when we can just find an entry in a sensibly organized config
+  file and tweak it.
+- Reusing the same broad infrastructural definitions becomes much harder here. Suppose we want our staging environment
+  to use different IP space than our production environment. If code is written this explicitly, we must introduce
+  conditionals and break Pulumi's comprehension of stacks to accomodate each environment's distinguishing
+  characteristics. Instead, we can apply different YAML configs to the same code to achieve environments that work the
+  same way, but at different scales, against different sets of resources, etc.
+
+.. seealso::
+
+  Additional detail on our conventions can be found in :ref:`patterns_of_use`.
 
 Implementing ThunderbirdComponentResources
 """"""""""""""""""""""""""""""""""""""""""
@@ -325,22 +343,13 @@ So you want to develop a new pattern to stamp out? Here's what you'll need to do
       passed into the superconstructor, you will need to implement all superconstructor arguments into your constructor.
     * The class should extend :py:class:`tb_pulumi.ThunderbirdComponentResource`.
     * The class should make an appropriate call to its superconstructor, which ensures the resources can be properly
-      tracked in the project (and other things).
+      tracked in the project (among other things).
     * Any resources you create must have the ``parent=self`` ``pulumi.ResourceOption`` set. Set an appropriate
-      ``depends_on`` value.
+      ``depends_on`` value when necessary.
     * At the end of the ``__init__`` function, you must call ``self.finish()``, passing in a dictionary of ``resources``
       (see :py:meth:`tb_pulumi.ThunderbirdComponentResource.finish`). For
       :py:class:`tb_pulumi.monitoring.MonitoringGroup` derivatives, call this at the end of the
       :py:meth:`tb_pulumi.monitoring.MonitoringGroup.monitor` function instead.
-
-The ``finish`` function also supports an ``outputs`` option, a dict containing outputs to register with Pulumi using
-their ``register_outputs`` function. However,
-`Pulumi's documentation <https://www.pulumi.com/docs/iac/concepts/resources/components/#registering-component-outputs>`_`
-is unclear on the purpose of this, you cannot access these outputs programmatically, and the
-`Pulumi developers also don't know <https://github.com/pulumi/pulumi/issues/2653#issuecomment-484956028>`_ why you
-should call it. Its only purpose is within the CLI tool, as simple output at the end of the run. As such, we will stop
-allowing this in a future version, opting to make the ``register_outputs`` call with an empty dict, as is common among
-Pulumi developers.
 
 
 Troubleshooting
@@ -365,16 +374,16 @@ the virtual environment yourself with something like this:
 .. code-block:: bash
 
   virtualenv -p /path/to/python3.12 venv
-  ./venv/bin/pip install -r requirements.txt
+  ./venv/bin/pip install .
 
 After this, ``pulumi`` commands should work. If 3.12 is your default version of Python, Pulumi should set up its own
-virtualenv, and you should not have to do this.
+virtual environment, and you should not have to do this.
 
 
 Shells other than Bash
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Setup instructions in these docs are designed for use with the Bourne Again SHell (Bash). Pulumi also seems to make some
-assumptions like this when it installs itself. Pulumi will install itself into a hidden folder in your home directory:
-``~/.pulumi/bin``. You may need to add this to your ``$PATH`` to avoid having to make the explicit reference with every
-``pulumi`` command.
+Setup instructions in these docs are designed for use with the Bourne Again SHell (Bash). The Pulumi installer places
+the ``pulumi`` executable in a hidden folder in your home directory: ``~/.pulumi/bin``. The installer will add this to
+your default ``$PATH`` for you, but only on certain supported shells. If you use an alternative shell, you may need to
+do this step manually to avoid having to make an explicit path reference for every ``pulumi`` command.
