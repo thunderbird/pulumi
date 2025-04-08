@@ -32,13 +32,19 @@ class ThunderbirdPulumiProject:
 
     def __init__(self, protected_stacks: list[str] = DEFAULT_PROTECTED_STACKS):
         # General runtime data
-        self.project: str = pulumi.get_project()  #: Name of the Pulumi project
-        self.stack: str = pulumi.get_stack()  #: Name of the Pulumi stack
-        self.name_prefix: str = f'{self.project}-{self.stack}'  #: Convenience prefix for naming resources consistently
+
+        #: Name of the Pulumi project
+        self.project: str = pulumi.get_project()
+        #: Name of the Pulumi stack
+        self.stack: str = pulumi.get_stack()
+        #: Convenience prefix for naming resources consistently
+        self.name_prefix: str = f'{self.project}-{self.stack}'
+        #: List of stacks to apply resource deletion protection to
         self.protected_stacks: list[str] = protected_stacks
         #: Pulumi configuration data referencing Pulumi.stack.yaml
         self.pulumi_config: pulumi.config.Config = pulumi.Config()
-        self.resources: dict = {}  #: Pulumi Resource objects managed by this project
+        #: Pulumi Resource objects managed by this project
+        self.resources: dict = {}
 
         # Some machines can't run a getlogin(), which is the preferred method, but we support some others
         try:
@@ -128,7 +134,7 @@ class ThunderbirdPulumiProject:
                     --region $your_region_here \\
                     --filters 'Key=Name,Values=/aws/service/ami-amazon-linux-latest/' \\
                     --query 'Parameters[*].Name' |
-                    sed 's/\/aws\/service\/ami-amazon-linux-latest\///g'
+                    sed 's/\\/aws\\/service\\/ami-amazon-linux-latest\\///g'
 
             Defaults to `al2023-ami-minimal-kernel-6.1-x86_64`.
         :type name_alias: str, optional
