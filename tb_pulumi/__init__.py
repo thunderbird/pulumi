@@ -34,17 +34,17 @@ class ThunderbirdPulumiProject:
         # General runtime data
 
         #: Name of the Pulumi project
-        self.project: str = pulumi.get_project()  
+        self.project: str = pulumi.get_project()
         #: Name of the Pulumi stack
-        self.stack: str = pulumi.get_stack()  
+        self.stack: str = pulumi.get_stack()
         #: Convenience prefix for naming resources consistently
-        self.name_prefix: str = f'{self.project}-{self.stack}' 
+        self.name_prefix: str = f'{self.project}-{self.stack}'
         #: List of stacks to apply resource deletion protection to
-        self.protected_stacks: list[str] = protected_stacks 
+        self.protected_stacks: list[str] = protected_stacks
         #: Pulumi configuration data referencing Pulumi.stack.yaml
         self.pulumi_config: pulumi.config.Config = pulumi.Config()
         #: Pulumi Resource objects managed by this project
-        self.resources: dict = {}  
+        self.resources: dict = {}
 
         # Some machines can't run a getlogin(), which is the preferred method, but we support some others
         try:
