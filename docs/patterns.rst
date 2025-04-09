@@ -37,23 +37,29 @@ pre-existence of some other patterns. For example, most services will require so
 operate within. Thus, your infrastructure stack will usually begin with a :py:class:`tb_pulumi.network.MultiCidrVpc` to
 establish the network layout.
 
-The resources built by that class will become available as members of its ``resources`` dict. For example:
+The resources built by that class will become available as members of its ``resources`` dict. The values in these dicts
+are all Pulumi Resource objects, but you'll have to wait until the component resource is applied to access them. The
+simplest way to do this is to create a Pulumi output out of all the resources in the ThunderbirdComponentResource.
+
+In this example, we build a SecretsManagerSecret, which contains both a Secret and a SecretVersion resource. We wait on
+all resources in the secret to be applied, then return the ARN of the secret.
 
 .. code-block:: python
    :linenos:
 
-   vpc = tb_pulumi.network.MultiCidrVpc(
-      'my-vpc',
-      various_options=various_values,
-      # ...
+   secret = tb_pulumi.secrets.SecretsManagerSecret(
+      name='mysecretname',
+      secret_name='app/env/mysecret',
+      secret_value='super duper secret',
    )
 
-   # Print the VPC ID
-   pulumi.info(f'VPC ID: {vpc.resources["vpc"].id}')'
+   secret_arn = pulumi.Output.all(**secret.resources).apply(
+      lambda resources: resources['secret'].arn
+   )
 
-.. note::
-   The outputs and resources for each class are poorly documented right now. The `need for improvment
-   <https://github.com/thunderbird/pulumi/issues/75>`_ is noted.
+The resources produced by each pattern are documented alongside those classes. For example, the
+:py:class:`tb_pulumi.secrets.SecretsManagerSecret` documentation lists the ``'secret'`` resource and links to the
+Pulumi documentation for that resource type so you can learn about their properties.
 
 In the above example, we build a single component resource by pulling its config out by name. But in some cases, you may
 wish to build multiple instances of one pattern based upon the YAML config. Consider a very frequently appearing

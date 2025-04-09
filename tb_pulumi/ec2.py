@@ -79,7 +79,6 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         listener_port: int,
         subnets: list[str],
         target_port: int,
-        exclude_from_project: bool = False,
         ingress_cidrs: list[str] = None,
         internal: bool = True,
         ips: list[str] = [],
@@ -88,6 +87,10 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         tags: dict = {},
         **kwargs,
     ):
+        if 'exclude_from_project' in kwargs:
+            exclude_from_project = kwargs['exclude_from_project'] or False
+            del kwargs['exclude_from_project']
+
         super().__init__(
             'tb:ec2:NetworkLoadBalancer',
             name=name,

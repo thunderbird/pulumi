@@ -165,6 +165,9 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
     :param exclude_from_project: When ``True`` , this prevents this component resource from being registered directly
         with the project. This does not prevent the component resource from being discovered by the project's
         ``flatten`` function, provided that it is nested within some resource that is not excluded from the project.
+        This option largely pertains to the ability to debug resources after they have been applied, and is not
+        something most users need worry themselves with. When developing a ThunderbirdComponentResource that includes
+        other ThunderbirdComponentResources, the child resources should have this set to `True`. Defaults to ``False``.
     :type exclude_from_project: bool, optional
 
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
