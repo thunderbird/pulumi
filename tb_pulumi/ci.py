@@ -160,7 +160,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                                 'ecr:PutImage',
                             ],
                             'Resource': [
-                                f'arn:aws:ecr:{project.aws_region}:{project.aws_account_id}:repository/{repo}'
+                                f'arn:aws:ecr:{project.aws_region}:{project.aws_account_id}:repository/{repo}*'
                                 for repo in ecr_repositories
                             ],
                         },
