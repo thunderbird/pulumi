@@ -324,6 +324,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Fargate Service
+        service_depends_on = [item for item in [cluster, fargate_service_alb, task_definition_res] if item is not None]
         service = aws.ecs.Service(
             f'{name}-service',
             name=name,
@@ -339,7 +340,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
             },
             task_definition=task_definition_res,
             tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[cluster, fargate_service_alb, task_definition_res]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=service_depends_on),
         )
 
         self.finish(
