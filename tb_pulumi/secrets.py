@@ -56,10 +56,7 @@ class SecretsManagerSecret(tb_pulumi.ThunderbirdComponentResource):
         tags: dict = {},
         **kwargs,
     ):
-        if 'exclude_from_project' in kwargs:
-            exclude_from_project = kwargs.pop('exclude_from_project', False)
-        else:
-            exclude_from_project = False
+        exclude_from_project = kwargs.pop('exclude_from_project', False)
 
         super().__init__(
             'tb:secrets:SecretsManagerSecret',
