@@ -49,6 +49,10 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         Fargate-backed containers to talk out to the net. Defaults to False.
     :type assign_public_ip: bool, optional
 
+    :param build_load_balancer: When True, an Application Load Balancer will be created to route traffic to your Fargate
+        containers. Defaults to True.
+    :type build_load_balancer: bool, optional
+
     :param container_security_groups: List of security group IDs which will attach to the containers/tasks running in
         this cluster. Defaults to [].
     :type container_security_groups: list[str], optional
@@ -119,6 +123,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         subnets: list[str],
         assign_public_ip: bool = False,
+        build_load_balancer: bool = True,
         container_security_groups: list[str] = [],
         desired_count: int = 1,
         ecr_resources: list = ['*'],
@@ -287,28 +292,36 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         # dependent upon load balancers, not the other way around, since it must manipulate their configs to match the
         # IP addresses of the running containers.
         fsalb_name = f'{name}-fargateservicealb'
-        fargate_service_alb = FargateServiceAlb(
-            fsalb_name,
-            project,
-            subnets=subnets,
-            exclude_from_project=True,
-            internal=internal,
-            security_groups=load_balancer_security_groups,
-            services=services,
-            opts=pulumi.ResourceOptions(parent=self),
-            tags=self.tags,
+        fargate_service_alb = (
+            FargateServiceAlb(
+                fsalb_name,
+                project,
+                subnets=subnets,
+                exclude_from_project=True,
+                internal=internal,
+                security_groups=load_balancer_security_groups,
+                services=services,
+                opts=pulumi.ResourceOptions(parent=self),
+                tags=self.tags,
+            )
+            if build_load_balancer
+            else None
         )
 
         # We only need one Fargate Service config, but that might have multiple load balancer
         # configs. Build those now.
-        lb_configs = [
-            {
-                'targetGroupArn': fargate_service_alb.resources['target_groups'][svc_name].arn,
-                'containerName': svc['container_name'],
-                'containerPort': svc['container_port'],
-            }
-            for svc_name, svc in services.items()
-        ]
+        lb_configs = (
+            [
+                {
+                    'targetGroupArn': fargate_service_alb.resources['target_groups'][svc_name].arn,
+                    'containerName': svc['container_name'],
+                    'containerPort': svc['container_port'],
+                }
+                for svc_name, svc in services.items()
+            ]
+            if build_load_balancer
+            else None
+        )
 
         # Fargate Service
         service = aws.ecs.Service(
