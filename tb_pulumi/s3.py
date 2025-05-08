@@ -1,10 +1,13 @@
 """Infrastructural patterns related to `AWS S3 <https://docs.aws.amazon.com/s3/>`_."""
 
 import json
+import mimetypes
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
 import tb_pulumi.constants
+
+from pathlib import Path
 
 
 class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
@@ -61,7 +64,15 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
         tags: dict = {},
         **kwargs,
     ):
-        super().__init__('tb:s3:S3Bucket', name=name, project=project, opts=opts, tags=tags)
+        exclude_from_project = kwargs.pop('exclude_from_project', False)
+        super().__init__(
+            'tb:s3:S3Bucket',
+            name=name,
+            project=project,
+            exclude_from_project=exclude_from_project,
+            opts=opts,
+            tags=tags,
+        )
 
         bucket = aws.s3.BucketV2(
             f'{self.name}-s3', bucket=bucket_name, tags=self.tags, opts=pulumi.ResourceOptions(parent=self), **kwargs
@@ -126,8 +137,12 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
     :param bucket_name: The name of the S3 bucket to host a public website in.
     :type bucket_name: str
 
-    :param object_dir: The path to a directory containing files which should be uploaded to the bucket. **These files will
-        all be publicly accessible. Do not ever indicate files which contain sensitive data.** Defaults to None.
+    :param website_config: A dict of options describing a `BucketWebsiteConfigurationV2 resource
+        <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketwebsiteconfigurationv2/#inputs>`_ .
+    :type website_config: dict
+
+    :param object_dir: The path to a directory containing files which should be uploaded to the bucket. **These files
+        will all be publicly accessible. Do not ever indicate files which contain sensitive data.** Defaults to None.
     :type str: str, optional
 
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
@@ -146,6 +161,7 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         bucket_name: str,
+        website_config: dict,
         object_dir: str = None,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
@@ -154,15 +170,38 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
         super().__init__('tb:s3:S3BucketWebsite', name=name, project=project, opts=opts, tags=tags)
 
         bucket = S3Bucket(
-            name=f'{name}-bucket',
+            f'{name}-bucket',
             project=project,
-            acl='public-read',
             bucket_name=bucket_name,
             enable_server_side_encryption=False,
             enable_versioning=False,
             exclude_from_project=True,
-            tags=tags,
+            tags=self.tags,
             opts=pulumi.ResourceOptions(parent=self),
+        )
+
+        # Required or else we can't place an ACL on the bucket
+        bucket_oc = aws.s3.BucketOwnershipControls(
+            f'{name}-bucket-oc',
+            bucket=bucket_name,
+            rule={'objectOwnership': 'ObjectWriter'},
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
+        )
+
+        # Required or else we can't apply ACLs or a bucket policy, which are required elements of an S3 website
+        bucket_pab = aws.s3.BucketPublicAccessBlock(
+            f'{name}-bucket-pab',
+            bucket=bucket_name,
+            block_public_acls=False,
+            block_public_policy=False,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
+        )
+
+        bucket_acl = aws.s3.BucketAclV2(
+            f'{name}-bucket-acl',
+            bucket=bucket_name,
+            acl='public-read',
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket, bucket_oc, bucket_pab]),
         )
 
         policy_json = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
@@ -174,9 +213,47 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
             'Resource': [f'arn:aws:s3:::{bucket_name}/*'],
         }
         policy_json = json.dumps(policy_json)
-        policy = aws.s3.BucketPolicy(name=f'{name}-policy', bucket=bucket_name, policy=policy_json)
+        policy = aws.s3.BucketPolicy(
+            f'{name}-policy',
+            bucket=bucket_name,
+            policy=policy_json,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket, bucket_oc, bucket_pab]),
+        )
 
         if object_dir:
-            
+            # Discover files to upload
+            local_root = Path(object_dir)
+            local_files = [file for file in local_root.glob('**') if file.is_file()]
 
-        self.finish(resources={'bucket': bucket, 'policy': policy})
+            # Create object for each file
+            s3_objects = {
+                str(file): aws.s3.BucketObjectv2(
+                    f'{name}-object-{str(file).replace("/", "_").replace("-", "_").replace(".", "_")}',
+                    bucket=bucket_name,
+                    content_type=mimetypes.guess_file_type(str(file))[0] or 'text/plain',
+                    key=str(file).replace(str(local_root), ''),
+                    source=pulumi.asset.FileAsset(file),
+                    tags=self.tags,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
+                )
+                for file in local_files
+            }
+
+        website = aws.s3.BucketWebsiteConfigurationV2(
+            f'{name}-website',
+            bucket=bucket_name,
+            **website_config,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
+        )
+
+        self.finish(
+            resources={
+                'bucket': bucket,
+                'bucket_acl': bucket_acl,
+                'bucket_oc': bucket_oc,
+                'bucket_pab': bucket_pab,
+                'policy': policy,
+                's3_objects': s3_objects,
+                'website': website,
+            }
+        )
