@@ -1,8 +1,10 @@
 """Infrastructural patterns related to `AWS S3 <https://docs.aws.amazon.com/s3/>`_."""
 
+import json
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
+import tb_pulumi.constants
 
 
 class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
@@ -96,3 +98,85 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
         self.finish(
             resources={'bucket': bucket, 'encryption_config': encryption_config, 'versioning_config': versioning_config}
         )
+
+
+class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:s3:S3BucketWebsite``
+
+    Builds an S3 bucket and sets up a **public access** static website from its contents.
+
+    Produces the following ``resources``:
+
+        - **bucket** - A :py:class:`tb_pulumi.s3.S3Bucket` to host the static files.
+        - **objects** - A dict where the keys are files discovered in the ``content_dir`` local directory and the values
+          are `aws.s3.BucketObjectv2 <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketobjectv2/>`_ s.
+        - **policy** - An `aws.s3.BucketPolicy
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpolicy/#inputs>`_ allowing public read access
+          to the bucket contents.
+        - **website** - An `aws.s3.BucketWebsiteConfigurationV2
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketwebsiteconfigurationv2/>`_ defining the
+          operating parameters of the website.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param bucket_name: The name of the S3 bucket to host a public website in.
+    :type bucket_name: str
+
+    :param object_dir: The path to a directory containing files which should be uploaded to the bucket. **These files will
+        all be publicly accessible. Do not ever indicate files which contain sensitive data.** Defaults to None.
+    :type str: str, optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+
+    :param kwargs: Additional arguments to pass into the `aws.s3.S3BucketV2
+        <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketv2/>`_ constructor.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        bucket_name: str,
+        object_dir: str = None,
+        opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
+        **kwargs,
+    ):
+        super().__init__('tb:s3:S3BucketWebsite', name=name, project=project, opts=opts, tags=tags)
+
+        bucket = S3Bucket(
+            name=f'{name}-bucket',
+            project=project,
+            acl='public-read',
+            bucket_name=bucket_name,
+            enable_server_side_encryption=False,
+            enable_versioning=False,
+            exclude_from_project=True,
+            tags=tags,
+            opts=pulumi.ResourceOptions(parent=self),
+        )
+
+        policy_json = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
+        policy_json['Statement'][0] = {
+            'Sid': 'PublicReadGetObject',
+            'Effect': 'Allow',
+            'Principal': '*',
+            'Action': ['s3:GetObject'],
+            'Resource': [f'arn:aws:s3:::{bucket_name}/*'],
+        }
+        policy_json = json.dumps(policy_json)
+        policy = aws.s3.BucketPolicy(name=f'{name}-policy', bucket=bucket_name, policy=policy_json)
+
+        if object_dir:
+            
+
+        self.finish(resources={'bucket': bucket, 'policy': policy})
