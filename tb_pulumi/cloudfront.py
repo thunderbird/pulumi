@@ -67,7 +67,6 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-
         exclude_from_project = kwargs.pop('exclude_from_project', False)
         super().__init__(
             'tb:cloudfront:CloudFrontS3Service',

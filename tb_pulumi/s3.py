@@ -149,6 +149,14 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
     Produces the following ``resources``:
 
         - **bucket** - A :py:class:`tb_pulumi.s3.S3Bucket` to host the static files.
+        - **bucket_acl** - An `aws.s3.BucketAclV2
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketaclv2/>`_ describing public read access.
+        - **bucket_oc** - An `aws.s3.BucketOwnershipControls
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketownershipcontrols/>`_ describing how object
+          ownership works.
+        - **bucket_pab** - An `aws.s3.BucketPublicAccessBlock
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpublicaccessblock/>`_ which disables the
+          blocks on public access.
         - **objects** - A dict where the keys are files discovered in the ``content_dir`` local directory and the values
           are `aws.s3.BucketObjectv2 <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketobjectv2/>`_ s.
         - **policy** - An `aws.s3.BucketPolicy
