@@ -45,7 +45,8 @@ class ThunderbirdPulumiProject:
         #: Pulumi Resource objects managed by this project
         self.resources: dict = {}
 
-        self.common_tags: dict = {  #: Tags to apply to all taggable resources
+        #: Tags to apply to all taggable resources
+        self.common_tags: dict = {
             'environment': self.stack,
             'project': self.project,
             'pulumi_project': self.project,
