@@ -130,12 +130,40 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
             **distribution,
         )
 
+        # Create a policy allowing cache invalidation of this distro
+        invalidation_policy_json = cloudfront_distribution.arn.apply(
+            lambda distro_arn: json.dumps(
+                {
+                    'Version': '2012-10-17',
+                    'Id': 'CacheInvalidation',
+                    'Statement': [
+                        {
+                            'Sid': 'InvalidateDistroCache',
+                            'Effect': 'Allow',
+                            'Action': ['cloudfront:CreateInvalidation'],
+                            'Resource': [distro_arn],
+                        }
+                    ],
+                }
+            )
+        )
+
+        invalidation_policy = aws.iam.Policy(
+            f'{name}-policy-invalidation',
+            name=f'{name}-cache-invalidation',
+            description=f'Allows for the invalidation of CDN cache for CloudFront distribution {name}',
+            policy=invalidation_policy_json,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[cloudfront_distribution]),
+            tags=self.tags,
+        )
+
         self.finish(
             resources={
-                'logging_bucket': logging_bucket,
-                'logging_bucket_ownership': logging_bucket_ownership,
-                'logging_bucket_acl': logging_bucket_acl,
                 'cloudfront_distribution': cloudfront_distribution,
+                'invalidation_policy': invalidation_policy,
+                'logging_bucket': logging_bucket,
+                'logging_bucket_acl': logging_bucket_acl,
+                'logging_bucket_ownership': logging_bucket_ownership,
             }
         )
 
