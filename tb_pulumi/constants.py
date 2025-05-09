@@ -6,6 +6,10 @@ ASSUME_ROLE_POLICY = {
     'Statement': [{'Sid': '', 'Effect': 'Allow', 'Principal': {'Service': None}, 'Action': 'sts:AssumeRole'}],
 }
 
+CLOUDFRONT_CACHE_POLICY_ID_OPTIMIZED = '658327ea-f89d-4fab-a63d-7e88639e58f6'  # "Managed-CachingOptimized" policy
+CLOUDFRONT_CACHE_POLICY_ID_DISABLED = '4135ea2d-6df8-44a3-9df3-4b5a84be39ad'  # "Managed-CachingDisabled" policy
+CLOUDFRONT_ORIGIN_REQUEST_POLICY_ID_ALLVIEWER = '216adef6-5c7f-47e4-b989-5492eafa07d3'  # "Managed-AllViewer" policy
+
 #: Most common settings for Cloudwatch metric alarms
 CLOUDWATCH_METRIC_ALARM_DEFAULTS = {
     'enabled': True,

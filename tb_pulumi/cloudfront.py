@@ -7,10 +7,114 @@ import pulumi
 import pulumi_aws as aws
 import tb_pulumi
 
+from tb_pulumi.constants import CLOUDFRONT_CACHE_POLICY_ID_OPTIMIZED
 
-CACHE_POLICY_ID_OPTIMIZED = '658327ea-f89d-4fab-a63d-7e88639e58f6'  # "Managed-CachingOptimized" policy
-CACHE_POLICY_ID_DISABLED = '4135ea2d-6df8-44a3-9df3-4b5a84be39ad'  # "Managed-CachingDisabled" policy
-ORIGIN_REQUEST_POLICY_ID_ALLVIEWER = '216adef6-5c7f-47e4-b989-5492eafa07d3'  # "Managed-AllViewer" policy
+
+class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:cloudfront:CloudFrontDistribution``
+
+    Builds a CloudFront Distribution with logging to an S3 bucket.
+
+    Produces the following ``resources``:
+
+        - *cloudfront_distribution* - `aws.cloudfront.Distribution
+          <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/>`_ that serves the service
+          bucket content over a CDN and produces output logs in the logging bucket.
+        - *invalidation_policy* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
+          that allows an IAM entity to create cache invalidations in the CloudFront Distribution, which must be done
+          when the contents of the service bucket are updated. This is not attached to any entities; it exists for
+          developer use when setting up CI flows.
+        - *logging_bucket* - `aws.s3.Bucket <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucket/>`_ in
+          which to store the access logs for the service bucket.
+        - *logging_bucket_acl* - `aws.s3.BucketAclV2
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketaclv2/>`_ allowing CloudFront to control the
+          logging bucket via the AWS account's canonical user.
+        - *logging_bucket_ownership* - `aws.s3.BucketOwnershipControls
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketownershipcontrols/>`_ which allow CloudFront
+          to upload logs into the logging bucket.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        certificate_arn: str,
+        logging_bucket_name: str,
+        distribution: dict = {},
+        forcibly_destroy_bucket: bool = False,
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        exclude_from_project = kwargs.pop('exclude_from_project', False)
+        super().__init__(
+            'tb:cloudfront:CloudFrontS3Service',
+            name=name,
+            project=project,
+            exclude_from_project=exclude_from_project,
+            opts=opts,
+            **kwargs,
+        )
+
+        # S3 bucket to store access logs from CloudFront
+        logging_bucket = aws.s3.Bucket(
+            f'{name}-loggingbucket',
+            bucket=logging_bucket_name,
+            force_destroy=forcibly_destroy_bucket,
+            server_side_encryption_configuration={
+                'rule': {'applyServerSideEncryptionByDefault': {'sseAlgorithm': 'AES256'}, 'bucket_key_enabled': True}
+            },
+            opts=pulumi.ResourceOptions(parent=self),
+            tags=self.tags,
+        )
+
+        logging_bucket_ownership = aws.s3.BucketOwnershipControls(
+            f'{name}-bucketownership',
+            bucket=logging_bucket.id,
+            rule={'object_ownership': 'BucketOwnerPreferred'},
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket]),
+        )
+
+        canonical_user = aws.s3.get_canonical_user_id().id
+        logging_bucket_acl = aws.s3.BucketAclV2(
+            f'{name}-bucketacl',
+            bucket=logging_bucket.id,
+            access_control_policy={
+                'grants': [
+                    {
+                        'grantee': {'type': 'CanonicalUser', 'id': canonical_user},
+                        'permission': 'FULL_CONTROL',
+                    }
+                ],
+                'owner': {'id': canonical_user},
+            },
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket, logging_bucket_ownership]),
+        )
+
+        # Merge logging settings from the config file with this generated bucket name
+        logging_config = {'bucket': logging_bucket.bucket_domain_name}
+        __config = distribution.pop('logging_config', None)
+        if __config:
+            logging_config.update(__config)
+
+        cloudfront_distribution = aws.cloudfront.Distribution(
+            f'{name}-cfdistro',
+            logging_config=logging_config,
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(
+                parent=self,
+                depends_on=[logging_bucket],
+            ),
+            **distribution,
+        )
+
+        self.finish(
+            resources={
+                'logging_bucket': logging_bucket,
+                'logging_bucket_ownership': logging_bucket_ownership,
+                'logging_bucket_acl': logging_bucket_acl,
+                'cloudfront_distribution': cloudfront_distribution,
+            }
+        )
 
 
 class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
@@ -50,7 +154,9 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
-    :param certificate_arn: The ARN of the ACM certificate used for TLS in this distribution.
+    :param certificate_arn: The ARN of the ACM certificate used for TLS in this distribution. `AWS CloudFront
+        <https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cnames-and-https-requirements.html#https-requirements-aws-region>`_
+        requires that this certificate exist in the ``us-east-1`` region.
     :type certificate_arn: str
 
     :param service_bucket_name: The name of the S3 bucket to store the static content in. This must be globally unique
@@ -62,6 +168,9 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorderedcachebehavior>`_
         objects. Defaults to [].
     :type behaviors: list[dict], optional
+
+    :param default_function_associations: Defines the function associations for the default cache behavior.
+    :type default_function_associations: list[dict]
 
     :param distribution: Additional parameters to pass to the `aws.cloudfront.Distribution constructor
         <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution>`_. Defaults to {}.
@@ -184,7 +293,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             default_cache_behavior={
                 'allowed_methods': ['HEAD', 'DELETE', 'POST', 'GET', 'OPTIONS', 'PUT', 'PATCH'],
                 'cached_methods': ['HEAD', 'GET'],
-                'cache_policy_id': CACHE_POLICY_ID_OPTIMIZED,
+                'cache_policy_id': CLOUDFRONT_CACHE_POLICY_ID_OPTIMIZED,
                 'compress': True,
                 'function_associations': default_function_associations,
                 'target_origin_id': bucket_regional_domain_name,
@@ -192,7 +301,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             },
             enabled=True,
             logging_config=logging_config,
-            ordered_cache_behaviors=behaviors,
             origins=all_origins,
             restrictions={'geo_restriction': {'restriction_type': 'none'}},
             viewer_certificate={

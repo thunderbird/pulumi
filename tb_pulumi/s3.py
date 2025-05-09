@@ -42,6 +42,10 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
     :param enable_versioning: Enables versioning on bucket object. Defaults to False.
     :type enable_versioning: bool, optional
 
+    :param object_dir: The path to a directory containing files which should be uploaded to the bucket. **These files
+        will all be publicly accessible. Do not ever indicate files which contain sensitive data.** Defaults to None.
+    :type str: str, optional
+
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
@@ -60,6 +64,7 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
         bucket_name: str,
         enable_server_side_encryption: bool = True,
         enable_versioning: bool = False,
+        object_dir: str = None,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
         **kwargs,
@@ -106,8 +111,33 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
             else None
         )
 
+        s3_objects = {}
+        if object_dir:
+            # Discover files to upload
+            local_root = Path(object_dir)
+            local_files = [file for file in local_root.glob('**') if file.is_file()]
+
+            # Create object for each file
+            s3_objects = {
+                str(file): aws.s3.BucketObjectv2(
+                    f'{name}-object-{str(file).replace("/", "_").replace("-", "_").replace(".", "_")}',
+                    bucket=bucket_name,
+                    content_type=mimetypes.guess_file_type(str(file))[0] or 'text/plain',
+                    key=str(file).replace(str(local_root), ''),
+                    source=pulumi.asset.FileAsset(file),
+                    tags=self.tags,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
+                )
+                for file in local_files
+            }
+
         self.finish(
-            resources={'bucket': bucket, 'encryption_config': encryption_config, 'versioning_config': versioning_config}
+            resources={
+                'bucket': bucket,
+                'encryption_config': encryption_config,
+                's3_objects': s3_objects,
+                'versioning_config': versioning_config,
+            }
         )
 
 
@@ -141,10 +171,6 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
         <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketwebsiteconfigurationv2/#inputs>`_ .
     :type website_config: dict
 
-    :param object_dir: The path to a directory containing files which should be uploaded to the bucket. **These files
-        will all be publicly accessible. Do not ever indicate files which contain sensitive data.** Defaults to None.
-    :type str: str, optional
-
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
@@ -152,8 +178,7 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
         Defaults to {}.
     :type tags: dict, optional
 
-    :param kwargs: Additional arguments to pass into the `aws.s3.S3BucketV2
-        <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketv2/>`_ constructor.
+    :param kwargs: Additional arguments to pass into the :py:class:`S3Bucket` constructor.
     """
 
     def __init__(
@@ -162,7 +187,6 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         bucket_name: str,
         website_config: dict,
-        object_dir: str = None,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
         **kwargs,
@@ -178,6 +202,7 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
             exclude_from_project=True,
             tags=self.tags,
             opts=pulumi.ResourceOptions(parent=self),
+            **kwargs,
         )
 
         # Required or else we can't place an ACL on the bucket
@@ -220,25 +245,6 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket, bucket_oc, bucket_pab]),
         )
 
-        if object_dir:
-            # Discover files to upload
-            local_root = Path(object_dir)
-            local_files = [file for file in local_root.glob('**') if file.is_file()]
-
-            # Create object for each file
-            s3_objects = {
-                str(file): aws.s3.BucketObjectv2(
-                    f'{name}-object-{str(file).replace("/", "_").replace("-", "_").replace(".", "_")}',
-                    bucket=bucket_name,
-                    content_type=mimetypes.guess_file_type(str(file))[0] or 'text/plain',
-                    key=str(file).replace(str(local_root), ''),
-                    source=pulumi.asset.FileAsset(file),
-                    tags=self.tags,
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
-                )
-                for file in local_files
-            }
-
         website = aws.s3.BucketWebsiteConfigurationV2(
             f'{name}-website',
             bucket=bucket_name,
@@ -253,7 +259,6 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
                 'bucket_oc': bucket_oc,
                 'bucket_pab': bucket_pab,
                 'policy': policy,
-                's3_objects': s3_objects,
                 'website': website,
             }
         )
