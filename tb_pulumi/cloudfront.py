@@ -32,19 +32,42 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         - *logging_bucket_ownership* - `aws.s3.BucketOwnershipControls
           <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketownershipcontrols/>`_ which allow CloudFront
           to upload logs into the logging bucket.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param logging_bucket_name: Name of the S3 bucket which holds access logs for the distribution.
+    :type logging_bucket_name: str
+
+    :param distribution: A mapping of `CloudFront Distribution Resource inputs
+        <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#inputs>`_ . Defaults to {}.
+    :type distribution: dict, optional
+
+    :param forcibly_destroy_bucket: When True, pulumi actions which destroy the logging bucket will cause the bucket to
+        be fully emptied beforehand, **permanently destroying all data in the bucket**. Defaults to False.
+    :type forcibly_destroy_bucket: bool, optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the ``ThunderbirdComponentResource``
+        resource.
     """
 
     def __init__(
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
-        certificate_arn: str,
         logging_bucket_name: str,
         distribution: dict = {},
         forcibly_destroy_bucket: bool = False,
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
+
         exclude_from_project = kwargs.pop('exclude_from_project', False)
         super().__init__(
             'tb:cloudfront:CloudFrontS3Service',
@@ -154,7 +177,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
-    :param certificate_arn: The ARN of the ACM certificate used for TLS in this distribution. `AWS CloudFront
+    :param certificate_arn: The ARN of the ACM certificate used for TLS in this distribution. `AWS CloudFront SSL
         <https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cnames-and-https-requirements.html#https-requirements-aws-region>`_
         requires that this certificate exist in the ``us-east-1`` region.
     :type certificate_arn: str
