@@ -115,7 +115,7 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         #     pulumi.info(f'Resource: {res}')
         # pulumi.info(f'Supported resources: {self.supported_resources}')
 
-        for res in self.supported_resources:
+        for res in set(self.supported_resources):
             shortname = res._name.replace(f'{self.project.name_prefix}-', '')  # Make this name shorter, less redundant
             alarms[res._name] = self.type_map[type(res)](
                 name=f'{self.name}-{shortname}',
