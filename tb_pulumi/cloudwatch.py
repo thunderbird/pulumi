@@ -171,6 +171,7 @@ class LoadBalancerAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         resource.load_balancer_type.apply(lambda lb_type: self.__build_alarm_group(lb_type))
 
     def __build_alarm_group(self, lb_type: str):
+        # ALBs have some useful metrics for alarms, but NLBs do not. Therefore, we don't do anything for NLBs.
         if lb_type == 'application':
             self.alarm_group = AlbAlarmGroup(
                 name=self.name,
@@ -622,7 +623,11 @@ class Ec2InstanceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
     A set of alarms for EC2 instances. Contains the following configurable alarms:
 
+        - ``cpu_credit_balance``: Alarms if your instance is low on CPU credits.
         - ``cpu_utilization``: Alarms on the percentage of CPU time the instance is using.
+        - ``ebs_status_failed``: Alarms if the EBS volume status check fails.
+        - ``instance_status_failed``: Alarms if the EC2 instance status check fails.
+        - ``system_status_failed``: Alarms if the system status check fails.
 
     Further detail on these metrics and more can be found on `Amazon's documentation
     <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html>_`.
