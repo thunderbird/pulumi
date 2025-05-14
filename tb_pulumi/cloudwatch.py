@@ -60,8 +60,7 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         type_map = {
             aws.ec2.Instance: Ec2InstanceAlarmGroup,
             aws.lb.load_balancer.LoadBalancer: LoadBalancerAlarmGroup,
-            aws.alb.target_group.TargetGroup: AlbTargetGroupAlarmGroup,
-            aws.lb.target_group.TargetGroup: AlbTargetGroupAlarmGroup,
+            aws.lb.target_group.TargetGroup: LbTargetGroupAlarmGroup,
             aws.cloudfront.Distribution: CloudFrontDistributionAlarmGroup,
             aws.cloudfront.Function: CloudFrontFunctionAlarmGroup,
             aws.ecs.Service: EcsServiceAlarmGroup,
@@ -331,10 +330,10 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         )
 
 
-class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
-    """**Pulumi Type:** ``tb:cloudwatch:CloudFrontDistributionAlarmGroup``
+class LbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """**Pulumi Type:** ``tb:cloudwatch:LbTargetGroupAlarmGroup``
 
-    A set of alarms for ALB target groups. Contains the following configurable alarms:
+    A set of alarms for EC2 load balancer target groups. Contains the following configurable alarms:
 
         - ``unhealthy_hosts``: Alarms on the number of unhealthy hosts in a target group. Defaults to alarm when the
           average of unhealthy hosts is over 1 in 1 minute.
@@ -342,7 +341,7 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     Further detail on these metrics and others can be found within `Amazon's Target Group metric documentation
     <https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html#target-metric-table>`_.
 
-    :param name: The name of the the ``AlbTargetGroupAlarmGroup`` resource.
+    :param name: The name of the the ``LbTargetGroupAlarmGroup`` resource.
     :type name: str
 
     :param project: The ``ThunderbirdPulumiProject`` being monitored.
@@ -371,7 +370,7 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         **kwargs,
     ):
         super().__init__(
-            pulumi_type='tb:cloudwatch:AlbTargetGroupAlarmGroup',
+            pulumi_type='tb:cloudwatch:LbTargetGroupAlarmGroup',
             name=name,
             monitoring_group=monitoring_group,
             project=project,
