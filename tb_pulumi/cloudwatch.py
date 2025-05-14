@@ -371,7 +371,7 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         **kwargs,
     ):
         super().__init__(
-            pulumi_type='tb:cloudwatch:CloudFrontDistributionAlarmGroup',
+            pulumi_type='tb:cloudwatch:AlbTargetGroupAlarmGroup',
             name=name,
             monitoring_group=monitoring_group,
             project=project,
@@ -381,12 +381,12 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         )
 
         # Alert if there are unhealthy hosts
-        unhealth_hosts_name = 'unhealthy_hosts'
+        unhealthy_hosts_name = 'unhealthy_hosts'
         unhealthy_hosts_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
-        unhealthy_hosts_opts.update({'threshold': 1, **self.overrides.get(unhealth_hosts_name, {})})
+        unhealthy_hosts_opts.update({'threshold': 1, **self.overrides.get(unhealthy_hosts_name, {})})
         unhealthy_hosts_enabled = unhealthy_hosts_opts['enabled']
         del unhealthy_hosts_opts['enabled']
-        unhealthy_hosts_tags = {'tb_pulumi_alarm_name': unhealth_hosts_name}
+        unhealthy_hosts_tags = {'tb_pulumi_alarm_name': unhealthy_hosts_name}
         unhealthy_hosts_tags.update(self.tags)
 
         # TargetGroups can be attached to multiple LBs. This metric depends on "ARN suffixes" (a special ID that
@@ -408,10 +408,10 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             else []
         )
 
-        self.finish(outputs={}, resources={unhealth_hosts_name: unhealthy_hosts})
+        self.finish(outputs={}, resources={unhealthy_hosts_name: unhealthy_hosts})
 
     def __unhealthy_hosts(self, target_group_arn: str, target_group_arn_suffix: str, alarm_opts: dict, tags: dict):
-        target_group = aws.lb.TargetGroup.get('tg', id=target_group_arn)
+        target_group = aws.lb.TargetGroup.get(f'tg-{target_group_arn_suffix}', id=target_group_arn)
         return pulumi.Output.all(tg_suffix=target_group.arn_suffix, lb_arns=target_group.load_balancer_arns).apply(
             lambda outputs: [
                 self.__unhealthy_hosts_metric_alarm(
@@ -422,7 +422,7 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
                     tags=tags,
                 )
                 for lb_suffix in [
-                    aws.lb.LoadBalancer.get(resource_name=f'lb-{idx}', id=arn_suffix).arn_suffix
+                    aws.lb.LoadBalancer.get(resource_name=f'lb-{target_group_arn_suffix}', id=arn_suffix).arn_suffix
                     for idx, arn_suffix in enumerate(outputs['lb_arns'])
                 ]
             ]
