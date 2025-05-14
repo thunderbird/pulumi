@@ -60,7 +60,8 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         type_map = {
             aws.ec2.Instance: Ec2InstanceAlarmGroup,
             aws.lb.load_balancer.LoadBalancer: LoadBalancerAlarmGroup,
-            aws.alb.target_group.TargetGroup: AlbTargetGroupAlarmGroup,
+            aws.alb.target_group.TargetGroup: LbTargetGroupAlarmGroup,
+            aws.lb.target_group.TargetGroup: LbTargetGroupAlarmGroup,
             aws.cloudfront.Distribution: CloudFrontDistributionAlarmGroup,
             aws.cloudfront.Function: CloudFrontFunctionAlarmGroup,
             aws.ecs.Service: EcsServiceAlarmGroup,
@@ -171,6 +172,7 @@ class LoadBalancerAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         resource.load_balancer_type.apply(lambda lb_type: self.__build_alarm_group(lb_type))
 
     def __build_alarm_group(self, lb_type: str):
+        # ALBs have some useful metrics for alarms, but NLBs do not. Therefore, we don't do anything for NLBs.
         if lb_type == 'application':
             self.alarm_group = AlbAlarmGroup(
                 name=self.name,
@@ -329,10 +331,10 @@ class AlbAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         )
 
 
-class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
-    """**Pulumi Type:** ``tb:cloudwatch:CloudFrontDistributionAlarmGroup``
+class LbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
+    """**Pulumi Type:** ``tb:cloudwatch:LbTargetGroupAlarmGroup``
 
-    A set of alarms for ALB target groups. Contains the following configurable alarms:
+    A set of alarms for EC2 load balancer target groups. Contains the following configurable alarms:
 
         - ``unhealthy_hosts``: Alarms on the number of unhealthy hosts in a target group. Defaults to alarm when the
           average of unhealthy hosts is over 1 in 1 minute.
@@ -340,7 +342,7 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
     Further detail on these metrics and others can be found within `Amazon's Target Group metric documentation
     <https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-cloudwatch-metrics.html#target-metric-table>`_.
 
-    :param name: The name of the the ``AlbTargetGroupAlarmGroup`` resource.
+    :param name: The name of the the ``LbTargetGroupAlarmGroup`` resource.
     :type name: str
 
     :param project: The ``ThunderbirdPulumiProject`` being monitored.
@@ -369,7 +371,7 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         **kwargs,
     ):
         super().__init__(
-            pulumi_type='tb:cloudwatch:CloudFrontDistributionAlarmGroup',
+            pulumi_type='tb:cloudwatch:LbTargetGroupAlarmGroup',
             name=name,
             monitoring_group=monitoring_group,
             project=project,
@@ -379,12 +381,12 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         )
 
         # Alert if there are unhealthy hosts
-        unhealth_hosts_name = 'unhealthy_hosts'
+        unhealthy_hosts_name = 'unhealthy_hosts'
         unhealthy_hosts_opts = CLOUDWATCH_METRIC_ALARM_DEFAULTS.copy()
-        unhealthy_hosts_opts.update({'threshold': 1, **self.overrides.get(unhealth_hosts_name, {})})
+        unhealthy_hosts_opts.update({'threshold': 1, **self.overrides.get(unhealthy_hosts_name, {})})
         unhealthy_hosts_enabled = unhealthy_hosts_opts['enabled']
         del unhealthy_hosts_opts['enabled']
-        unhealthy_hosts_tags = {'tb_pulumi_alarm_name': unhealth_hosts_name}
+        unhealthy_hosts_tags = {'tb_pulumi_alarm_name': unhealthy_hosts_name}
         unhealthy_hosts_tags.update(self.tags)
 
         # TargetGroups can be attached to multiple LBs. This metric depends on "ARN suffixes" (a special ID that
@@ -406,28 +408,29 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
             else []
         )
 
-        self.finish(outputs={}, resources={unhealth_hosts_name: unhealthy_hosts})
+        self.finish(outputs={}, resources={unhealthy_hosts_name: unhealthy_hosts})
 
     def __unhealthy_hosts(self, target_group_arn: str, target_group_arn_suffix: str, alarm_opts: dict, tags: dict):
-        target_group = aws.lb.TargetGroup.get('tg', id=target_group_arn)
+        target_group = aws.lb.TargetGroup.get(f'tg-{target_group_arn_suffix}', id=target_group_arn)
         return pulumi.Output.all(tg_suffix=target_group.arn_suffix, lb_arns=target_group.load_balancer_arns).apply(
             lambda outputs: [
                 self.__unhealthy_hosts_metric_alarm(
                     target_group=target_group,
                     tg_suffix=outputs['tg_suffix'],
-                    lb_suffix=lb_suffix,
+                    lb_suffix=lb.arn_suffix,
+                    lb_type=lb.load_balancer_type,
                     alarm_opts=alarm_opts,
                     tags=tags,
                 )
-                for lb_suffix in [
-                    aws.lb.LoadBalancer.get(resource_name=f'lb-{idx}', id=arn_suffix).arn_suffix
+                for lb in [
+                    aws.lb.LoadBalancer.get(resource_name=f'lb-{target_group_arn_suffix}', id=arn_suffix)
                     for idx, arn_suffix in enumerate(outputs['lb_arns'])
                 ]
             ]
         )
 
     def __unhealthy_hosts_metric_alarm(
-        self, target_group: str, tg_suffix: str, lb_suffix: str, alarm_opts: dict, tags: dict
+        self, target_group: str, tg_suffix: str, lb_suffix: str, lb_type: str, alarm_opts: dict, tags: dict
     ):
         # An arn_suffix looks like this: targetgroup/target_group_name/0123456789abcdef; extract that name part
         return pulumi.Output.all(tg_suffix=tg_suffix, lb_suffix=lb_suffix).apply(
@@ -438,7 +441,7 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 dimensions={'TargetGroup': outputs['tg_suffix'], 'LoadBalancer': outputs['lb_suffix']},
                 metric_name='UnHealthyHostCount',
-                namespace='AWS/ApplicationELB',
+                namespace='AWS/ApplicationELB' if lb_type == 'application' else 'AWS/NetworkELB',
                 alarm_description=f'{outputs["tg_suffix"].split("/")[1]} has detected unhealthy hosts in load balancer '
                 f'{outputs["lb_suffix"].split("/")[1]}',
                 tags=tags,
@@ -622,7 +625,11 @@ class Ec2InstanceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
 
     A set of alarms for EC2 instances. Contains the following configurable alarms:
 
+        - ``cpu_credit_balance``: Alarms if your instance is low on CPU credits.
         - ``cpu_utilization``: Alarms on the percentage of CPU time the instance is using.
+        - ``ebs_status_failed``: Alarms if the EBS volume status check fails.
+        - ``instance_status_failed``: Alarms if the EC2 instance status check fails.
+        - ``system_status_failed``: Alarms if the system status check fails.
 
     Further detail on these metrics and more can be found on `Amazon's documentation
     <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html>_`.
