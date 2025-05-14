@@ -141,7 +141,10 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
         """This function gets called only after all outputs in the project have been resolved into values. This
         function should be considered to be a post-apply stage of the ``__init__`` function.
 
-        :param outputs: A list of resolved outputs discovered in the project.
+        :param outputs: A list of resolved outputs discovered in the project. This is provided primarily for reference,
+            and gets passed into this class's ``monitor`` function. It has very limited value, and implementations of
+            this class should instead reference ``self.supported_resources`` as a canonical list of resources to
+            monitor.
         :type outputs: list
         """
 
