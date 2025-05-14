@@ -60,6 +60,7 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
         type_map = {
             aws.ec2.Instance: Ec2InstanceAlarmGroup,
             aws.lb.load_balancer.LoadBalancer: LoadBalancerAlarmGroup,
+            aws.alb.target_group.TargetGroup: LbTargetGroupAlarmGroup,
             aws.lb.target_group.TargetGroup: LbTargetGroupAlarmGroup,
             aws.cloudfront.Distribution: CloudFrontDistributionAlarmGroup,
             aws.cloudfront.Function: CloudFrontFunctionAlarmGroup,
