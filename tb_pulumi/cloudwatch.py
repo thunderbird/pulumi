@@ -417,19 +417,20 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
                 self.__unhealthy_hosts_metric_alarm(
                     target_group=target_group,
                     tg_suffix=outputs['tg_suffix'],
-                    lb_suffix=lb_suffix,
+                    lb_suffix=lb.arn_suffix,
+                    lb_type=lb.load_balancer_type,
                     alarm_opts=alarm_opts,
                     tags=tags,
                 )
-                for lb_suffix in [
-                    aws.lb.LoadBalancer.get(resource_name=f'lb-{target_group_arn_suffix}', id=arn_suffix).arn_suffix
+                for lb in [
+                    aws.lb.LoadBalancer.get(resource_name=f'lb-{target_group_arn_suffix}', id=arn_suffix)
                     for idx, arn_suffix in enumerate(outputs['lb_arns'])
                 ]
             ]
         )
 
     def __unhealthy_hosts_metric_alarm(
-        self, target_group: str, tg_suffix: str, lb_suffix: str, alarm_opts: dict, tags: dict
+        self, target_group: str, tg_suffix: str, lb_suffix: str, lb_type: str, alarm_opts: dict, tags: dict
     ):
         # An arn_suffix looks like this: targetgroup/target_group_name/0123456789abcdef; extract that name part
         return pulumi.Output.all(tg_suffix=tg_suffix, lb_suffix=lb_suffix).apply(
@@ -440,7 +441,7 @@ class AlbTargetGroupAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
                 comparison_operator='GreaterThanOrEqualToThreshold',
                 dimensions={'TargetGroup': outputs['tg_suffix'], 'LoadBalancer': outputs['lb_suffix']},
                 metric_name='UnHealthyHostCount',
-                namespace='AWS/ApplicationELB',
+                namespace='AWS/ApplicationELB' if lb_type == 'application' else 'AWS/NetworkELB',
                 alarm_description=f'{outputs["tg_suffix"].split("/")[1]} has detected unhealthy hosts in load balancer '
                 f'{outputs["lb_suffix"].split("/")[1]}',
                 tags=tags,
