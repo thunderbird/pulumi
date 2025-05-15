@@ -1,5 +1,26 @@
 # tb_pulumi Changelog
 
+## v0.0.14
+
+### Improvements
+
+  - Added a new `S3BucketWebsite` pattern to build S3 buckets, populate their contents, and present it as a static
+    website through a CloudFront Distribution.
+  - Added new alarms for EC2 instances and network load balancer target groups.
+  - Remove the `last_run_by` tag from the list of common tags. This was originally a "nice" feature providing some
+    detail about human- or automation- run Pulumi commands. But it got to be mostly a pain because the tags are
+    constantly changing. Migrating to this version will cause a wide-scale deletion of this tag from all resources.
+  - Expand CI automation user privileges to include ECR resources other than the repository itself (such as different
+    tags).
+  - When you build an `SshableInstance` you can now supply the name of a pre-made EC2 KeyPair. This allows for
+    individuals to create instances for their own use without having to upload a public key into a config file. Instead,
+    users can import their existing SSH keys into AWS via the web console and then just reference those keys here.
+  - The `FargateClusterWithLogging` class now allows you to disable the buildout of the load balancer. This is useful
+    for cases where you want to run a polling service like a queue worker where no input is taken over the network.
+  - Fixed a typo in an IAM policy description.
+  - Refactored the `exclude_from_project` feature into the superclass where it belongs.
+
+
 ## v0.0.13
 
 ### Breaking Changes
