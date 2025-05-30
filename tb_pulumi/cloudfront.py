@@ -338,17 +338,20 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             # Consume this now so it doesn't create kwarg problems later
             del distribution['logging_config']
 
+        default_cache_behavior = {
+            'allowed_methods': ['HEAD', 'DELETE', 'POST', 'GET', 'OPTIONS', 'PUT', 'PATCH'],
+            'cached_methods': ['HEAD', 'GET'],
+            'cache_policy_id': CLOUDFRONT_CACHE_POLICY_ID_OPTIMIZED,
+            'compress': True,
+            'function_associations': default_function_associations,
+            'target_origin_id': bucket_regional_domain_name,
+            'viewer_protocol_policy': 'redirect-to-https',
+        }
+        if 'default_cache_behavior' in distribution:
+            default_cache_behavior.update(distribution.pop('default_cache_behavior'))
         cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
-            default_cache_behavior={
-                'allowed_methods': ['HEAD', 'DELETE', 'POST', 'GET', 'OPTIONS', 'PUT', 'PATCH'],
-                'cached_methods': ['HEAD', 'GET'],
-                'cache_policy_id': CLOUDFRONT_CACHE_POLICY_ID_OPTIMIZED,
-                'compress': True,
-                'function_associations': default_function_associations,
-                'target_origin_id': bucket_regional_domain_name,
-                'viewer_protocol_policy': 'redirect-to-https',
-            },
+            default_cache_behavior=default_cache_behavior,
             enabled=True,
             logging_config=logging_config,
             origins=all_origins,
