@@ -401,7 +401,7 @@ class ProjectResourceGroup(ThunderbirdComponentResource):
             __parse_resource_item(output)
 
         # When all outputs are applied, trigger the `on_apply` event.
-        pulumi.Output.all(*self.all_outputs).apply(lambda outputs: self.__on_apply(outputs))
+        pulumi.Output.all(*self.all_outputs).apply(lambda outputs: self.ready(outputs))
 
     @abstractclassmethod
     def ready(self, outputs: list[pulumi.Resource]):
@@ -413,7 +413,7 @@ class ProjectResourceGroup(ThunderbirdComponentResource):
         applied, and all resource context is available for inspection.
 
         This is an abstract method which must be implemented by an inheriting class. That function should inspect the
-        ``self.all_resources`` variable for resources to act on. 
+        ``self.all_resources`` variable for resources to act on.
 
         :param outputs: A list of resolved outputs discovered in the project. This is provided primarily for reference,
             and has limited value.

@@ -60,7 +60,7 @@ class MonitoringGroup(tb_pulumi.ProjectResourceGroup):
 
     def __init__(
         self,
-        pulumi_type: str,
+        pulumi_type: str,  # We have to pass this through here because this class is meant to be further extended
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         type_map: dict,
@@ -94,7 +94,7 @@ class MonitoringGroup(tb_pulumi.ProjectResourceGroup):
 
         # Call downstream monitoring setups
         self.monitor()
-    
+
     @abstractclassmethod
     def monitor(self):
         """This function is called by :py:meth:`tb_pulumi.monitoring.MonitoringGroup.ready` when the ``MonitoringGroup``

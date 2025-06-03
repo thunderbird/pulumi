@@ -3,13 +3,69 @@
 import json
 import pulumi
 import pulumi_aws as aws
-import tb_pulumi
+import tb_pulumi.constants
 import tb_pulumi.secrets
 
 from tb_pulumi.constants import IAM_POLICY_DOCUMENT
 
 
-class StackReadOnlyPolicy(tb_pulumi.ThunderbirdComponentResource):
+class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
+    """Creates two IAM policies granting read-only and full admin access to all resources in this project."""
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
+    ):
+        super().__init__(pulumi_type='tb:iam.StackAccessPolicies', name=name, project=project, opts=opts, tags=tags)
+
+    def ready(self, outputs: list[pulumi.Resource]):
+        """This function is called by the :py:class:`tb_pulumi.ProjectResourceGroup` after all outputs in the project
+        have been resolved into values. Here, we go through every resource to get an exhaustive list of resource ARNs.
+        Those are used to determine a list of AWS services in use by the project. An IAM policy is produced that has
+        read-only access to those resources.
+        """
+
+        arns = [resource.arn for resource in self.all_resources if getattr(resource, 'arn', False)]
+        pulumi.Output.all(*arns).apply(lambda arns: self.build_policies(arns))
+
+    def build_policies(self, arns: list[str]):
+        services = set([arn.split(':')[2] for arn in arns])
+
+        # Build a read-only policy
+        readonly_policy_doc = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
+        readonly_policy_doc['Statement'][0]['Resource'] = arns
+        actions = []
+        for service in services:
+            actions.extend(
+                [
+                    f'{service}:Describe*',
+                    f'{service}:Get*',
+                    f'{service}:List*',
+                ]
+            )
+        readonly_policy_doc['Statement'][0]['Action'] = actions
+        self.readonly_policy = aws.iam.Policy(
+            f'{self.name}-stackreadonly',
+            description=f'Allow read-only access to the {self.project.name_prefix} stack',
+            policy=json.dumps(readonly_policy_doc),
+            tags=self.tags,
+        )
+
+        # Build an admin policy
+        admin_policy_doc = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
+        admin_policy_doc['Statement'][0]['Resource'] = arns
+        admin_policy_doc['Statement'][0]['Action'] = ['*']
+        self.admin_policy = aws.iam.Policy(
+            f'{self.name}-stackadmin',
+            description=f'Allow full admin access to the {self.project.name_prefix} stack',
+            policy=json.dumps(admin_policy_doc),
+            tags=self.tags,
+        )
+
+        self.finish(resources={'admin_policy': self.admin_policy, 'readonly_policy': self.readonly_policy})
 
 
 class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
