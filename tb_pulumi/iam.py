@@ -9,6 +9,9 @@ import tb_pulumi.secrets
 from tb_pulumi.constants import IAM_POLICY_DOCUMENT
 
 
+class StackReadOnlyPolicy(tb_pulumi.ThunderbirdComponentResource):
+
+
 class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:iam:UserWithAccessKey``
 
