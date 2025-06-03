@@ -39,13 +39,22 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         readonly_policy_doc['Statement'][0]['Resource'] = arns
         actions = []
         for service in services:
-            actions.extend(
-                [
+            # The only real "Get" in secretsmanager is "GetSecretValue". But some secrets might grant admin access in
+            # other systems, like databases, and we don't want that kind of escalation to happen. The
+            # `PulumiSecretsManager` class creates policies that can grant this access if you would like to grant it.
+            if service == 'secretsmanager':
+                actions.extend([
                     f'{service}:Describe*',
-                    f'{service}:Get*',
                     f'{service}:List*',
-                ]
-            )
+                ])
+            else:
+                actions.extend(
+                    [
+                        f'{service}:Describe*',
+                        f'{service}:Get*',
+                        f'{service}:List*',
+                    ]
+                )
         readonly_policy_doc['Statement'][0]['Action'] = actions
         self.readonly_policy = aws.iam.Policy(
             f'{self.name}-stackreadonly',
