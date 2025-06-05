@@ -117,7 +117,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 group=admin_group.name,
                 policy_arn=policy.arn,
             )
-            for idx, (name, policy) in admin_policies.items()
+            for idx, (name, policy) in enumerate(admin_policies.items())
         }
         readonly_group = aws.iam.Group(
             f'{self.name}-usergroup-readonly',
@@ -129,7 +129,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 group=readonly_group.name,
                 policy_arn=policy.arn,
             )
-            for idx, (name, policy) in readonly_policies.items()
+            for idx, (name, policy) in enumerate(readonly_policies.items())
         }
 
         self.finish(
