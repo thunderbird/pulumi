@@ -48,14 +48,26 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         readonly_policies = {}
 
         for service in services:
-            # Many ARNs can be collapsed into a single pattern, provided our tool has been used as designed
-            common_arn_pattern = (
-                f'arn:aws:{service}:({self.project.aws_region})*:'
-                f'{self.project.aws_account_id}:.*:{self.project.name_prefix}*'
-                # arn:aws:iam::768512802988:policy/accounts-stage-fargate-[secret]-logging
+            # Many ARNs can be collapsed into a single pattern, provided our tool has been used as designed. But the
+            # Python regular expression we use to find those ARNs differs from the pattern that means the same thing
+            # but formatted to work in the policy.
+            common_arn_regex = (
+                (f'arn:aws:{service}:.*:{self.project.aws_account_id}:.*:{self.project.name_prefix.replace("-", "/")}*')
+                if service == 'secretsmanager'
+                else (
+                    f'arn:aws:{service}:({self.project.aws_region})*:'
+                    f'{self.project.aws_account_id}:.*:{self.project.name_prefix}*'
+                    # arn:aws:iam::768512802988:policy/accounts-stage-fargate-[secret]-logging
+                )
+            )
+            common_arn_policy_pattern = (
+                f'arn:aws:{service}:*:{self.project.aws_account_id}:.*:{self.project.name_prefix.replace("-", "/")}*'
             )
             # But ARNs for many old AWS products (like security groups and VPCs) do not use names and must be listed out
-            uncommon_arns = [arn for arn in arns if not re.match(common_arn_pattern, arn)]
+            uncommon_arns = [arn for arn in arns if not re.match(common_arn_regex, arn)]
+            pulumi.info(f'DEBUG -- service: {service}')
+            pulumi.info(f'common_arn_regex: {common_arn_regex}')
+            pulumi.info(f'uncommon_arns: {"\n".join(uncommon_arns)}')
             readonly_actions = [
                 f'{service}:Describe*',
                 f'{service}:List*',
@@ -64,7 +76,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 readonly_actions.append(f'{service}:Get*')
 
             # To save on policy character length, only list those which must be
-            resources = [common_arn_pattern]
+            resources = [common_arn_policy_pattern]
             resources.extend(uncommon_arns)
 
             # Inject our resources and actions into a readonly policy
