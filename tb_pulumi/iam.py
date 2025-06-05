@@ -61,9 +61,9 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 )
             )
             common_arn_policy_pattern = (
-                f'arn:aws:{service}:*:{self.project.aws_account_id}:.*:{self.project.name_prefix.replace("-", "/")}*'
+                f'arn:aws:{service}:*:{self.project.aws_account_id}:*:{self.project.name_prefix.replace("-", "/")}*'
             ) if service == 'secretsmanager' else (
-                f'arn:aws:{service}:*:{self.project.aws_account_id}:.*:{self.project.name_prefix}*'
+                f'arn:aws:{service}:*:{self.project.aws_account_id}:*:{self.project.name_prefix}*'
             )
             # But ARNs for many old AWS products (like security groups and VPCs) do not use names and must be listed out
             service_arns = [arn for arn in arns if arn.split(':')[2] == service]
