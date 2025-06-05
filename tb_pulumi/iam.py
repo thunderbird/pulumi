@@ -34,6 +34,8 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
     def build_policies(self, arns: list[str]):
         services = set([arn.split(':')[2] for arn in arns])
 
+        pulumi.info(f'DEBUG -- services: {sorted(services)}')
+
         # Build a read-only policy
         readonly_policy_doc = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
         readonly_policy_doc['Statement'][0]['Resource'] = arns
@@ -41,7 +43,8 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         for service in services:
             # The only real "Get" in secretsmanager is "GetSecretValue". But some secrets might grant admin access in
             # other systems, like databases, and we don't want that kind of escalation to happen. The
-            # `PulumiSecretsManager` class creates policies that can grant this access if you would like to grant it.
+            # `PulumiSecretsManager` class creates policies that can grant this access if you would like to grant it
+            # to an otherwise read-only user.
             if service == 'secretsmanager':
                 actions.extend([
                     f'{service}:Describe*',
