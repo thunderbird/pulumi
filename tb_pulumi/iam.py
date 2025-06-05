@@ -55,31 +55,36 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             # format in the right place.
             common_arn_regex = (
                 # PulumiSecretsManager names use slashes instead of the hyphens used elsewhere
-                (f'arn:aws:{service}:.*:{self.project.aws_account_id}:.*:{self.project.name_prefix.replace("-", "/")}*')
+                f'arn:aws:{service}:.*:{self.project.aws_account_id}:.*:{self.project.name_prefix.replace("-", "/")}*'
                 if service == 'secretsmanager'
                 else (
                     f'arn:aws:{service}:({self.project.aws_region})*:'
                     f'{self.project.aws_account_id}:.*:{self.project.name_prefix}*'
-                    # arn:aws:iam::768512802988:policy/accounts-stage-fargate-[secret]-logging
                 )
             )
             common_arn_policy_pattern = (
-                (f'arn:aws:{service}:*:{self.project.aws_account_id}:*:{self.project.name_prefix.replace("-", "/")}*')
+                f'arn:aws:{service}:*:{self.project.aws_account_id}:*:{self.project.name_prefix.replace("-", "/")}*'
                 if service == 'secretsmanager'
-                else (f'arn:aws:{service}:*:{self.project.aws_account_id}:*:{self.project.name_prefix}*')
+                else f'arn:aws:{service}:*:{self.project.aws_account_id}:*:{self.project.name_prefix}*'
             )
+
             # But ARNs for many old AWS products (like security groups and VPCs) do not use names and must be listed out
             service_arns = [arn for arn in arns if arn.split(':')[2] == service]
+            pulumi.info(f'DEBUG -- service_arns: {'\n'.join(service_arns)}')
+            pulumi.info(f'DEBUG -- common_arn_regex: {common_arn_regex}')
             uncommon_arns = [arn for arn in service_arns if not re.match(common_arn_regex, arn)]
 
+            # Describe and List actions are typically safe for read-only access
             readonly_actions = [
                 f'{service}:Describe*',
                 f'{service}:List*',
             ]
-            # The only "Get" action that's useful to a read-only user of Secrets Manager is "GetSecretValue". But these
-            # values often contain secrets that allow administrative access to other systems, such as databases.
-            # Allowing a read-only user to access these secrets potentially constitutes a privilege escalation, so we
-            # intentionally exclude this action from Secrets Manager policies.
+
+            # Get actions are also typically safe, but there is at least this exception: The only "Get" action that's
+            # useful to a read-only user of Secrets Manager is "GetSecretValue". But these values often contain secrets
+            # that allow administrative access to other systems, such as databases. Allowing a read-only user to access
+            # these secrets potentially constitutes a privilege escalation, so we intentionally exclude this action from
+            # Secrets Manager policies.
             if service != 'secretsmanager':
                 readonly_actions.append(f'{service}:Get*')
 
