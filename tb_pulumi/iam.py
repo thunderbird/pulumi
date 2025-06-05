@@ -3,6 +3,7 @@
 import json
 import pulumi
 import pulumi_aws as aws
+import re
 import tb_pulumi.constants
 import tb_pulumi.secrets
 
@@ -37,50 +38,55 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         pulumi.info(f'DEBUG -- services: {sorted(services)}')
         pulumi.info(f'DEBUG -- arns: {"\n".join(sorted(arns))}')
 
-        # Build a read-only policy
-        readonly_policy_doc = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
-        readonly_policy_doc['Statement'][0]['Resource'] = arns
-        actions = []
+        # AWS places heavy limitations on IAM resources. A policy can be no longer than 6,144 characters. This precludes
+        # the simplest of logic where all relevant actions for all resources are listed; that scales far too quickly.
+        # A user may have no more than 10 attached policies (though this can be increased as high as 20 through a quota
+        # increase). A user group may also have only 10 attached policies, and that cannot be extended. AWS's own advice
+        # here is to create user groups (each with as many as 10 policies) and then place users into those groups. Since
+        # users can additionally have up to 20 directly attached polices after the quota increase, this leads to a
+        # maximum of 120 policies. Ref: https://repost.aws/knowledge-center/iam-increase-policy-size We have to use this
+        # design and some other length-saving techniques to fit all of this into AWS's permissions model.
+
+        admin_policies = {}
+        readonly_policies = {}
+
         for service in services:
-            # The only real "Get" in secretsmanager is "GetSecretValue". But some secrets might grant admin access in
-            # other systems, like databases, and we don't want that kind of escalation to happen. The
-            # `PulumiSecretsManager` class creates policies that can grant this access if you would like to grant it
-            # to an otherwise read-only user.
-            if service == 'secretsmanager':
-                actions.extend(
-                    [
-                        f'{service}:Describe*',
-                        f'{service}:List*',
-                    ]
-                )
-            else:
-                actions.extend(
-                    [
-                        f'{service}:Describe*',
-                        f'{service}:Get*',
-                        f'{service}:List*',
-                    ]
-                )
-        readonly_policy_doc['Statement'][0]['Action'] = actions
-        self.readonly_policy = aws.iam.Policy(
-            f'{self.name}-stackreadonly',
-            description=f'Allow read-only access to the {self.project.name_prefix} stack',
-            policy=json.dumps(readonly_policy_doc),
-            tags=self.tags,
-        )
+            # Many ARNs can be collapsed into a single pattern, provided our tool has been used as designed
+            common_arn_pattern = f'arn:aws:{service}:{self.project.aws_region}:{self.project.aws_account_id}:.*:{self.project.name_prefix}*'
+            # But ARNs for many old AWS products (like security groups and VPCs) do not use names and must be listed out
+            uncommon_arns = [arn for arn in arns if not re.match(common_arn_pattern, arn)]
+            readonly_actions = [
+                f'{service}:Describe*',
+                f'{service}:List*',
+            ]
+            if service != 'secretsmanager':
+                readonly_actions.append(f'{service}:Get*')
 
-        # Build an admin policy
-        admin_policy_doc = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
-        admin_policy_doc['Statement'][0]['Resource'] = arns
-        admin_policy_doc['Statement'][0]['Action'] = ['*']
-        self.admin_policy = aws.iam.Policy(
-            f'{self.name}-stackadmin',
-            description=f'Allow full admin access to the {self.project.name_prefix} stack',
-            policy=json.dumps(admin_policy_doc),
-            tags=self.tags,
-        )
+            # To save on policy character length, only list those which must be
+            resources = [common_arn_pattern]
+            resources.extend(uncommon_arns)
 
-        self.finish(resources={'admin_policy': self.admin_policy, 'readonly_policy': self.readonly_policy})
+            # Inject our resources and actions into a readonly policy
+            policy_doc = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
+            policy_doc['Statement'][0]['Resource'] = resources
+            policy_doc['Statement'][0]['Action'] = readonly_actions
+            readonly_policies[service] = aws.iam.Policy(
+                f'{self.name}-policy-{service}-readonly',
+                description=f'Allow read-only access to {service} resources in the {self.project.name_prefix} stack',
+                policy=json.dumps(policy_doc),
+                tags=self.tags,
+            )
+
+            # Also build a more permissive admin policy
+            policy_doc['Statement'][0]['Action'] = ['*']
+            admin_policies[service] = aws.iam.Policy(
+                f'{self.name}-policy-{service}-admin',
+                description=f'Allow admin access to {service} resources in the {self.project.name_prefix} stack',
+                policy=json.dumps(policy_doc),
+                tags=self.tags,
+            )
+
+        self.finish(resources={'admin_policies': admin_policies, 'readonly_policies': readonly_policies})
 
 
 class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
