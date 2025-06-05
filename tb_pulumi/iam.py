@@ -64,7 +64,8 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 f'arn:aws:{service}:*:{self.project.aws_account_id}:.*:{self.project.name_prefix.replace("-", "/")}*'
             )
             # But ARNs for many old AWS products (like security groups and VPCs) do not use names and must be listed out
-            uncommon_arns = [arn for arn in arns if not re.match(common_arn_regex, arn)]
+            service_arns = [arn for arn in arns if arn.split(':')[2] == service]
+            uncommon_arns = [arn for arn in service_arns if not re.match(common_arn_regex, arn)]
             pulumi.info(f'DEBUG -- service: {service}')
             pulumi.info(f'common_arn_regex: {common_arn_regex}')
             pulumi.info(f'uncommon_arns: {"\n".join(uncommon_arns)}')
