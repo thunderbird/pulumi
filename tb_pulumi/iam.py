@@ -49,7 +49,11 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
 
         for service in services:
             # Many ARNs can be collapsed into a single pattern, provided our tool has been used as designed
-            common_arn_pattern = f'arn:aws:{service}:{self.project.aws_region}:{self.project.aws_account_id}:.*:{self.project.name_prefix}*'
+            common_arn_pattern = (
+                f'arn:aws:{service}:({self.project.aws_region})*:'
+                f'{self.project.aws_account_id}:.*:{self.project.name_prefix}*'
+                # arn:aws:iam::768512802988:policy/accounts-stage-fargate-[secret]-logging
+            )
             # But ARNs for many old AWS products (like security groups and VPCs) do not use names and must be listed out
             uncommon_arns = [arn for arn in arns if not re.match(common_arn_pattern, arn)]
             readonly_actions = [
