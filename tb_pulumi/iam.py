@@ -35,7 +35,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         services = set([arn.split(':')[2] for arn in arns])
 
         pulumi.info(f'DEBUG -- services: {sorted(services)}')
-        pulumi.info(f'DEBUG -- arns: {'\n'.join(sorted(arns))}')
+        pulumi.info(f'DEBUG -- arns: {"\n".join(sorted(arns))}')
 
         # Build a read-only policy
         readonly_policy_doc = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
@@ -47,10 +47,12 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             # `PulumiSecretsManager` class creates policies that can grant this access if you would like to grant it
             # to an otherwise read-only user.
             if service == 'secretsmanager':
-                actions.extend([
-                    f'{service}:Describe*',
-                    f'{service}:List*',
-                ])
+                actions.extend(
+                    [
+                        f'{service}:Describe*',
+                        f'{service}:List*',
+                    ]
+                )
             else:
                 actions.extend(
                     [
