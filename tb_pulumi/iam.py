@@ -55,17 +55,17 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             # format in the right place.
             common_arn_regex = (
                 # PulumiSecretsManager names use slashes instead of the hyphens used elsewhere
-                f'arn:aws:{service}:.*:{self.project.aws_account_id}:.*/{self.project.name_prefix.replace("-", "/")}*'
+                f'arn:aws:{service}:.*:{self.project.aws_account_id}:.*{self.project.name_prefix.replace("-", "/")}*'
                 if service == 'secretsmanager'
                 else (
                     f'arn:aws:{service}:({self.project.aws_region})*:'
-                    f'{self.project.aws_account_id}:.*/{self.project.name_prefix}*'
+                    f'{self.project.aws_account_id}:.*{self.project.name_prefix}*'
                 )
             )
             common_arn_policy_pattern = (
-                f'arn:aws:{service}:*:{self.project.aws_account_id}:*/{self.project.name_prefix.replace("-", "/")}*'
+                f'arn:aws:{service}:*:{self.project.aws_account_id}:*{self.project.name_prefix.replace("-", "/")}*'
                 if service == 'secretsmanager'
-                else f'arn:aws:{service}:*:{self.project.aws_account_id}:*/{self.project.name_prefix}*'
+                else f'arn:aws:{service}:*:{self.project.aws_account_id}:*{self.project.name_prefix}*'
             )
 
             # But ARNs for many old AWS products (like security groups and VPCs) do not use names and must be listed out
