@@ -35,9 +35,6 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
     def build_policies(self, arns: list[str]):
         services = set([arn.split(':')[2] for arn in arns])
 
-        pulumi.info(f'DEBUG -- services: {sorted(services)}')
-        pulumi.info(f'DEBUG -- arns: {"\n".join(sorted(arns))}')
-
         # AWS places heavy limitations on IAM resources. A policy can be no longer than 6,144 characters. This precludes
         # the simplest of logic where all relevant actions for all resources are listed; that scales far too quickly.
         # A user may have no more than 10 attached policies (though this can be increased as high as 20 through a quota
