@@ -48,10 +48,13 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         readonly_policies = {}
 
         for service in services:
-            # Many ARNs can be collapsed into a single pattern, provided our tool has been used as designed. But the
-            # Python regular expression we use to find those ARNs differs from the pattern that means the same thing
-            # but formatted to work in the policy.
+            # Many ARNs can be collapsed into a single pattern, provided our tool has been used as designed, which
+            # allows us to condense our policies quite a bit. But the Python regular expression we use to remove those
+            # ARNs from the explicit listing differs from the pattern that means the same thing in an IAM policy.
+            # Here we create a Python regex and an IAM resource pattern that are equivalent so we can use the right
+            # format in the right place.
             common_arn_regex = (
+                # PulumiSecretsManager names use slashes instead of the hyphens used elsewhere
                 (f'arn:aws:{service}:.*:{self.project.aws_account_id}:.*:{self.project.name_prefix.replace("-", "/")}*')
                 if service == 'secretsmanager'
                 else (
@@ -61,24 +64,26 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 )
             )
             common_arn_policy_pattern = (
-                f'arn:aws:{service}:*:{self.project.aws_account_id}:*:{self.project.name_prefix.replace("-", "/")}*'
-            ) if service == 'secretsmanager' else (
-                f'arn:aws:{service}:*:{self.project.aws_account_id}:*:{self.project.name_prefix}*'
+                (f'arn:aws:{service}:*:{self.project.aws_account_id}:*:{self.project.name_prefix.replace("-", "/")}*')
+                if service == 'secretsmanager'
+                else (f'arn:aws:{service}:*:{self.project.aws_account_id}:*:{self.project.name_prefix}*')
             )
             # But ARNs for many old AWS products (like security groups and VPCs) do not use names and must be listed out
             service_arns = [arn for arn in arns if arn.split(':')[2] == service]
             uncommon_arns = [arn for arn in service_arns if not re.match(common_arn_regex, arn)]
-            pulumi.info(f'DEBUG -- service: {service}')
-            pulumi.info(f'common_arn_regex: {common_arn_regex}')
-            pulumi.info(f'uncommon_arns: {"\n".join(uncommon_arns)}')
+
             readonly_actions = [
                 f'{service}:Describe*',
                 f'{service}:List*',
             ]
+            # The only "Get" action that's useful to a read-only user of Secrets Manager is "GetSecretValue". But these
+            # values often contain secrets that allow administrative access to other systems, such as databases.
+            # Allowing a read-only user to access these secrets potentially constitutes a privilege escalation, so we
+            # intentionally exclude this action from Secrets Manager policies.
             if service != 'secretsmanager':
                 readonly_actions.append(f'{service}:Get*')
 
-            # To save on policy character length, only list those which must be
+            # To save on policy character length, only list those resources which are not matched by our common pattern
             resources = [common_arn_policy_pattern]
             resources.extend(uncommon_arns)
 
@@ -102,7 +107,41 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 tags=self.tags,
             )
 
-        self.finish(resources={'admin_policies': admin_policies, 'readonly_policies': readonly_policies})
+        admin_group = aws.iam.Group(
+            f'{self.name}-usergroup-admin',
+            name=f'{self.name}-admin',
+        )
+        admin_policy_attachments = {
+            name: aws.iam.GroupPolicyAttachment(
+                f'{self.name}-gpa-admin-{idx}',
+                group=admin_group.name,
+                policy_arn=policy.arn,
+            )
+            for idx, (name, policy) in admin_policies.items()
+        }
+        readonly_group = aws.iam.Group(
+            f'{self.name}-usergroup-readonly',
+            name=f'{self.name}-readonly',
+        )
+        readonly_policy_attachments = {
+            name: aws.iam.GroupPolicyAttachment(
+                f'{self.name}-gpa-readonly-{idx}',
+                group=readonly_group.name,
+                policy_arn=policy.arn,
+            )
+            for idx, (name, policy) in readonly_policies.items()
+        }
+
+        self.finish(
+            resources={
+                'admin_group': admin_group,
+                'admin_policies': admin_policies,
+                'admin_policy_attachments': admin_policy_attachments,
+                'readonly_group': readonly_group,
+                'readonly_policies': readonly_policies,
+                'readonly_policy_attachments': readonly_policy_attachments,
+            }
+        )
 
 
 class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
