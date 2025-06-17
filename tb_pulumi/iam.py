@@ -41,8 +41,10 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         # increase). A user group may also have only 10 attached policies, and that cannot be extended. AWS's own advice
         # here is to create user groups (each with as many as 10 policies) and then place users into those groups. Since
         # users can additionally have up to 20 directly attached polices after the quota increase, this leads to a
-        # maximum of 120 policies. Ref: https://repost.aws/knowledge-center/iam-increase-policy-size We have to use this
-        # design and some other length-saving techniques to fit all of this into AWS's permissions model.
+        # maximum of 120 policies. Refs: https://repost.aws/knowledge-center/iam-increase-policy-size;
+        # https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html#reference_iam-quotas-entities
+        # We have to use this design and some other length-saving techniques to fit all of this into AWS's permissions
+        # model.
 
         admin_policies = {}
         readonly_policies = {}
