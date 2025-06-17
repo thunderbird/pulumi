@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 ### Usage
 #
 #     Run this script, supplying the arguments outlined below in this specific order:
@@ -67,7 +69,6 @@ pulumi new aws-python --name $PROJECT_NAME --stack $STACK_NAME
 
 echo "Setting up tb_pulumi"
 echo "tb_pulumi @ git+https://github.com/thunderbird/pulumi.git@$CODE_VERSION" > requirements.txt
-pip install -r requirements.txt
 
 cp $REPO_DIR/__main__.py.example ./__main__.py
 cp $REPO_DIR/config.stack.yaml.example ./config.$STACK_NAME.yaml
