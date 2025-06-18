@@ -46,10 +46,6 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
     :param target_port: The port to route to on the backends.
     :type target_port: int
 
-    :param ingress_cidrs: List of CIDR blocks to allow ingress to the NLB from. If not provided, traffic to the
-        listener_port will be allowed from anywhere. Defaults to None.
-    :type ingress_cidrs: list[str], optional
-
     :param internal: When True (default), ingress is restricted to traffic sourced within the VPC. When False, the
         NLB gets a public IP to listen on. Defaults to True.
     :type internal: bool, optional
@@ -77,19 +73,16 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         listener_port: int,
-        subnets: list[str],
+        security_groups: list[aws.ec2.SecurityGroup],
+        subnets: list[aws.ec2.Subnet],
         target_port: int,
-        ingress_cidrs: list[str] = None,
         internal: bool = True,
         ips: list[str] = [],
-        security_group_description: str = None,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
         **kwargs,
     ):
-        if 'exclude_from_project' in kwargs:
-            exclude_from_project = kwargs['exclude_from_project'] or False
-            del kwargs['exclude_from_project']
+        exclude_from_project = kwargs.pop('exclude_from_project', False)
 
         super().__init__(
             'tb:ec2:NetworkLoadBalancer',
@@ -103,36 +96,6 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
         # The primary_subnet is just the first subnet listed, used for determining VPC placement
         primary_subnet = subnets[0]
 
-        # Build a security group that allows ingress on our listener port
-        security_group_with_rules = tb_pulumi.network.SecurityGroupWithRules(
-            f'{name}-sg',
-            project=project,
-            vpc_id=primary_subnet.vpc_id,
-            exclude_from_project=True,
-            rules={
-                'ingress': [
-                    {
-                        'cidr_blocks': ingress_cidrs if ingress_cidrs else ['0.0.0.0/0'],
-                        'description': 'Allow ingress',
-                        'protocol': 'tcp',
-                        'from_port': listener_port,
-                        'to_port': listener_port,
-                    }
-                ],
-                'egress': [
-                    {
-                        'cidr_blocks': ['0.0.0.0/0'],
-                        'description': 'Allow egress',
-                        'protocol': 'tcp',
-                        'from_port': target_port,
-                        'to_port': target_port,
-                    }
-                ],
-            },
-            tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self),
-        )
-
         # Build the load balancer first, as other resources must be attached to it later
         nlb = aws.lb.LoadBalancer(
             f'{name}-nlb',
@@ -140,10 +103,10 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
             internal=internal,
             load_balancer_type='network',
             name=name,
-            security_groups=[security_group_with_rules.resources['sg']],
+            security_groups=security_groups,
             subnets=[subnet.id for subnet in subnets],
             tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[security_group_with_rules.resources['sg']]),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[*security_groups]),
             **kwargs,
         )
 
@@ -195,7 +158,6 @@ class NetworkLoadBalancer(tb_pulumi.ThunderbirdComponentResource):
 
         self.finish(
             resources={
-                'security_group_with_rules': security_group_with_rules,
                 'nlb': nlb,
                 'target_group': target_group,
                 'target_group_attachments': target_group_attachments,

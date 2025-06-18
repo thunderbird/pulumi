@@ -3,6 +3,7 @@
 import pulumi
 import pulumi_aws as aws
 import pulumi_random
+import random
 import socket
 import tb_pulumi
 import tb_pulumi.ec2
@@ -59,11 +60,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
     :param subnets: List of subnet Output objects defining the network space to build in.
     :type subnets: list[pulumi.Output]
 
-    :param vpc_cidr: An IP range to allow incoming traffic from, which is a subset of the IP range allowed by the
-        VPC in which this cluster is built. If you do not specify `sg_cidrs`, but `internal` is True, then ingress
-        traffic will be limited to being sourced in this CIDR.
-    :type vpc_cidr: str
-
     :param vpc_id: The ID of the VPC to build in.
     :type vpc_id: str
 
@@ -116,10 +112,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         Defaults to 'db.t3.micro'.
     :type instance_class: str, optional
 
-    :param internal: When True, if no sg_cidrs are set, allows ingress only from what `vpc_cidr` is set to. If False
-        and no sg_cidrs are set, allows ingress from anywhere. Defaults to True.
-    :type internal: bool, optional
-
     :param max_allocated_storage: Gigabytes of storage which storage autoscaling will refuse to increase beyond. To
         disable autoscaling, set this to zero. Defaults to 0.
     :type max_allocated_storage: int, optional
@@ -158,11 +150,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         AWS to default to 7 days).
     :type secret_recovery_window_in_days: int, optional
 
-    :param sg_cidrs: A list of CIDRs from which ingress should be allowed. If this is left to the default value, a
-        sensible default will be selected. If `internal` is True, this will allow access from the `vpc_cidr`. Otherwise,
-        traffic will be allowed from anywhere. Defaults to None.
-    :type sg_cidrs: list[str], optional
-
     :param skip_final_snapshot: Allow deletion of an RDS instance without performing a final backup. Defaults to False.
     :type skip_final_snapshot: bool, optional
 
@@ -190,8 +177,8 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         db_name: str,
+        security_groups: list[aws.ec2.SecurityGroup],
         subnets: list[pulumi.Output],
-        vpc_cidr: str,
         vpc_id: str,
         allocated_storage: int = 20,
         auto_minor_version_upgrade: bool = True,
@@ -204,16 +191,16 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         engine: str = 'postgres',
         engine_version: str = '15.7',
         instance_class: str = 'db.t3.micro',
-        internal: bool = True,
         max_allocated_storage: int = 0,
         num_instances: int = 1,
         override_special='!#$%&*()-_=+[]{}<>:?',
         parameters: list[dict] = None,
         parameter_group_family: str = 'postgres15',
+        password_max_length: int = 40,
+        password_min_length: int = 20,
         performance_insights_enabled: bool = False,
         port: int = None,
         secret_recovery_window_in_days: int = None,
-        sg_cidrs: list[str] = None,
         skip_final_snapshot: bool = False,
         storage_type: str = 'gp3',
         tags: dict = {},
@@ -226,21 +213,10 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             'tb:rds:RdsDatabaseGroup', name, project, exclude_from_project=exclude_from_project, opts=opts, tags=tags
         )
 
-        unsupported_opts = ['build_jumphost', 'jumphost_public_key', 'jumphost_source_cidrs', 'jumphost_user_data']
-        invalid_opts = [opt for opt in unsupported_opts if opt in kwargs]
-        if len(invalid_opts) > 0:
-            pulumi.warn(
-                'The tb_pulumi.rds.RdsDatabaseGroup class no longer support the following arguments:',
-                f'{", ".join(unsupported_opts)}. ',
-                'Instead, build a `tb_pulumi.ec2.SshableInstance`.',
-            )
-            for opt in invalid_opts:
-                del kwargs[opt]
-
         # Generate a random password
         password = pulumi_random.RandomPassword(
             f'{name}-password',
-            length=29,
+            length=random.randint(password_min_length, password_max_length),
             override_special=override_special,
             special=True,
             min_lower=1,
@@ -260,40 +236,6 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             secret_value=password.result,
             recovery_window_in_days=secret_recovery_window_in_days,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[password]),
-            tags=self.tags,
-        )
-
-        # If no ingress CIDRs have been defined, find a reasonable default
-        if sg_cidrs is None:
-            cidrs = [vpc_cidr] if internal else ['0.0.0.0/0']
-        else:
-            cidrs = sg_cidrs
-
-        # If no port has been specified, try to look it up by the engine name
-        if port is None:
-            port = SERVICE_PORTS.get(engine, None)
-            if port is None:
-                raise ValueError('Cannot determine the correct port to open')
-
-        # Build a security group allowing the specified access
-        security_group_with_rules = tb_pulumi.network.SecurityGroupWithRules(
-            f'{name}-sg',
-            project,
-            vpc_id=vpc_id,
-            exclude_from_project=True,
-            rules={
-                'ingress': [
-                    {
-                        'cidr_blocks': cidrs,
-                        'description': 'Database access',
-                        'protocol': 'tcp',
-                        'from_port': port,
-                        'to_port': port,
-                    }
-                ],
-                'egress': {},
-            },
-            opts=pulumi.ResourceOptions(parent=self),
             tags=self.tags,
         )
 
@@ -326,6 +268,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Build the primary instance
+        sg_ids = [sg.id for sg in security_groups]
         instance_id = f'{self.project.name_prefix}-000'
         instance_tags = {'instanceId': instance_id}
         instance_tags.update(self.tags)
@@ -356,7 +299,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
             storage_encrypted=True,
             storage_type=storage_type,
             username=db_username,
-            vpc_security_group_ids=[security_group_with_rules.resources['sg'].id],
+            vpc_security_group_ids=sg_ids,
             tags=instance_tags,
             opts=pulumi.ResourceOptions(
                 parent=self,
@@ -364,7 +307,7 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                     key,
                     parameter_group,
                     password,
-                    security_group_with_rules,
+                    *security_groups,
                     subnet_group,
                 ],
             ),
@@ -404,10 +347,10 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                     skip_final_snapshot=skip_final_snapshot,
                     storage_encrypted=True,
                     storage_type=storage_type,
-                    vpc_security_group_ids=[security_group_with_rules.resources['sg'].id],
+                    vpc_security_group_ids=sg_ids,
                     tags=instance_tags,
                     opts=pulumi.ResourceOptions(
-                        parent=self, depends_on=[key, parameter_group, security_group_with_rules, primary]
+                        parent=self, depends_on=[key, parameter_group, *security_groups, primary]
                     ),
                 ),
                 **kwargs,
@@ -438,12 +381,11 @@ class RdsDatabaseGroup(tb_pulumi.ThunderbirdComponentResource):
                 project=project,
                 exclude_from_project=True,
                 listener_port=port,
+                security_groups=???,
                 subnets=subnets,
                 target_port=port,
-                ingress_cidrs=[vpc_cidr],
                 internal=True,
                 ips=[socket.gethostbyname(addr) for addr in addresses],
-                security_group_description=f'Allow database traffic for {name}',
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[*instances, *subnets]),
                 tags=self.tags,
             )
