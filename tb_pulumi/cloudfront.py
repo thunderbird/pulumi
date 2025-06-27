@@ -227,8 +227,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
 
     :param origins: List of `DistributionOrigin
         <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorigin>`_ objects to
-        add. This list should not include any references to the S3 bucket, which is managed by this module. If the
-        ``distribution`` value contains an ``origins`` key, this option is ignored completely. Defaults to
+        add. This list should not include any references to the S3 bucket, which is managed by this module. Defaults to
         [].
     :type origins: list[dict], optional
 
