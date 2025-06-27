@@ -341,7 +341,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             'viewer_protocol_policy': 'redirect-to-https',
         }
         if 'default_cache_behavior' in distribution:
-            default_cache_behavior = distribution.pop('default_cache_behavior')
+            default_cache_behavior.update(distribution.pop('default_cache_behavior'))
         cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
             default_cache_behavior=default_cache_behavior,
