@@ -317,16 +317,13 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         # The `bucket_regional_domain_name` output does not actually seem to contain the region. This may be a bug in
         # the AWS Pulumi provider. For now, we have to form this domain ourselves or it will be incorrect.
         bucket_regional_domain_name = f'{service_bucket_name}.s3.{project.aws_region}.amazonaws.com'
-        if 'origins' in distribution:
-            all_origins = distribution.pop('origins')
-        else:
-            s3_origin = {
-                'domain_name': bucket_regional_domain_name,
-                'origin_id': bucket_regional_domain_name,
-                'origin_access_control_id': oac.id,
-            }
-            all_origins = [s3_origin]
-            all_origins.extend(origins)
+        s3_origin = {
+            'domain_name': bucket_regional_domain_name,
+            'origin_id': f's3-{service_bucket_name}',
+            'origin_access_control_id': oac.id,
+        }
+        all_origins = [s3_origin]
+        all_origins.extend(origins)
 
         # Merge logging settings from the config file with this generated bucket name
         logging_config = {'bucket': logging_bucket.bucket_domain_name}
