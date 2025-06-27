@@ -213,12 +213,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         within the entire S3 ecosystem.
     :type service_bucket_name: str
 
-    :param behaviors: The default behavior of the CF distribution will always be to look in the S3 bucket. Any other
-        behaviors should be defined as an entry in this list. These should be `DistributionOrderedCacheBehavior
-        <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorderedcachebehavior>`_
-        objects. Defaults to [].
-    :type behaviors: list[dict], optional
-
     :param default_function_associations: Defines the function associations for the default cache behavior.
     :type default_function_associations: list[dict]
 
@@ -233,7 +227,8 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
 
     :param origins: List of `DistributionOrigin
         <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorigin>`_ objects to
-        add. This list should not include any references to the S3 bucket, which is managed by this module. Defaults to
+        add. This list should not include any references to the S3 bucket, which is managed by this module. If the
+        ``distribution`` value contains an ``origins`` key, this option is ignored completely. Defaults to
         [].
     :type origins: list[dict], optional
 
@@ -250,7 +245,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         certificate_arn: str,
         service_bucket_name: str,
-        behaviors: list[dict] = [],
         default_function_associations: dict = {},
         distribution: dict = {},
         forcibly_destroy_buckets: bool = False,
@@ -323,13 +317,16 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         # The `bucket_regional_domain_name` output does not actually seem to contain the region. This may be a bug in
         # the AWS Pulumi provider. For now, we have to form this domain ourselves or it will be incorrect.
         bucket_regional_domain_name = f'{service_bucket_name}.s3.{project.aws_region}.amazonaws.com'
-        s3_origin = {
-            'domain_name': bucket_regional_domain_name,
-            'origin_id': bucket_regional_domain_name,
-            'origin_access_control_id': oac.id,
-        }
-        all_origins = [s3_origin]
-        all_origins.extend(origins)
+        if 'origins' in distribution:
+            all_origins = distribution.pop('origins')
+        else:
+            s3_origin = {
+                'domain_name': bucket_regional_domain_name,
+                'origin_id': bucket_regional_domain_name,
+                'origin_access_control_id': oac.id,
+            }
+            all_origins = [s3_origin]
+            all_origins.extend(origins)
 
         # Merge logging settings from the config file with this generated bucket name
         logging_config = {'bucket': logging_bucket.bucket_domain_name}
@@ -348,7 +345,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             'viewer_protocol_policy': 'redirect-to-https',
         }
         if 'default_cache_behavior' in distribution:
-            default_cache_behavior.update(distribution.pop('default_cache_behavior'))
+            default_cache_behavior = distribution.pop('default_cache_behavior')
         cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
             default_cache_behavior=default_cache_behavior,
