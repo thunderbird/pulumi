@@ -79,12 +79,9 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
             config=config,
         )
 
-    def monitor(self, outputs):
+    def monitor(self):
         """This function gets called only after all outputs in the project have been resolved into values. It constructs
         all monitors for the resources in this project.
-
-        :param outputs: A list of resolved outputs discovered in the project.
-        :type outputs: list
         """
 
         sns_topic = aws.sns.Topic(
