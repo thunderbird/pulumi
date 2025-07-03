@@ -213,12 +213,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         within the entire S3 ecosystem.
     :type service_bucket_name: str
 
-    :param behaviors: The default behavior of the CF distribution will always be to look in the S3 bucket. Any other
-        behaviors should be defined as an entry in this list. These should be `DistributionOrderedCacheBehavior
-        <https://www.pulumi.com/registry/packages/aws/api-docs/cloudfront/distribution/#distributionorderedcachebehavior>`_
-        objects. Defaults to [].
-    :type behaviors: list[dict], optional
-
     :param default_function_associations: Defines the function associations for the default cache behavior.
     :type default_function_associations: list[dict]
 
@@ -250,7 +244,6 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         certificate_arn: str,
         service_bucket_name: str,
-        behaviors: list[dict] = [],
         default_function_associations: dict = {},
         distribution: dict = {},
         forcibly_destroy_buckets: bool = False,
@@ -325,7 +318,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         bucket_regional_domain_name = f'{service_bucket_name}.s3.{project.aws_region}.amazonaws.com'
         s3_origin = {
             'domain_name': bucket_regional_domain_name,
-            'origin_id': bucket_regional_domain_name,
+            'origin_id': f's3-{service_bucket_name}',
             'origin_access_control_id': oac.id,
         }
         all_origins = [s3_origin]
