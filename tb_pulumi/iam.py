@@ -97,10 +97,11 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             policy_doc = {
                 'Version': '2012-10-17',
                 'Statement': [
-                    {'Sid': 'DefaultSid', 'Effect': 'Allow', 'Resource': resources, 'Action': readonly_actions}
+                    {'Effect': 'Allow', 'Resource': resources, 'Action': readonly_actions}
                 ],
             }
             # pulumi.info(f'DEBUG -- readonly policydoc: {json.dumps(policy_doc, indent=2)}')
+            policy_doc['Statement'][0]['Sid'] = f'{self.project.name_prefix}-{service}-readonly'
             readonly_policies[service] = aws.iam.Policy(
                 f'{self.name}-policy-{service}-readonly',
                 description=f'Allow read-only access to {service} resources in the {self.project.name_prefix} stack',
@@ -109,6 +110,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             )
 
             # Also build a more permissive admin policy
+            policy_doc['Statement'][0]['Sid'] = f'{self.project.name_prefix}-{service}-admin'
             policy_doc['Statement'][0]['Action'] = ['*']
             # pulumi.info(f'DEBUG -- admin policydoc: {json.dumps(policy_doc, indent=2)}')
             admin_policies[service] = aws.iam.Policy(
