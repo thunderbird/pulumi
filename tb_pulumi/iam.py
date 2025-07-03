@@ -112,7 +112,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 tags=self.tags,
             )
             if service in ['iam', 's3']:
-                pulumi.log(f'DEBUG -- policy: {json.dumps(policy_doc, indent=2)}')
+                pulumi.info(f'DEBUG -- policy: {json.dumps(policy_doc, indent=2)}')
 
             # Also build a more permissive admin policy
             policy_doc['Statement'][0]['Sid'] = f'{service_sid_prefix}Admin'
