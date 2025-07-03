@@ -400,7 +400,7 @@ class ProjectResourceGroup(ThunderbirdComponentResource):
         for output in self.all_outputs:
             __parse_resource_item(output)
 
-        # When all outputs are applied, trigger the `on_apply` event.
+        # When all outputs are applied, trigger the `ready` event.
         pulumi.Output.all(*self.all_outputs).apply(lambda outputs: self.ready(outputs))
 
     @abstractclassmethod
