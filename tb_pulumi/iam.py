@@ -50,6 +50,8 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         readonly_policies = {}
 
         for service in services:
+            if service == 'iam':
+                continue
             # Many ARNs can be collapsed into a single pattern, provided our tool has been used as designed, which
             # allows us to condense our policies quite a bit. But the Python regular expression we use to remove those
             # ARNs from the explicit listing differs from the pattern that means the same thing in an IAM policy.
@@ -84,7 +86,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             ]
 
             # Statement IDs in IAM policies are picky things
-            service_sid_prefix = f'{self.project.project.title()}{self.project.stack.title()}{service.title()}Readonly'
+            service_sid_prefix = f'{self.project.project.title()}{self.project.stack.title()}{service.title()}'
 
             # Get actions are also typically safe, but there is at least this exception: The only "Get" action that's
             # useful to a read-only user of Secrets Manager is "GetSecretValue". But these values often contain secrets
