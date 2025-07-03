@@ -114,6 +114,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 tags=self.tags,
             )
             if service in ['iam', 's3']:
+                pulumi.info(f'DEBUG -- service_arns: {service_arns}; uncommon_arns: {uncommon_arns}')
                 pulumi.info(f'DEBUG -- policy: {json.dumps(policy_doc, indent=2)}')
 
             # Also build a more permissive admin policy

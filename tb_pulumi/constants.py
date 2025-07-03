@@ -10,6 +10,7 @@ ASSUME_ROLE_POLICY = {
 AWS_GLOBAL_SERVICES = [
     'cloudfront',
     'iam',
+    's3',
 ]
 
 CLOUDFRONT_CACHE_POLICY_ID_OPTIMIZED = '658327ea-f89d-4fab-a63d-7e88639e58f6'  # "Managed-CachingOptimized" policy
