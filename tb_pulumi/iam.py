@@ -97,7 +97,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             policy_doc = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
             policy_doc['Statement'][0]['Resource'] = resources
             policy_doc['Statement'][0]['Action'] = readonly_actions
-            pulumi.info(f'DEBUG -- readonly policydoc: {json.dumps(policy_doc, indent=2)}')
+            # pulumi.info(f'DEBUG -- readonly policydoc: {json.dumps(policy_doc, indent=2)}')
             readonly_policies[service] = aws.iam.Policy(
                 f'{self.name}-policy-{service}-readonly',
                 description=f'Allow read-only access to {service} resources in the {self.project.name_prefix} stack',
