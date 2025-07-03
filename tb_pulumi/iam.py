@@ -107,7 +107,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
 
             # Also build a more permissive admin policy
             policy_doc['Statement'][0]['Action'] = ['*']
-            pulumi.info(f'DEBUG -- admin policydoc: {json.dumps(policy_doc, indent=2)}')
+            # pulumi.info(f'DEBUG -- admin policydoc: {json.dumps(policy_doc, indent=2)}')
             admin_policies[service] = aws.iam.Policy(
                 f'{self.name}-policy-{service}-admin',
                 description=f'Allow admin access to {service} resources in the {self.project.name_prefix} stack',
