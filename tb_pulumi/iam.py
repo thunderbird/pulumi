@@ -83,6 +83,9 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 f'{service}:List*',
             ]
 
+            # Statement IDs in IAM policies are picky things
+            service_sid_prefix = f'{self.project.project.title()}{self.project.stack.title()}{service.title()}Readonly'
+
             # Get actions are also typically safe, but there is at least this exception: The only "Get" action that's
             # useful to a read-only user of Secrets Manager is "GetSecretValue". But these values often contain secrets
             # that allow administrative access to other systems, such as databases. Allowing a read-only user to access
@@ -101,7 +104,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 'Statement': [{'Effect': 'Allow', 'Resource': resources, 'Action': readonly_actions}],
             }
             # pulumi.info(f'DEBUG -- readonly policydoc: {json.dumps(policy_doc, indent=2)}')
-            policy_doc['Statement'][0]['Sid'] = f'{self.project.name_prefix}-{service}-readonly'
+            policy_doc['Statement'][0]['Sid'] = f'{service_sid_prefix}ReadOnly'
             readonly_policies[service] = aws.iam.Policy(
                 f'{self.name}-policy-{service}-readonly',
                 description=f'Allow read-only access to {service} resources in the {self.project.name_prefix} stack',
@@ -110,7 +113,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             )
 
             # Also build a more permissive admin policy
-            policy_doc['Statement'][0]['Sid'] = f'{self.project.name_prefix}-{service}-admin'
+            policy_doc['Statement'][0]['Sid'] = f'{service_sid_prefix}Admin'
             policy_doc['Statement'][0]['Action'] = ['*']
             # pulumi.info(f'DEBUG -- admin policydoc: {json.dumps(policy_doc, indent=2)}')
             admin_policies[service] = aws.iam.Policy(
