@@ -237,7 +237,6 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket, bucket_oc, bucket_pab]),
         )
 
-        pulumi.info(f'DEBUG -- IAM_POLICY_DOCUMENT before: {json.dumps(tb_pulumi.constants.IAM_POLICY_DOCUMENT)}')
         policy_json = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
         policy_json['Statement'] = [{
             'Sid': 'PublicReadGetObject',
@@ -246,7 +245,6 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
             'Action': ['s3:GetObject'],
             'Resource': [f'arn:aws:s3:::{bucket_name}/*'],
         }]
-        pulumi.info(f'DEBUG -- IAM_POLICY_DOCUMENT after: {json.dumps(tb_pulumi.constants.IAM_POLICY_DOCUMENT)}')
         policy_json = json.dumps(policy_json)
         policy = aws.s3.BucketPolicy(
             f'{name}-policy',
