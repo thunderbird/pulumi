@@ -50,7 +50,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         readonly_policies = {}
 
         for service in services:
-            if service == 'iam':
+            if service in tb_pulumi.constants.AWS_GLOBAL_SERVICES:
                 continue
             # Many ARNs can be collapsed into a single pattern, provided our tool has been used as designed, which
             # allows us to condense our policies quite a bit. But the Python regular expression we use to remove those
@@ -69,11 +69,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             common_arn_policy_pattern = (
                 f'arn:aws:{service}:*:{self.project.aws_account_id}:*{self.project.name_prefix.replace("-", "/")}*'
                 if service == 'secretsmanager'
-                else (
-                    f'arn:aws:{service}:{"" if service in tb_pulumi.constants.AWS_GLOBAL_SERVICES else "*"}:'
-                    f'{"" if service is tb_pulumi.constants.AWS_GLOBAL_SERVICES else self.project.aws_account_id}:'
-                    f'*{self.project.name_prefix}*'
-                )
+                else f'arn:aws:{service}:*:{self.project.aws_account_id}:*{self.project.name_prefix}*'
             )
 
             # But ARNs for many old AWS products (like security groups and VPCs) do not use names and must be listed out
