@@ -65,7 +65,8 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 )
             )
             common_arn_policy_pattern = (
-                f'arn:aws:{service}:*:{self.project.aws_account_id}:*{self.project.name_prefix.replace("-", "/")}*'
+                f'arn:aws:{service}:{"" if service in tb_pulumi.constants.AWS_GLOBAL_SERVICES else "*"}:'
+                f'{self.project.aws_account_id}:*{self.project.name_prefix.replace("-", "/")}*'
                 if service == 'secretsmanager'
                 else f'arn:aws:{service}:*:{self.project.aws_account_id}:*{self.project.name_prefix}*'
             )
