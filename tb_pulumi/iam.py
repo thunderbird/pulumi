@@ -71,7 +71,8 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 if service == 'secretsmanager'
                 else (
                     f'arn:aws:{service}:{"" if service in tb_pulumi.constants.AWS_GLOBAL_SERVICES else "*"}:'
-                    f'{self.project.aws_account_id}:*{self.project.name_prefix}*'
+                    f'{"" if service is tb_pulumi.constants.AWS_GLOBAL_SERVICES else self.project.aws_account_id}:'
+                    f'*{self.project.name_prefix}*'
                 )
             )
 
