@@ -65,10 +65,12 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 )
             )
             common_arn_policy_pattern = (
-                f'arn:aws:{service}:{"" if service in tb_pulumi.constants.AWS_GLOBAL_SERVICES else "*"}:'
-                f'{self.project.aws_account_id}:*{self.project.name_prefix.replace("-", "/")}*'
+                f'arn:aws:{service}:*:{self.project.aws_account_id}:*{self.project.name_prefix.replace("-", "/")}*'
                 if service == 'secretsmanager'
-                else f'arn:aws:{service}:*:{self.project.aws_account_id}:*{self.project.name_prefix}*'
+                else (
+                    f'arn:aws:{service}:{"" if service in tb_pulumi.constants.AWS_GLOBAL_SERVICES else "*"}:'
+                    f'{self.project.aws_account_id}:*{self.project.name_prefix}*'
+                )
             )
 
             # But ARNs for many old AWS products (like security groups and VPCs) do not use names and must be listed out
@@ -96,9 +98,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             # Inject our resources and actions into a readonly policy
             policy_doc = {
                 'Version': '2012-10-17',
-                'Statement': [
-                    {'Effect': 'Allow', 'Resource': resources, 'Action': readonly_actions}
-                ],
+                'Statement': [{'Effect': 'Allow', 'Resource': resources, 'Action': readonly_actions}],
             }
             # pulumi.info(f'DEBUG -- readonly policydoc: {json.dumps(policy_doc, indent=2)}')
             policy_doc['Statement'][0]['Sid'] = f'{self.project.name_prefix}-{service}-readonly'
