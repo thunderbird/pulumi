@@ -94,9 +94,12 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             resources.extend(uncommon_arns)
 
             # Inject our resources and actions into a readonly policy
-            policy_doc = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
-            policy_doc['Statement'][0]['Resource'] = resources
-            policy_doc['Statement'][0]['Action'] = readonly_actions
+            policy_doc = {
+                'Version': '2012-10-17',
+                'Statement': [
+                    {'Sid': 'DefaultSid', 'Effect': 'Allow', 'Resource': resources, 'Action': readonly_actions}
+                ],
+            }
             # pulumi.info(f'DEBUG -- readonly policydoc: {json.dumps(policy_doc, indent=2)}')
             readonly_policies[service] = aws.iam.Policy(
                 f'{self.name}-policy-{service}-readonly',
