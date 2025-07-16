@@ -17,7 +17,7 @@ Prerequisites
 
 To use this module, you'll need to get through this checklist first:
 
-* Ensure Python 3.12 or greater is installed on your system.
+* Ensure Python 3.13 or greater is installed on your system.
 * `Install Pulumi <https://www.pulumi.com/docs/iac/download-install/>`_.
 * Understand the `basic concepts of Pulumi <https://www.pulumi.com/docs/iac/concepts/>`_, particularly `Resources
   <https://www.pulumi.com/docs/iac/concepts/resources/>`_ and `Component Resources
@@ -359,24 +359,24 @@ Troubleshooting
 Pythonic problems
 ^^^^^^^^^^^^^^^^^
 
-This Pulumi code is developed against Python 3.12 or later. If this is not your default version, you'll need to manage
+This Pulumi code is developed against Python 3.13 or later. If this is not your default version, you'll need to manage
 your own virtual environment.
 
 Check your default version:
 ::
 
   $ python -V
-  Python 3.12.6
+  Python 3.13.5
 
 If you need a newer Python, `download and install it <https://www.python.org/downloads/>`_. Then you'll have to set up
 the virtual environment yourself with something like this:
 
 .. code-block:: bash
 
-  virtualenv -p /path/to/python3.12 venv
+  virtualenv -p /path/to/python3.13 venv
   ./venv/bin/pip install .
 
-After this, ``pulumi`` commands should work. If 3.12 is your default version of Python, Pulumi should set up its own
+After this, ``pulumi`` commands should work. If 3.13 is your default version of Python, Pulumi should set up its own
 virtual environment, and you should not have to do this.
 
 
