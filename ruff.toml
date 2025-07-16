@@ -11,8 +11,8 @@ exclude = [
     "venv",
 ]
 
-# Always generate Python 3.12-compatible code.
-target-version = "py312"
+# Always generate Python 3.13-compatible code.
+target-version = "py313"
 
 [format]
 quote-style = "single"
