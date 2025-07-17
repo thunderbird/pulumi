@@ -202,7 +202,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                             'Sid': 'S3BucketAndObjectAccess',
                             'Effect': 'Allow',
                             'Action': ['s3:PutObject', 's3:ListBucket'],
-                            'Resource': policy_resources
+                            'Resource': policy_resources,
                         }
                     ],
                 }
