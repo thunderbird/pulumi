@@ -192,14 +192,17 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 )
 
             if enable_s3_bucket_upload:
+                policy_resources = []
+                for bucket in s3_upload_buckets:
+                    policy_resources.extend([f'arn:aws:s3:::{bucket}', f'arn:aws:s3:::{bucket}/*'])
                 policy_dict = {
                     'Version': '2012-10-17',
                     'Statement': [
                         {
-                            'Sid': 'PutObjects',
+                            'Sid': 'S3BucketAndObjectAccess',
                             'Effect': 'Allow',
-                            'Action': ['s3:PutObject'],
-                            'Resource': [f'arn:aws:s3:::{bucket}/*' for bucket in s3_upload_buckets],
+                            'Action': ['s3:PutObject', 's3:ListBucket'],
+                            'Resource': policy_resources
                         }
                     ],
                 }
