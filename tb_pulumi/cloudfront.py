@@ -337,7 +337,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             'cache_policy_id': CLOUDFRONT_CACHE_POLICY_ID_OPTIMIZED,
             'compress': True,
             'function_associations': default_function_associations,
-            'target_origin_id': bucket_regional_domain_name,
+            'target_origin_id': f's3-{service_bucket_name}',
             'viewer_protocol_policy': 'redirect-to-https',
         }
         if 'default_cache_behavior' in distribution:
