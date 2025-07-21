@@ -121,7 +121,7 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
             logging_config=logging_config,
-            tags=self.tags,
+             tags={**self.tags, "Name": f"{name}-cfdistro"},
             opts=pulumi.ResourceOptions(
                 parent=self,
                 depends_on=[logging_bucket],
@@ -354,7 +354,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
                 'minimum_protocol_version': 'TLSv1.2_2021',
                 'ssl_support_method': 'sni-only',
             },
-            tags=self.tags,
+            tags={**self.tags, "Name": f"{name}-cfdistro"},
             opts=pulumi.ResourceOptions(
                 parent=self,
                 depends_on=[logging_bucket, oac],
