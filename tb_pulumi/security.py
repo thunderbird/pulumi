@@ -23,6 +23,7 @@ class SecurityHub(tb_pulumi.ThunderbirdComponentResource):
         tags: dict = {},
         **kwargs,
     ):
+        exclude_from_project = kwargs.pop('exclude_from_project', False)
         if 'exclude_from_project' in kwargs:
             exclude_from_project = kwargs['exclude_from_project'] or False
             del kwargs['exclude_from_project']
