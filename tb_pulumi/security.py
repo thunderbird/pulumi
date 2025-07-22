@@ -1,6 +1,6 @@
 """Patterns related to continuous integration."""
 
-import json
+# import json
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
@@ -15,9 +15,9 @@ class SecurityHub(tb_pulumi.ThunderbirdComponentResource):
 
     def __init(
         self,
+        name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         region: str,
-        name: str = 'securityhub',
         enable_default_standards: bool = True,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
