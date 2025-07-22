@@ -41,3 +41,5 @@ class SecurityHub(tb_pulumi.ThunderbirdComponentResource):
             enable_default_standards=enable_default_standards,
             opts=pulumi.ResourceOptions(region)
         )
+
+        self.finish(resources={"security_hub": security_hub})
