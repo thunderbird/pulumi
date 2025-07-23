@@ -5,6 +5,7 @@ import pulumi
 import pulumi_aws as aws
 import tb_pulumi
 
+
 class SecurityHub(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:security:SecurityHub``
     Enable and Configure AWS SecurityHub for an account/region.
@@ -36,11 +37,9 @@ class SecurityHub(tb_pulumi.ThunderbirdComponentResource):
             opts=opts,
             tags=tags,
         )
-    
+
         security_hub = aws.security_hub.SecurityHub(
-            f'{name}',
-            enable_default_standards=enable_default_standards,
-            opts=pulumi.ResourceOptions(region)
+            f'{name}', enable_default_standards=enable_default_standards, opts=pulumi.ResourceOptions(region)
         )
 
-        self.finish(resources={"security_hub": security_hub})
+        self.finish(resources={'security_hub': security_hub})
