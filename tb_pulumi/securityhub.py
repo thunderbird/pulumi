@@ -6,7 +6,7 @@ import pulumi_aws as aws
 import tb_pulumi
 
 class SecurityHubAccount(tb_pulumi.ThunderbirdComponentResource):
-    """**Pulumi Type:** ``tb:security:SecurityHubAccount``
+    """**Pulumi Type:** ``tb:securityhub:SecurityHubAccount``
     Enable and Configure AWS SecurityHub for an account/region.
 
     Produces the following ``resources``:
@@ -28,7 +28,7 @@ class SecurityHubAccount(tb_pulumi.ThunderbirdComponentResource):
             del kwargs['exclude_from_project']
 
         super().__init__(
-            'tb:security-hub:SecurityHubAccount',
+            'tb:securityhub:SecurityHubAccount',
             name=f'{name}-sechubacc',
             project=project,
             exclude_from_project=exclude_from_project,
