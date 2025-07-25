@@ -5,9 +5,8 @@ import pulumi
 import pulumi_aws as aws
 import tb_pulumi
 
-
-class SecurityHub(tb_pulumi.ThunderbirdComponentResource):
-    """**Pulumi Type:** ``tb:security:SecurityHub``
+class SecurityHubAccount(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:security:SecurityHubAccount``
     Enable and Configure AWS SecurityHub for an account/region.
 
     Produces the following ``resources``:
@@ -19,7 +18,6 @@ class SecurityHub(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         region: str,
-        enable_default_standards: bool = True,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
         **kwargs,
@@ -30,16 +28,16 @@ class SecurityHub(tb_pulumi.ThunderbirdComponentResource):
             del kwargs['exclude_from_project']
 
         super().__init__(
-            'tb:security:SecurityHub',
-            name=f'{name}-securityhub',
+            'tb:security-hub:SecurityHubAccount',
+            name=f'{name}-sechubacc',
             project=project,
             exclude_from_project=exclude_from_project,
             opts=opts,
             tags=tags,
         )
 
-        security_hub = aws.security_hub.SecurityHub(
-            f'{name}', enable_default_standards=enable_default_standards, opts=pulumi.ResourceOptions(region)
+        security_hub_account = aws.security_hub.SecurityHub(
+            f'{name}', opts=pulumi.ResourceOptions(region)
         )
 
-        self.finish(resources={'security_hub': security_hub})
+        self.finish(resources={'security_hub_account': security_hub_account})
