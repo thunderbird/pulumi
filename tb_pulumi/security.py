@@ -31,7 +31,7 @@ class SecurityHub(tb_pulumi.ThunderbirdComponentResource):
 
         super().__init__(
             'tb:security:SecurityHub',
-            name=name,
+            name=f'{name}-securityhub',
             project=project,
             exclude_from_project=exclude_from_project,
             opts=opts,
