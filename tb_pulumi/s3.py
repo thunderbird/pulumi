@@ -17,11 +17,18 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
 
     Produces the following ``resources``:
 
+                's3_paths': s3_paths,
+                's3_objects': s3_objects,
         - *bucket* - The `aws.s3.BucketV2 <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketv2/>`_
           resource.
         - *encryption_config* - The `aws.s3.BucketServerSideEncryptionConfigurationV2
           <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketserversideencryptionconfigurationv2/>`_ if
           ``enable_server_side_encryption`` is ``True``.
+        - *s3_paths* - A dict mapping filenames on the local disk to the keys that S3 knows those files as. This is
+          empty if ``object_dir`` was not supplied.
+        - *s3_objects* - A dict of `BucketObjectV2
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketobjectv2/>`_ resources managed by this class.
+          This is empty if ``object_dir`` was not supplied.
         - *versioning_config* - The `aws.s3.BucketVersioningV2
           <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketversioningv2/>`_ resource if
           ``enable_versioning`` is ``True``.
@@ -111,6 +118,7 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
             else None
         )
 
+        s3_paths = {}
         s3_objects = {}
         if object_dir:
             # Discover files to upload
@@ -118,12 +126,16 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
             local_files = [file for file in local_root.glob('**') if file.is_file()]
 
             # Create object for each file
+            s3_paths = {
+                str(file): str(file).replace(str(local_root))
+                for file in local_files
+            }
             s3_objects = {
                 str(file): aws.s3.BucketObjectv2(
                     f'{name}-object-{str(file).replace("/", "_").replace("-", "_").replace(".", "_")}',
                     bucket=bucket_name,
                     content_type=mimetypes.guess_file_type(str(file))[0] or 'text/plain',
-                    key=str(file).replace(str(local_root), ''),
+                    key=s3_paths[str(file)],
                     source=pulumi.asset.FileAsset(file),
                     tags=self.tags,
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
@@ -135,6 +147,7 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
             resources={
                 'bucket': bucket,
                 'encryption_config': encryption_config,
+                's3_paths': s3_paths,
                 's3_objects': s3_objects,
                 'versioning_config': versioning_config,
             }
