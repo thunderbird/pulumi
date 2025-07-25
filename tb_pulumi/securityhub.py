@@ -36,7 +36,7 @@ class SecurityHubAccount(tb_pulumi.ThunderbirdComponentResource):
             tags=tags,
         )
 
-        security_hub_account = aws.security_hub.SecurityHub(
+        security_hub_account = aws.securityhub.Account(
             f'{name}', opts=pulumi.ResourceOptions(region)
         )
 
