@@ -108,6 +108,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 f'{self.name}-policy-{service}-readonly',
                 description=f'Allow read-only access to {service} resources in the {self.project.name_prefix} stack',
                 policy=json.dumps(policy_doc),
+                opts=pulumi.ResourceOptions(parent=self),
                 tags=self.tags,
             )
             if service in ['iam', 's3']:
@@ -122,30 +123,35 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
                 f'{self.name}-policy-{service}-admin',
                 description=f'Allow admin access to {service} resources in the {self.project.name_prefix} stack',
                 policy=json.dumps(policy_doc),
+                opts=pulumi.ResourceOptions(parent=self),
                 tags=self.tags,
             )
 
         admin_group = aws.iam.Group(
             f'{self.name}-usergroup-admin',
             name=f'{self.name}-admin',
+            opts=pulumi.ResourceOptions(parent=self),
         )
         admin_policy_attachments = {
             name: aws.iam.GroupPolicyAttachment(
                 f'{self.name}-gpa-admin-{idx}',
                 group=admin_group.name,
                 policy_arn=policy.arn,
+                opts=pulumi.ResourceOptions(parent=self),
             )
             for idx, (name, policy) in enumerate(admin_policies.items())
         }
         readonly_group = aws.iam.Group(
             f'{self.name}-usergroup-readonly',
             name=f'{self.name}-readonly',
+            opts=pulumi.ResourceOptions(parent=self),
         )
         readonly_policy_attachments = {
             name: aws.iam.GroupPolicyAttachment(
                 f'{self.name}-gpa-readonly-{idx}',
                 group=readonly_group.name,
                 policy_arn=policy.arn,
+                opts=pulumi.ResourceOptions(parent=self),
             )
             for idx, (name, policy) in enumerate(readonly_policies.items())
         }
