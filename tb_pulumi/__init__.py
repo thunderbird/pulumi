@@ -7,6 +7,7 @@ import boto3
 import pulumi
 import yaml
 
+from abc import abstractclassmethod
 from functools import cached_property
 from os import environ
 from tb_pulumi.constants import DEFAULT_PROTECTED_STACKS
@@ -275,7 +276,7 @@ def env_var_is_true(name: str) -> bool:
     return env_var_matches(name, ['t', 'true', 'yes'], False)
 
 
-def flatten(item: Flattenable) -> set[pulumi.Resource]:
+def flatten(item: Flattenable) -> set[pulumi.Resource | pulumi.Output]:
     """Recursively traverses a nested collection of Pulumi ``Resource`` s, converting them into a flat set which can be
     more easily iterated over.
 
@@ -305,3 +306,118 @@ def flatten(item: Flattenable) -> set[pulumi.Resource]:
             flattened.extend(flatten(item))
 
     return set(flattened)
+
+
+class ProjectResourceGroup(ThunderbirdComponentResource):
+    """A collection of all resources in a given project, determined after all resources in the Pulumi stack have been
+    fully resolved (at the end of a ``pulumi up`` or ``pulumi preview``, for example). This means that all available
+    context about these resources is available by the time the :py:meth:`tb_pulumi.ProjectResourceGroup.ready` function
+    is called.
+
+    :param pulumi_type: The "type" string (commonly referred to in docs as just ``t``) of the component as described
+        by `Pulumi's type docs <https://www.pulumi.com/docs/concepts/resources/names/#types>`_.
+    :type pulumi_type: str
+
+    :param name: The name of the ``ProjectResourceGroup`` resource.
+    :type name: str
+
+    :param project: The ``ThunderbirdPulumiProject`` to build a resource group out of.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+    """
+
+    def __init__(
+        self,
+        pulumi_type: str,
+        name: str,
+        project: ThunderbirdPulumiProject,
+        opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
+    ):
+        super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts, tags=tags)
+
+        # Start with a list of all resources; sort them out into known (pulumi.Resources) and unknown things
+        _all_contents = self.project.flatten()
+
+        #: All Pulumi Outputs in the project
+        self.all_outputs = [res for res in _all_contents if isinstance(res, pulumi.Output)]
+
+        #: All items in the project which are already-resolved pulumi resources
+        self.all_resources = [res for res in _all_contents if not isinstance(res, pulumi.Output)]
+
+        def __parse_resource_item(
+            item: Flattenable,
+        ):
+            """Not all items in a project's ``resources`` dict are actually Pulumi Resources. Sometimes we build
+            resources downstream of a Pulumi Output, which makes those resources (as they are known to the project)
+            actually Outputs and not recognizable resource types. We can only detect what kind of thing those Outputs
+            really are by asking from within code called inside an output's `apply` function. This necessitates an
+            unpacking process on this end of things to recursively resolve those Outputs into Resources that we can
+            build alarms around.
+
+            This function processes and recursively "unpacks" an ``item`` , which could be any of the following things:
+
+                - A Pulumi Resource.
+                - A ``tb_pulumi.ThunderbirdComponentResource`` that potentially contains other Resources or Outputs
+                    in a potentially nested structure.
+                - A Pulumi Output that could represent either of the above things, or could be a collection of a
+                    combination of those things.
+                - A list of any of the above items.
+                - A dict where the values could be any of the above items.
+
+            Given one of these things, this function determines what kind of item it's dealing with and responds
+            appropriately to unpack and resolve the item. The function doesn't return any value, but instead manipulates
+            the internal resource listing directly, resulting in an ``all_resources`` list that includes the unpacked
+            and resolved Outputs.
+
+            It is important to note that this listing is **eventually resolved**. Because this function deals in Pulumi
+            Outputs, the ``all_resources`` list **will still contain Outputs, even after running this function** if you
+            access it from a code path that doesn't begin with all Outputs being parsed. The ``ready`` function exists
+            to provide such a code path. Accessed from a "resolved" code path, ``self.all_resources`` will contain
+            valid, resolved values.
+            """
+
+            if type(item) is list:
+                for i in item:
+                    __parse_resource_item(i)
+            elif type(item) is dict:
+                for i in item.values():
+                    __parse_resource_item(i)
+            elif isinstance(item, ThunderbirdComponentResource):
+                __parse_resource_item(item.resources)
+            elif isinstance(item, pulumi.Resource):
+                self.all_resources.append(item)
+            elif isinstance(item, pulumi.Output):
+                item.apply(__parse_resource_item)
+
+        # Expand and resolve all outputs using the above parsing function
+        for output in self.all_outputs:
+            __parse_resource_item(output)
+
+        # When all outputs are applied, trigger the `ready` event.
+        pulumi.Output.all(*self.all_outputs).apply(lambda outputs: self.ready(outputs))
+
+    @abstractclassmethod
+    def ready(self, outputs: list[pulumi.Resource]):
+        """This function gets called only after all outputs in the project have been resolved into values. This
+        function should be considered a post-apply stage of the ``__init__`` function and a starting point for acting on
+        a project with full context. When this function is called by the ``ProjectResourceGroup`` constructor, the
+        class's ``all_resources`` member will contain all resources in the stack with all outputs populated. This
+        function is essentially a hand-off to an implementing class, an indicator that the project has been successfully
+        applied, and all resource context is available for inspection.
+
+        This is an abstract method which must be implemented by an inheriting class. That function should inspect the
+        ``self.all_resources`` variable for resources to act on.
+
+        :param outputs: A list of resolved outputs discovered in the project. This is provided primarily for reference,
+            and has limited value.
+        :type outputs: list[pulumi.Resource]
+        """
+
+        raise NotImplementedError()

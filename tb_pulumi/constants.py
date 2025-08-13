@@ -26,6 +26,22 @@ DEFAULT_PROTECTED_STACKS = ['prod']  #: Which Pulumi stacks should get resource 
 #: IAM policies often extend this template.
 IAM_POLICY_DOCUMENT = {'Version': '2012-10-17', 'Statement': [{'Sid': 'DefaultSid', 'Effect': 'Allow'}]}
 
+#: IAM ARNs have a "path" portion, and these are the valid values
+IAM_RESOURCE_PATHS = [
+    'access-report',
+    'federated-user',
+    'group',
+    'instance-profile',
+    'mfa',
+    'oidc-provider',
+    'policy',
+    'report',
+    'role',
+    'saml-provider',
+    'server-certificate',
+    'sms-mfa',
+    'user',
+]
 #: Map of common services to their typical ports
 SERVICE_PORTS = {
     'mariadb': 3306,
