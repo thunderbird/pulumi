@@ -71,7 +71,6 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
 
         admin_policies = {}  # Policies granting administrative access to services
         readonly_policies = {}  # Policies granting read-only access to services
-        referenced_arns = []  # List of ARNs which have been accounted for in these policies
         for service in services:
             # Many ARNs can be collapsed into a single pattern, provided our tool has been used as designed and AWS is
             # uniform in its ARNs, which allows us to condense our policies quite a bit. But the Python regular
