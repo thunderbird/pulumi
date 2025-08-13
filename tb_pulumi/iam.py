@@ -113,7 +113,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             # matched by the policy pattern.
             service_arns = [arn for arn in arns if arn.split(':')[2] == service]
             uncommon_arns = [arn for arn in service_arns if not re.match(common_arn_regex, arn)]
-            
+
             # "Describe" and "List" actions are typically safe for read-only access.
             readonly_actions = [
                 f'{service}:Describe*',
@@ -149,7 +149,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             # Statement IDs in IAM policies must be alphanumeric. Here we normalize our inputs against that constraint.
             valid_chars = string.ascii_letters + '0123456789'
             service_sid_prefix = f'{self.project.project.title()}{self.project.stack.title()}{service.title()}'
-            service_sid_prefix = ''.join([ char for char in service_sid_prefix if char in valid_chars ])
+            service_sid_prefix = ''.join([char for char in service_sid_prefix if char in valid_chars])
 
             # Form the read-only policy
             policy_doc['Statement'][0]['Sid'] = f'{service_sid_prefix}ReadOnly'
@@ -185,7 +185,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             opts=pulumi.ResourceOptions(parent=self),
         )
         admin_policy_attachments = {
-           service: aws.iam.GroupPolicyAttachment(
+            service: aws.iam.GroupPolicyAttachment(
                 f'{self.name}-gpa-admin-{service}',
                 group=admin_group.name,
                 policy_arn=policy.arn,
@@ -209,7 +209,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
             )
             for idx, (name, policy) in enumerate(readonly_policies.items())
         }
-        
+
         self.finish(
             resources={
                 'admin_group': admin_group,
