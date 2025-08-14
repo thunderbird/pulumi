@@ -121,7 +121,7 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
             logging_config=logging_config,
-             tags={**self.tags, "Name": f"{name}-cfdistro"},
+            tags={**self.tags, "Name": f"{name}-cfdistro"},
             opts=pulumi.ResourceOptions(
                 parent=self,
                 depends_on=[logging_bucket],
