@@ -7,7 +7,7 @@ from abc import abstractclassmethod
 from functools import cached_property
 
 
-class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
+class MonitoringGroup(tb_pulumi.ProjectResourceGroup):
     """A broad-scope approach to aggregate resource monitoring. A ``MonitoringGroup`` is a very thin class that should
     be extended to provide specific monitoring solutions for the resources contained in the specified ``project``.
 
@@ -60,7 +60,7 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
 
     def __init__(
         self,
-        pulumi_type: str,
+        pulumi_type: str,  # We have to pass this through here because this class is meant to be further extended
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         type_map: dict,
@@ -68,108 +68,45 @@ class MonitoringGroup(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
     ):
-        super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts, tags=tags)
+        # Internalize data before calling the superconstructor since that will ultimately result in our `ready` and
+        # `monitor` functions being called before code flow continues below.
         self.config: dict = config
         self.type_map: dict = type_map
-
-        # Start with a list of all resources; sort them out into known and unknown things
-        _all_contents = self.project.flatten()
-
-        #: All Pulumi Outputs in the project
-        self.all_outputs = [res for res in _all_contents if isinstance(res, pulumi.Output)]
-
-        #: All items in the project which are already-resolved pulumi resources
-        self.all_resources = [res for res in _all_contents if not isinstance(res, pulumi.Output)]
 
         #: All resources in the project which have an entry in the type_map; this may contain Outputs, which will be
         #: resolved by the time :py:meth:`tb_pulumi.monitoring.MonitoringGroup.monitor` is invoked.
         self.supported_resources = []
+        super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts, tags=tags)
 
-        def __parse_resource_item(
-            item: tb_pulumi.Flattenable,
-        ):
-            """Not all items in a project's ``resources`` dict are actually Pulumi Resources. Sometimes we build
-            resources downstream of a Pulumi Output, which makes those resources (as they are known to the project)
-            actually Outputs and not recognizable resource types. We can only detect what kind of thing those Outputs
-            really are by asking from within code called inside an output's `apply` function. This necessitates an
-            unpacking process on this end of things to recursively resolve those Outputs into Resources that we can
-            build alarms around.
-
-            This function processes and recursively "unpacks" an ``item`` , which could be any of the following things:
-
-                - A Pulumi Resource that we may or may not be able to monitor.
-                - A ``tb_pulumi.ThunderbirdComponentResource`` that potentially contains other Resources or Outputs
-                    in a potentially nested structure.
-                - A Pulumi Output that could represent either of the above things, or could be a collection of a
-                    combination of those things.
-                - A list of any of the above items.
-                - A dict where the values could be any of the above items.
-
-            Given one of these things, this function determines what kind of item it's dealing with and responds
-            appropriately to unpack and resolve the item. The function doesn't return any value, but instead manipulates
-            the internal resource listing directly, resulting in an ``all_resources`` list that includes the unpacked
-            and resolved Outputs.
-
-            It is important to note that this listing is **eventually resolved**. Because this function deals in Pulumi
-            Outputs, the ``all_resources`` list **will still contain Outputs, even after running this function!**
-            However, ``all_resources`` will contain valid, resolved values when accessed from within a function that
-            relies upon the application of every item in ``all_outputs``, such as the ``monitor`` function. This is why
-            we build all monitoring resources inside of the ``monitor`` function.
-            """
-
-            if type(item) is list:
-                for i in item:
-                    __parse_resource_item(i)
-            elif type(item) is dict:
-                for i in item.values():
-                    __parse_resource_item(i)
-            elif isinstance(item, tb_pulumi.ThunderbirdComponentResource):
-                __parse_resource_item(item.resources)
-            elif isinstance(item, pulumi.Resource):
-                self.all_resources.append(item)
-            elif isinstance(item, pulumi.Output):
-                item.apply(__parse_resource_item)
-
-        # Expand and resolve all outputs using the above parsing function
-        for output in self.all_outputs:
-            __parse_resource_item(output)
-
-        # When all outputs are applied, trigger the `on_apply` event.
-        pulumi.Output.all(*self.all_outputs).apply(lambda outputs: self.__on_apply(outputs))
-
-    def __on_apply(self, outputs):
-        """This function gets called only after all outputs in the project have been resolved into values. This
-        function should be considered to be a post-apply stage of the ``__init__`` function.
+    def ready(self, outputs: list[pulumi.Resource]):
+        """This function is called by the :py:class:`tb_pulumi.ProjectResourceGroup` after all outputs in the project
+        have been resolved into values. Here, we examine those resources and determine which ones this library is
+        capable of building alarms for. These become our ``supported_resources``, which are to be accessed by classes
+        implementing this one.
 
         :param outputs: A list of resolved outputs discovered in the project. This is provided primarily for reference,
-            and gets passed into this class's ``monitor`` function. It has very limited value, and implementations of
-            this class should instead reference ``self.supported_resources`` as a canonical list of resources to
-            monitor.
-        :type outputs: list
+            but has limited value.
+        :type outputs: list[pulumi.Resource]
         """
 
         # From this side of an apply, we can see the resource types and look for ones we know about
         self.supported_resources = [res for res in self.all_resources + outputs if type(res) in self.type_map.keys()]
 
         # Call downstream monitoring setups
-        self.monitor(outputs)
+        self.monitor()
 
     @abstractclassmethod
-    def monitor(self, outputs):
-        """This function gets called after all of a project's outputs have been recursively unpacked and resolved, and
-        after this class's post-apply construction has completed.
-
-        This is an abstract method which must be implemented by an inheriting class. That function should construct all
-        monitors for the supported resources in this project within this function. This function is essentially a
-        hand-off to an implementing class, an indicator that the project has been successfully parsed, and monitors can
-        now be built.
+    def monitor(self):
+        """This function is called by :py:meth:`tb_pulumi.monitoring.MonitoringGroup.ready` when the ``MonitoringGroup``
+        has determined what resources are supported by this library. This class is downstream from a
+        :py:class:`tb_pulumi.ThunderbirdComponentResource`, and is an extension of its
+        :py:meth:`tb_pulumi.ThunderbirdComponentResource.__init__` function, the ``finish`` call for downstream
+        monitoring groups should be made from within this function instead of the constructor.
 
         Because this works as an extension of ``__init__``, the ``finish`` call for downstream monitoring groups should
         be made from within this function instead of the constructor.
-
-        :param outputs: A list of resolved outputs discovered in the project.
-        :type outputs: list
         """
+
         raise NotImplementedError()
 
 
