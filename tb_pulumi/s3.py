@@ -112,24 +112,28 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
         )
 
         s3_objects = {}
+
         if object_dir:
             # Discover files to upload
             local_root = Path(object_dir)
             local_files = [file for file in local_root.glob('**') if file.is_file()]
 
             # Create object for each file
-            s3_objects = {
-                str(file): aws.s3.BucketObjectv2(
+            for file in local_files:
+                content_type = mimetypes.guess_file_type(str(file))[0] or 'text/plain'
+                # Different OSes produce different mimetypes for XML files. We want consistency.
+                if content_type == 'text/xml':
+                    content_type == 'application/xml'
+
+                s3_objects[str(file)] = aws.s3.BucketObjectv2(
                     f'{name}-object-{str(file).replace("/", "_").replace("-", "_").replace(".", "_")}',
                     bucket=bucket_name,
-                    content_type=mimetypes.guess_file_type(str(file))[0] or 'text/plain',
+                    content_type=content_type,
                     key=str(file).replace(str(local_root), ''),
                     source=pulumi.asset.FileAsset(file),
                     tags=self.tags,
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
                 )
-                for file in local_files
-            }
 
         self.finish(
             resources={
