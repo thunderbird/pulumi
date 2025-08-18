@@ -29,6 +29,9 @@ virtualenv venv
 . ./venv/bin/activate
 pip install .[dev]
 
+# Make whatever edits you need now.
+# vim tb_pulumi/iam.py
+
 # Format files so they adhere to our standards
 ruff format
 
