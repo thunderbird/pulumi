@@ -60,7 +60,7 @@ up one of the following options:
 
 Each time you set up to use your Pulumi code, you will need to run:
 
-.. code-block bash
+.. code-block:: bash
 
   pulumi login $YOUR_LOGIN_URL
 
