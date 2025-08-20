@@ -85,6 +85,6 @@ module.
 7. Add these files to a commit and open a PR. Get approval and merge the PR.
 8. Again, `checkout` and `pull` the `main` branch, which now includes the right version data.
 9. Checkout and push a branch named after your version. This should always begin with the lowercase letter `v`, which
-    should be followed by the correct [semantic version](https://semver.org), such as `v0.0.11`.
-    - `git checkout -b v0.0.11`
-    - `git push -u origin v0.0.11`
+    should be followed by the correct [semantic version](https://semver.org), such as `v0.0.15`.
+    - `git checkout -b v0.0.15`
+    - `git push -u origin v0.0.15`

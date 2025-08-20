@@ -3,33 +3,84 @@
 Getting Started
 ===============
 
-The classes in this module are intended to provide easy access to common infrastructural patterns in use at Thunderbird.
-This should...
+The tb_pulumi module has a few guiding principals and helpful features:
 
-* help you set up a Pulumi project,
-* reduce most infrastructure configuration to values in a YAML file,
-* simplify the process of building complete infrastructural patterns.
+- It should meet the needs of Thunderbird Pro Services while also being otherwise useful to the community.
+- It should reduce the overhead of working with a project long-term by front-loading most development work and moving
+  most settings that one might adjust over time to a simple configuration file.
+- It should make use of Pulumi's extensibility to create a broader model of infrastructure management operations beyond
+  the management of singular resources.
 
-As such, it is somewhat opinionated, requires certain usage patterns, and strongly suggests some usage conventions.
+In order to accomplish these things, tb_pulumi must be rather opinionated. It requires certain usage patterns and
+strongly suggests some additional usage conventions. This Getting Started guide will get you up and running with this
+tool and adapt to its particularities, setting you up to make the most use of its advanced features. When you've stepped
+through it, you should have a simple project structure with a basic private network configuration. This is a good
+starting point for further development.
+
 
 Prerequisites
 -------------
 
-To use this module, you'll need to get through this checklist first:
+To use tb_pulumi, you'll need to get through this checklist first:
 
-* Ensure Python 3.13 or greater is installed on your system.
-* `Install Pulumi <https://www.pulumi.com/docs/iac/download-install/>`_.
-* Understand the `basic concepts of Pulumi <https://www.pulumi.com/docs/iac/concepts/>`_, particularly `Resources
-  <https://www.pulumi.com/docs/iac/concepts/resources/>`_ and `Component Resources
-  <https://www.pulumi.com/docs/iac/concepts/resources/components/>`_.
-* Provide an `awscli configuration <https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html>`_ with
-  your credentials and default region. (You do not have to install awscli, though you can
-  `read how to here <https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html>`_.
-  Some of these docs refer to helpful awscli commands.) The Pulumi AWS provider relies on the same configuration,
-  though, so you must create the config file.
-* Optionally, set up an `S3 bucket`_ to store your Pulumi state in.
 
-The `Troubleshooting`_ section has some details on how to work through some issues related to setup.
+Get an AWS Account
+^^^^^^^^^^^^^^^^^^
+
+This module builds infrastructure against Amazon Web Services. You will need to `sign up
+<https://signin.aws.amazon.com/signup?request_type=register>`_ for an account there. Our patterns default to using
+infrastructure that typicaly qualifies for AWS Free Tier, but you should know that usage of this tool always implies
+cost at AWS.
+
+Once you have an account, you will need to `set up an access key
+<https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html>`_. You will then need to `configure
+AWSCLI <https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html>`_ with those credentials. You do not
+need to install the AWSCLI tool itself.
+
+
+Build a State Backend
+^^^^^^^^^^^^^^^^^^^^^
+
+Pulumi keeps an accounting of the state of your infrastructure in online storage, enabling it to track that state for
+multiple users across multiple executions of Pulumi commands. There are three ways to store this. You will have to set
+up one of the following options:
+
+- Create an S3 bucket in AWS. This should be a completely private bucket with no external access. The user you have
+  configured an access key for must have full access to this bucket and its objects. To use this, you will have to run
+  ``pulumi login s3://your-bucket-name``.
+- Create a `Pulumi Cloud account <https://app.pulumi.com/>`_. To use this, you will have to run ``pulumi login`` without
+  specifying a backend, or ``pulumi login https://api.pulumi.com``.
+- Set up a custom Pulumi Cloud server and use the URL for that server.  
+
+.. note::
+
+  The name of an S3 bucket is used as part of a global domain, and so your bucket name must be globally unique. A good
+  way to handle this is to include an organization name in your bucket name. As a template, you may use:
+  ``$ORG-$PROJECT_NAME-pulumi``.
+
+Each time you set up to use your Pulumi code, you will need to run:
+
+.. code-block:: bash
+
+  pulumi login $YOUR_LOGIN_URL
+
+
+Install Python 3.13 or greater
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There are many ways to install Python. You can begin with the `Python downloads page
+<https://www.pulumi.com/docs/iac/download-install/>`_.
+
+
+Install Pulumi
+^^^^^^^^^^^^^^
+
+Pulumi provides `instructions for installation <https://www.pulumi.com/docs/iac/download-install/>`_ on their website.
+You should follow those instructions to install the latest version of Pulumi.
+
+You should also come to understand the `basic concepts of Pulumi <https://www.pulumi.com/docs/iac/concepts/>`_,
+particularly `Resources <https://www.pulumi.com/docs/iac/concepts/resources/>`_ and `Component Resources
+<https://www.pulumi.com/docs/iac/concepts/resources/components/>`_.
 
 
 .. _quickstart:
@@ -42,23 +93,22 @@ refer to your particular project details:
 
 .. code-block:: bash
 
- ./quickstart.sh \
-     /path/to/project/root \ # The root of your code project where you want to set up a pulumi project
-     pulumi_login_url      \ # URL to use with `pulumi login`; use "https://api.pulumi.com" for Pulumi Cloud
-     project_name, \         # Name of your project as it will be known to pulumi
-     stack_name, \           # Name of the first stack you want to create
+ ./quickstart.sh           \
+     /path/to/project/root \ # The root of your code project where you want to set up a tb_pulumi project
+     pulumi_login_url      \ # URL to use with `pulumi login`; see below for details
+     project_name,         \ # Name of your project as it will be known to pulumi
+     stack_name,           \ # Name of the first stack you want to create (such as "stage" or "dev")
      [code_version]          # Code version (git branch) that you want to pin. Optional; defaults to "main"
 
 This will...
 
-* run you through some prompts where you can enter further project details,
-* install a simple Pulumi program intended to set up a basic networking landscape,
-* run a ``pulumi preview`` command to finish setting up the environment and confirm the project is working.
+- run you through some prompts where you can enter further project details,
+- install a simple Pulumi program intended to set up a basic networking landscape,
+- run a ``pulumi preview`` command to finish setting up the environment and confirm the project is working.
 
 If you are using an S3 bucket to privately store your state, you'll need to make sure you have configured your AWSCLI
-tool with an account that has permission to manipulate that bucket. Prefix your bucket name with `s3://` to use as your
-`pulumi_login_url` value (e.g.,: `s3://acme-awesomeapi-pulumi`). If you will use Pulumi Cloud, use
-`https://api.pulumi.com`. If you have a
+tool with an account that has permission to manipulate that bucket and its contents. To specify an S3 state backend, set
+the login URL to ``s3://your-bucket-name``. If you will use Pulumi Cloud, use ``https://api.pulumi.com``. If you have a
 `self-hosted Pulumi Cloud API <https://www.pulumi.com/docs/pulumi-cloud/admin/self-hosted/components/api/>`_, you may
 specify your custom URL here.
 
@@ -84,48 +134,51 @@ The output should look something like this:
 Manual Setup
 ------------
 
+  "What's so quick about the quickstart anyway?" ~ You, probably
+
 If you want to do everything the Quickstart script does manually (or just understand this project framework better),
 follow this guide.
-
-S3 bucket
-^^^^^^^^^
-
-.. note:: This step is optional. If you do not set up an S3 bucket, you can use Pulumi Cloud instead by specifying
-  ``https://api.pulumi.com`` or a custom self-hosted URL when you run ``pulumi login`` in the next step.
-
-Create an S3 bucket in which to store state for the project. You must have one bucket devoted to your project, but you
-can store multiple stacks' state files in that one bucket. The bucket should not be public (treat these files as
-sensitive), and it's usually a good idea to turn on versioning.
-
-The name of an S3 bucket is used as part of a global domain, and so your bucket name must be globally unique. A good way
-to handle this is to include an organization name in your bucket name. As a template, you may use:
-::
-
-  $ORG-$PROJECT_NAME-pulumi
 
 
 Repo setup
 ^^^^^^^^^^
 
-You probably already have a repository with your application code in it. If not, create one now.
+We strongly recommend the use of a version control system such as git when working with your tb_pulumi project. If you
+already have a repository containing the source code for your application, then it is recommended to put your Pulumi
+code inside that same repo.
 
-Create a subdirectory called ``pulumi`` and create a new project and stack in it. You'll need the name of the S3
-bucket or cloud host from the previous step here. If you are operating in an AWS region other than what is set as your
-default for AWSCLI, be sure to ``export AWS_REGION=us-east-1`` or whatever else you may need to do to override that.
+Create a subdirectory called ``pulumi/`` and create a new Pulumi project in it with the command below. If you are
+operating in an AWS region other than what is set as your default for awscli, be sure to
+``export AWS_REGION=your-region-here`` or whatever else you may need to do to override that.
+
+All tb_pulumi projects are AWS/Python projects.
 
 .. code-block:: bash
 
-  cd /path/to/pulumi/code
-  pulumi login s3://s3-bucket-name
   pulumi new aws-python
 
-Follow the prompts to get everything named.
+Follow the prompts to complete the initial Pulumi setup. This builds the ``Pulumi.yaml`` file that describes project-
+wide settings.
 
 
-Set up this module
-^^^^^^^^^^^^^^^^^^
+Stack Setup
+^^^^^^^^^^^
 
-Ensure your pulumi code directory contains a ``requirements.txt`` file with at least this repo listed:
+In Pulumi, a stack roughly translates to an operating environment. You should identify your needs and determine an
+appropriate name for your first stack. As an example, on the Thunderbird Services Team, we have "stage" and "prod"
+stacks to describe our testing and live environments. Initialize your first stack:
+
+.. code-block:: bash
+
+  pulumi stack init $STACK_NAME
+
+This will create a ``Pulumi.$STACK_NAME.yaml`` file which defines the operating parameters for this particular stack.
+
+
+Set up tb_pulumi
+^^^^^^^^^^^^^^^^
+
+Ensure your ``pulumi`` code directory contains a ``requirements.txt`` file with at least this repo listed:
 
 .. code-block:: text
 
@@ -135,53 +188,25 @@ You can pin your code to a specific version of this module by appending ``@branc
 
 .. code-block:: text
 
-  tb_pulumi @ git+https://github.com/thunderbird/pulumi.git@v0.0.13
+  tb_pulumi @ git+https://github.com/thunderbird/pulumi.git@v0.0.14
 
-Pulumi will need these requirements installed. On your first run of a ``pulumi preview`` command (or some others),
-Pulumi will attempt to set up its working environment. If this fails, or you need to make adjustments later, you can
-activate Pulumi's virtual environment to perform pip changes. Assuming Pulumi's virtual environment lives at ``venv``,
-run:
+If your project relies on any other Python dependencies, also list them in this file. This ensures that Pulumi can
+bootstrap itself with tb_pulumi and other dependencies all accounted for.
 
-.. code-block:: bash
 
-  source ./venv/bin/activate
-  pip install -U -r requirements.txt
+Configure tb_pulumi
+^^^^^^^^^^^^^^^^^^^
 
-You can now develop Python Pulumi code in that directory, as shown in the following section.
-
-Use this module
-^^^^^^^^^^^^^^^
-
-When you issue ``pulumi`` commands (like "up" and "preview" and so on), it looks for a ``__main__.py`` file in your
-current directory and executes the code in that file.
-
-``__main__.py`` imports and uses the ``tb_pulumi`` library:
-
-.. code-block:: python
-
-  import tb_pulumi
-
-  # ...or you can import specific modules...
-
-  from tb_pulumi import (ec2, fargate, secrets)
-
-Create a config file
-""""""""""""""""""""
-
-Create a config file for each stack, i.e., ``config.$STACK.yaml`` (where ``$STACK`` maps to a Pulumi stack/application
-environment). This file maps parameters for tb_pulumi resources to their desired values. Currently, only the
-``resources`` setting is formally recognized.
-
-.. note::
-
-   When you run ``pulumi stack select $STACK`` on a tb_pulumi project, these two files become active in the Pulumi run:
-   ``Pulumi.$STACK.yaml`` and ``config.$STACK.yaml``. The former configures Pulumi for your stack (in addition to
-   ``Pulumi.yaml``) while the latter configures your tb_pulumi project.
+Whereas ``Pulumi.$STACK_NAME.yaml`` describes how Pulumi handles that one stack, a ``config.$STACK_NAME.yaml`` file
+describes the properties of tb_pulumi patterns you will later define in your Pulumi code. The contents of the
+``resources`` entry will become the ``config`` property of your project in code.
 
 Let's look at an example tb_pulumi configuration file.
 
 .. code-block:: yaml
+    :linenos:
 
+    ---
     resources:
       tb:network:MultiCidrVpc:
         vpc:
@@ -202,56 +227,82 @@ Let's look at an example tb_pulumi configuration file.
             us-east-2c:
               - 10.0.103.0/24
 
-At the top-level is the ``resources`` key. Nested inside are configurations for kinds of resources. This resource uses
-the ``tb_pulumi.network.MultiCidrVpc`` class.
-
-.. note::
-    We recommend using resource key names that are named after the Pulumi Types for each resource. These are documented
-    alongside each class in the :py:mod:`tb_pulumi` module. This is, however, completely optional convention.
+At the top-level (line 2) is the ``resources`` key. Nested inside are configurations for resource patterns. This project
+uses the ``tb_pulumi.network.MultiCidrVpc`` class. In Pulumi, resources have a `"type" string
+<https://www.pulumi.com/docs/iac/concepts/resources/names/#types>`_, and by convention, we use the same format to
+identify these patterns. In this case, you can see how the class ``tb_pulumi.network.MultiCidrVpc`` maps to the type
+string ``tb:network:MultiCidrVpc``.
 
 The Pulumi Type for a ``MultiCidrVpc`` is ``tb:network:MultiCidrVpc``, so we have chosen that as a name under which we
-define our MultiCidrVpc configs. We call this one particular config ``vpc`` (you normally need only one, though this
-convention allows for as many as you like).
+define our MultiCidrVpc configs (line 3).
 
-These resources must still be defined in code (more on that later), but that code will largely just establish
-relationships between resource patterns (like using the ID of a VPC built by a MultiCidrVpc pattern as an input to a
-SecurityGroupWithRules pattern) and pass the YAML configuration through to those patterns. This simple relationship
-between the ``__main__.py`` code and the tb_pulumi YAML config is one core function of this project's conventions.
-
-The full listing of values supported by each pattern can be found by browsing the detailed :py:mod:`tb_pulumi`
-documentation. The barebones config example used in the quickstart can be found in our `sample config
-<https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example>`_.
+You can define multiple instances of the same pattern, so the next nested key is the name of this instance. In most of
+the use cases described in these docs and in our projects, you don't normally need more than one VPC per environment.
+Still, you can see how this pattern and the code patterns described below can be useful in many other cases. Let's just
+call this one ``vpc``.
 
 
-Define a ThunderbirdPulumiProject
-"""""""""""""""""""""""""""""""""
+Write a tb_pulumi Program
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In your ``__main__.py`` file, start with a simple skeleton (or use our
-`__main__.py example <https://github.com/thunderbird/pulumi/blob/main/__main__.py.example>`_ to start):
+The resources you've described in your YAML file must now be described in your Pulumi code. Under tb_pulumi's
+conventions, this is mostly a matter of connecting the YAML config values to resource class constructors.
+
+When you issue ``pulumi`` commands (like "up" and "preview" and so on), Pulumi looks for a ``__main__.py`` file in your
+current directory and executes the code in that file. So it is this file in which you will make use of the ``tb_pulumi``
+code library.
+
+
+Import tb_pulumi
+""""""""""""""""
+
+The imports are simple enough:
 
 .. code-block:: python
 
+  # You can import the whole library
   import tb_pulumi
+
+  # ...or you can import specific modules...
+  from tb_pulumi import (ec2, fargate, secrets)
+
+
+
+Set up a ThunderbirdPulumiProject
+"""""""""""""""""""""""""""""""""
+
+A Pulumi project describes the infrastructural resources that underlie your application. In a typical Pulumi program,
+you describe these resources more or less in the order of dependency, passing outputs of one resource (like a subnet ID)
+as inputs to other resources (like an EC2 instance that needs to know what network space to attach to). You can even
+describe larger repeatable patterns as ``ComponentResource`` s.
+
+However, a raw ``ComponentResource`` offers us very little visibility into its makeup. Although the class allows us to
+register outputs, those outputs only ever appear in text in a console and cannot be acted on programmatically. One way
+in which tb_pulumi extends the capabilities of Pulumi is with its :py:class:`tb_pulumi.ThunderbirdComponentResource`
+class, which provides us with this visibility. These are the basic building blocks of tb_pulumi programs.
+
+These ``ThunderbirdComponentResource`` s are collected together under another class, the
+:py:class:`tb_pulumi.ThunderbirdPulumiProject`. This is a special kind of Pulumi project that is aware of its own
+resources. It is able to traverse all resources defined in a project and act on them and their outputs programmatically
+due to the added visibility of the ``ThunderbirdComponentResource`` s in use.
+
+These projects are easy to set up:
+
+.. code-block:: python
+
   project = tb_pulumi.ThunderbirdPulumiProject()
 
-If you have followed the conventions outlined above, ``project.config`` is now a dict representation of the YAML file
-(see :py:data:`tb_pulumi.ThunderbirdPulumiProject.config`). You can use this in the next step to feed parameters
-into resource declarations.
-
-Moreover, as you create resources with this library, the ``project`` will track them, making them available to you later
-to act on as a group. This is explained in more detail on the :ref:`monitoring_resources` page.
+If you have followed the conventions outlined so far, ``project.config`` is now a Python dict representation of the YAML
+file (see :py:data:`tb_pulumi.ThunderbirdPulumiProject.config`) for the currently selected Pulumi stack. You can use
+this in the next step to feed parameters into resource declarations. When you change a stack (``pulumi stack select``),
+this config changes with it.
 
 
 Declare ThunderbirdComponentResources
 """""""""""""""""""""""""""""""""""""
 
-A `Pulumi ComponentResource <https://www.pulumi.com/docs/reference/pkg/python/pulumi/#pulumi.ComponentResource>`_ is a
-collection of related resources. In an effort to follow consistent patterns across infrastructure projects, the
-patterns available in this module all extend a custom class called a :py:class:`tb_pulumi.ThunderbirdComponentResource`.
-If you have followed the conventions outlined so far, it should be easy to stamp out infrastructure with them by passing
-``project.config`` config options into the constructors for these classes.
-
-To start, for convenience, let's pull the ``resources`` dict into a variable:
+A tb_pulumi program typically does little more than map the ``project.config`` values into ThunderbirdComponentResource
+constructor calls. To start, for convenience, let's pull the ``resources`` dict into a variable:
 
 .. code-block:: python
 
@@ -262,7 +313,7 @@ Continuing the ``MultiCidrVpc`` example, let's now pull the config for our ``vpc
 
 .. code-block:: python
 
-  vpc_opts = resources['tb:network:MultiCidrVpc']['vpc']
+  vpc_opts = resources.get('tb:network:MultiCidrVpc', {}).get('vpc')
 
 And then define the ``MultiCidrVpc``:
 
@@ -278,10 +329,9 @@ convenient identifier to give your resources useful names. Here, we add ``-vpc``
 ``myproject-stage-vpc``.
 
 Passing in the ``project`` created beforehand ensures the resources created by the MultiCidrVpc get tracked and become
-accessible to later aggregate functions. Skipping this will still result in the creation of these resources, but things
-like the :py:class:`tb_pulumi.monitoring.MonitoringGroup` will not be able to detect it.
+accessible at the project level. The ThunderbirdComponentResource cannot be created without a ThunderbirdPulumiProject.
 
-In Python, the double-star (``**variable``) notation unpacks a dict's top level keys and values into named function
+Finally, in Python, the double-star (``**variable``) notation unpacks a dict's top level keys and values into function
 parameters (called "keyword arguments" and often referred to as "kwargs"). In this case, all of the key/value pairs in
 the YAML configuration for the MultiCidrVpc called "vpc" get passed in as arguments to the function.
 
@@ -311,49 +361,49 @@ You may note some disadvantages to this:
 - Reusing the same broad infrastructural definitions becomes much harder here. Suppose we want our staging environment
   to use different IP space than our production environment. If code is written this explicitly, we must introduce
   conditionals and break Pulumi's comprehension of stacks to accomodate each environment's distinguishing
-  characteristics. Instead, we can apply different YAML configs to the same code to achieve environments that work the
-  same way, but at different scales, against different sets of resources, etc.
+  characteristics.
+
+Instead, under the tb_pulumi model, we can apply different YAML configs to the same code to achieve environments that
+work the same way, but at different scales, against different sets of resources, etc.
 
 .. seealso::
 
   Additional detail on our conventions can be found in :ref:`patterns_of_use`.
 
-Implementing ThunderbirdComponentResources
-""""""""""""""""""""""""""""""""""""""""""
-
-So you want to develop a new pattern to stamp out? Here's what you'll need to do:
-
-* Determine the best place to put the code. Is there an existing module that fits the bill?
-* Determine the Pulumi type string for it. This goes: ``org:module:class``. The ``org`` should be unique to your
-  organization. For Thunderbird projects, it should be ``tb``. The ``module`` will be the Python submodule you're
-  placing the new class in (e.g., classes in ``network.py`` should use ``network`` here). The ``class`` is whatever
-  you've called the class.
-* Design the class following these guidelines:
-    * The constructor should always accept, before any other arguments, the following positional options:
-        * ``name``: The internal name of the resource as Pulumi tracks it.
-        * ``project``: The ThunderbirdPulumiProject these resources belong to.
-    * The constructor should always accept the following keyword arguments:
-        * ``opts``: A ``pulumi.ResourceOptions`` object which will get merged into the default set of arguments managed
-          by the project.
-    * The constructor should explicitly define only those arguments that you intend to have default values which differ
-      from the default values the provider will set, or which imply larger patterns.
-    * The constructor may accept a final ``**kwargs`` argument with arbitrary meaning. Because the nature of a component
-      resource is to compile many other resources into one class, it is not implicitly clear what "everything else"
-      should apply to. If this is implemented, its function should be clearly documented in the class. If this isn't
-      passed into the superconstructor, you will need to implement all superconstructor arguments into your constructor.
-    * The class should extend :py:class:`tb_pulumi.ThunderbirdComponentResource`.
-    * The class should make an appropriate call to its superconstructor, which ensures the resources can be properly
-      tracked in the project (among other things).
-    * Any resources you create must have the ``parent=self`` ``pulumi.ResourceOption`` set. Set an appropriate
-      ``depends_on`` value when necessary.
-    * At the end of the ``__init__`` function, you must call ``self.finish()``, passing in a dictionary of ``resources``
-      (see :py:meth:`tb_pulumi.ThunderbirdComponentResource.finish`). For
-      :py:class:`tb_pulumi.monitoring.MonitoringGroup` derivatives, call this at the end of the
-      :py:meth:`tb_pulumi.monitoring.MonitoringGroup.monitor` function instead.
+The full listing of values supported by each pattern can be found by browsing the detailed :py:mod:`tb_pulumi`
+documentation. The barebones config example used in the quickstart can be found in our `sample config
+<https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example>`_.
 
 
 Troubleshooting
 ---------------
+
+
+The Pulumi Virtual Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On your first run of a ``pulumi`` command, Pulumi will set up a Python virtual environment for itself to work out of at
+``venv/``. If this fails, or you need to make adjustments later, you can activate Pulumi's virtual environment to
+perform environment changes.
+
+.. code-block:: bash
+
+  source ./venv/bin/activate
+  pip install -Ur requirements.txt
+
+It is also always safe (and often easiest) to completely delete the virtual environment. Pulumi will automatically set
+itself up again on its next run.
+
+.. code-block:: bash
+
+  rm -rf venv/
+
+Deactivate the environment before running any more ``pulumi`` commands, though, or else Pulumi will become confused.
+
+.. code-block:: bash
+
+  deactivate
+  pulumi preview
 
 
 Pythonic problems
@@ -375,6 +425,8 @@ the virtual environment yourself with something like this:
 
   virtualenv -p /path/to/python3.13 venv
   ./venv/bin/pip install .
+
+You could also use a tool like `uv <https://docs.astral.sh/uv/guides/install-python/>`_ to manage your Python version.
 
 After this, ``pulumi`` commands should work. If 3.13 is your default version of Python, Pulumi should set up its own
 virtual environment, and you should not have to do this.
