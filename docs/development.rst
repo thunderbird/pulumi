@@ -30,11 +30,11 @@ directory for you and set up the skeleton project.
 The overall development loop looks something like this:
 
 #. Adjust code to do what you need.
-2. ``pulumi preview``.
-3. Repeat until you're satisfied with the preview.
-4. ``pulumi up``
-5. Verify the infrastructure.
-6. Tweak and repeat as needed.
+x. ``pulumi preview``.
+#. Repeat until you're satisfied with the preview.
+#. ``pulumi up``
+#. Verify the infrastructure.
+#. Tweak and repeat as needed.
 
 
 Pull request requirements
