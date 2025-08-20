@@ -3,17 +3,19 @@
 Patterns of Use
 ===============
 
-The patterns contained in this module support our use cases for services hosted at Thunderbird. At an extremely high
-level, this module allows us to standardize certain aspects of the Pulumi resources we're building by using a custom
-``ComponentResource`` called a :py:class:`tb_pulumi.ThunderbirdComponentResource`. When building your Pulumi project
-using this module, you should organize these resources into a :py:class:`tb_pulumi.ThunderbirdPulumiProject`.
+The patterns contained in this module support our use cases for services hosted by Thunderbird Pro Services. To
+summarize a bit from the :ref:`getting_started` page:
 
-.. seealso::
+- We extend the ``pulumi.ComponentResource`` class into a ``tb_pulumi.ThunderbirdComponentResource`` class, which
+  exposes the resources contained within it to higher-order code.
+- These are organized into ``tb_pulumi.ThunderbirdPulumiProject`` s, which connect YAML configuration files to Pulumi
+  code files and provide programmatic access to all components within it.
 
-   Full documentation on the individual resource patterns can be found in the :py:mod:`tb_pulumi` pages.
+This page explains these conventions in clearer detail and describes the common code patterns that follow from adhering
+to them.
 
 
-Patterns for managing projects
+Patterns for Managing Projects
 ------------------------------
 
 One primary goal of this project is to reduce most infrastructural changes to YAML file tweaks once the initial setup is
@@ -22,139 +24,196 @@ done, requiring no code inspection or debugging for most common changes. The
 Pulumi project and stack data into a single context. That context is then made available to any
 :py:class:`tb_pulumi.ThunderbirdComponentResource` created within that project.
 
-.. note::
-   Some may find it easiest to jump straight to the :ref:`quickstart` on the :ref:`getting_started` page, or to review the sample
-   `configuration <https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example>`_ and `program
-   <https://github.com/thunderbird/pulumi/blob/main/__main__.py.example>`_ used by the quickstart to see how these
-   patterns fit together.
+Given that you have...
 
+- created a Pulumi stack with a ``$STACK_NAME``,
+- properly written a ``config.$STACK_NAME.yaml`` file alongside your tb_pulumi code, and
+- configured your AWS client,
 
-Resource patterns
------------------
-
-The various classes in tb_pulumi represent commonly used infrastructural patterns. Some of these will depend on the
-pre-existence of some other patterns. For example, most services will require some kind of private network space to
-operate within. Thus, your infrastructure stack will usually begin with a :py:class:`tb_pulumi.network.MultiCidrVpc` to
-establish the network layout.
-
-The resources built by that class will become available as members of its ``resources`` dict. The values in these dicts
-are all Pulumi Resource objects, but you'll have to wait until the component resource is applied to access them. The
-simplest way to do this is to create a Pulumi output out of all the resources in the ThunderbirdComponentResource.
-
-In this example, we build a SecretsManagerSecret, which contains both a Secret and a SecretVersion resource. We wait on
-all resources in the secret to be applied, then return the ARN of the secret.
+...the following code will produce a ThunderbirdPulumiProject with all context availablle for the currently selected
+stack:
 
 .. code-block:: python
-   :linenos:
 
-   secret = tb_pulumi.secrets.SecretsManagerSecret(
-      name='mysecretname',
-      secret_name='app/env/mysecret',
-      secret_value='super duper secret',
-   )
+  import tb_pulumi
+  project = tb_pulumi.ThunderbirdPulumiProject()
 
-   secret_arn = pulumi.Output.all(**secret.resources).apply(
-      lambda resources: resources['secret'].arn
-   )
+For example, you can now get the ``resources`` mapping from your configuration like so:
 
-The resources produced by each pattern are documented alongside those classes. For example, the
-:py:class:`tb_pulumi.secrets.SecretsManagerSecret` documentation lists the ``'secret'`` resource and links to the
-Pulumi documentation for that resource type so you can learn about their properties.
+.. code-block:: python
 
-In the above example, we build a single component resource by pulling its config out by name. But in some cases, you may
-wish to build multiple instances of one pattern based upon the YAML config. Consider a very frequently appearing
-resource such as the AWS EC2 Security Group. We provide the :py:class:`tb_pulumi.network.SecurityGroupWithRules` pattern
-for building these resources.
+  resources = project.get('resources')
 
-Suppose we must govern traffic for both a backend API service and a separate authentication service. We could define the
-security groups in YAML:
+At this point, if you have not defined a ``resources`` section in your config file, ``resources`` will be ``None``. But
+if you have a good config, it will be a dict where the top-level keys are Pulumi type strings.
+
+You could, of course, do this as well:
+
+.. code-block:: python
+
+  resources = project['resources']
+
+But in the case where the config file is not set up right, this results in a ``KeyError`` that would require you to trap
+the statement in a ``try`` block. This is much less elegant, and Python's ``get`` function is a nice way to get a value
+back instead. Consider this instead:
+
+.. code-block:: python
+
+  import sys
+
+  resources = project.get('resources')
+  if not resources:
+      pulumi.error('tb_pulumi is not configured for this stack.')
+      sys.exit(1)
+
+
+Resource Patterns
+-----------------
+
+
+Define a resource with no dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The simplest resources stand alone, depending on no other resources, only a valid configuration. Even simpler is when
+you must create only one. Consider this YAML config and Python definition of a ``MultiCidrVpc``:
 
 .. code-block:: yaml
 
   ---
   resources:
-    # ... other resources ...
-    tb:network:SecurityGroupWithRules:
-      api:
-        description: API backend
-        rules:
-          egress:
-            - from_port: 0
-              to_port: 0
-              protocol: tcp
-              description: Allow local egress
-              cidr_blocks:
-                - 10.0.0.0/16
-          ingress:
-            - from_port: 8080
-              to_port: 8080
-              protocol: tcp
-              description: Allow local ingress
-              cidr_blocks:
-                - 10.0.0.0/16
-      auth_service:
-        description: Auth service backend
-        rules:
-          egress:
-            - from_port: 0
-              to_port: 0
-              protocol: tcp
-              description: Allow all egress
-              cidr_blocks:
-                - 0.0.0.0/0
-          ingress:
-            - from_port: 8080
-              to_port: 8080
-              protocol: tcp
-              description: Allow ingress from API
-              source_security_group_id: sg-abcdefg0123456789
-
-In the ``__main__.py`` code, we need not explicitly extract each member of the ``tb:network:SecurityGroupWithRules``
-config because we can iterate over the items quite easily:
+    tb:network:MultiCidrVpc:
+      vpc:
+      cidr_block: 10.0.0.0/16
+      subnets:
+        eu-central-1a:
+          - 10.0.0.0/17
+        eu-central-1b:
+          - 10.0.128.0/1
 
 .. code-block:: python
 
-  security_groups = {
-      tb_pulumi.network.SecurityGroupWithRules(
-          name=f'{project.name_prefix}-sg-{sg_name}',
-          project=project,
-          **sg_config
-      )
-      for sg_name, sg_config in resources['tb:network:SecurityGroupWithRules'].items()
-  }
+  vpc_opts = resources.get('tb:network:MultiCidrVpc', {}).get('vpc')
+  vpc = tb_pulumi.network.MultiCidrVpc(
+    name=f'{project.name_prefix}-vpc',
+    project=project,
+    **vpc_opts,
+  )
+
+This provides only the bare minimum of code-based information:
+
+  - The ``name`` of the resource, making use of the project's ``name_prefix`` to create a unique identifier.
+  - The project we have defined, so this resource and the other resources it contains can be traversed.
+
+After that, it simply expands the ``vpc_opts`` (which has been ripped straight from the config file) into function
+parameters. In this way, any changes you make to your YAML will be read into the VPC resource.
 
 
-Accessing Resources
--------------------
+Access a resource from within a ThunderbirdComponentResource
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In Pulumi, a Resource can have a number of Outputs, which are pieces of data about a resource that aren't known until
-after the resources are "applied" (that is, the real live resources have been altered to match the desired state
-defined in your code). Pulumi provides the ComponentResource model to aggregate many Resources into a single code
-object.
+A ``ThunderbirdPulumiProject`` and a ``ThunderbirdComponentResource`` each have a ``resources`` member which is a
+dict of all components defined within it. At both levels, these can be Pulumi Outputs, Resources, ComponentResources,
+ThunderbirdComponentResources, or a collection of any of these things. Documentation for each
+ThunderbirdComponentResource describes what resources it contains. In a project, the keys in this dict are named after
+whatever names you provide for the ThunderbirdComponentResources. In a ThunderbirdComponentResource, they're named
+according to what that resource is labeled in its :py:meth:`tb_pulumi.ThunderbirdPulumiProject.finish` call. All of the
+various resources created by our classes are fully documented in the :ref:`modules` page.
 
-`Pulumi's documentation <https://www.pulumi.com/docs/iac/concepts/resources/components/#registering-component-outputs>`_
-says you should call the ``register_outputs`` function at the end of a ComponentResource's constructor. Crucially,
-though, unlike plain Pulumi Resources, these outputs do not become accessible after the ComponentResource is fully
-applied. The documentation is unclear on the purpose of this, and the `Pulumi developers also don't know
-<https://github.com/pulumi/pulumi/issues/2653#issuecomment-484956028>`_ why you should call it. Its only purpose is
-within the CLI tool, as simple output at the end of the run. As such, we will stop allowing this in a future version,
-opting to make the ``register_outputs`` call with an empty dict, as is convention among Pulumi developers.                                                                                                                             
+One common need is to define a ``MultiCidrVpc`` and then feed one of the subnet IDs to an EC2 instance. If we have
+defined the ``vpc`` resource as in the sample in the previous section, we can access the subnet IDs from the variable
+itself. :py:class:`tb_pulumi.network.MultiCidrVpc` documentation shows that the ``aws.ec2.Subnet`` resources are
+available through the ``subnets`` resource. Here are some things you can do with that:
 
-The good news is that tb_pulumi restores this missing feature through the :py:class:`tb_pulumi.ThunderbirdPulumiProject`
-object. When you pass your project into a ``ThunderbirdComponentResource`` that subsequently makes a ``finish`` call,
-the project adds the ``resources`` dict passed into ``finish`` to its own
-:py:data:`tb_pulumi.ThunderbirdPulumiProject.resources` dict, organized by the ThunderbirdComponentResource's name. It
-also stores these resources internally in the :py:data:`tb_pulumi.ThunderbirdComponentResource.resources` dict. This
-structure allows us to inspect not only all of the resources in a project after they've been applied, but all of the
-nested resources in the other component resources.
+.. code-block:: python
 
-The contents of the ``resources`` dict in a ``ThunderbirdComponentResource`` are all Pulumi Resources with Outputs that
-can be applied. The ``resources`` dict of a ``ThunderbirdPulumiProject`` are either Pulumi Resources or some collection
-of them. The full set of allowable entries is defined in the :py:type:`tb_pulumi.Flattenable` type alias.
+  # Get a list of all subnet resources
+  subnets = vpc.resources.get('subnets')
+  
+  # Get a list of all subnet IDs
+  subnet_ids = [subnet.id for subnet in vpc.resources.get('subnets')]
 
-As an example, the following code (which builds a series of security groups and then tries to print their IDs) will fail
-with ``Calling __str__ on an Output[T] is not supported`` because the underlying Pulumi logger wants to print a string
-but it's getting an unresolved Pulumi Output instead.
+  # Get the first subnet ID
+  subnet_id = vpc.resources.get('subnets')[0]
+
+Remember that this value will be a ``pulumi.Output`` , not a real subnet ID, not until Pulumi has applied the resource.
+For the most part, this is okay. You could pass that value into some other resource as an Output, and Pulumi will wait
+for a real value before proceeding.
+
+.. code-block:: python
+
+  subnet_id = vpc.resources.get('subnets')[0]
+  instance_opts = resources.get('tb:ec2:SshableInstance', {}).get('my-instance')
+  instance = tb_pulumi.ec2.SshableInstance(
+    name='my-instance',
+    project=project,
+    subnet_id=subnet_id,
+    **instance_opts,
+    opts=pulumi.ResourceOptions(depends_on=[vpc]),
+  )
+
+Note that in this pattern, we only supply as defined function parameters the ones whose values come from our code. We
+still pass in as many options from the YAML config as possible.
+
+Also not the addition of the ``opts`` parameter, which specifies that the instance is dependent on the VPC config. This
+helps Pulumi set up its dependency tree.
+
+If you need to wait on that value so you can form it as text, you must write an ``apply`` lambda:
+
+.. code-block:: python
+
+  import json
+  
+  # ... project setup, etc ...
+
+  subnet_id = vpc.resources.get('subnets')[0]
+  json_text = subnet_id.apply(lambda subnet_id: json.dumps({'subnet_id': subnet_id}))
+
+
+Defining multiple resources of the same type
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+So far, we have defined singular resources based on singular definitions in the YAML config. Suppose we have a case
+where we might want to build more resources of the same type without adjusting code. In this case, we might want some
+YAML that looks like this:
+
+.. code-block:: yaml
+
+  ---
+  resources:
+    tb:network:SecurityGroupWithRules:
+      backend-database:
+        rules:
+          ingress:
+            - description: Let traffic into the DB from our IP range
+              cidr_blocks:
+                - 10.0.0.0/8
+              protocol: tcp
+              from_port: 5432
+              to_port: 5432
+          egress:
+            - description: Let the DB talk out
+              protocol: tcp
+              from_port: 0
+              to_port: 65535
+              cidr_blocks:
+                - 0.0.0.0/0
+      backend-api-lb:
+        rules:
+          ingress:
+            - description: Let traffic into the API service from anywhere
+              cidr_blocks:
+                - 0.0.0.0/0
+              protocol: tcp
+              from_port: 443
+              to_port: 443
+          egress:
+            - description: Let the LB talk out
+              protocol: tcp
+              from_port: 0
+              to_port: 65535
+              cidr_blocks:
+
+We do not have to explicitly define both of these security groups. We can feed the data in via dict comprehension:
 
 .. code-block:: python
 
@@ -162,93 +221,100 @@ but it's getting an unresolved Pulumi Output instead.
        sg_name: tb_pulumi.network.SecurityGroupWithRules(
            name=f'{project.name_prefix}-sg-{sg_name}',
            project=project,
-           vpc_id=vpc.resources['vpc'].id,
+           vpc_id=vpc.resources.get('vpc').id,
            opts=pulumi.ResourceOptions(depends_on=[vpc]),
            **sg_config,
        )
        for sg_name, sg_config in resources['tb:network:SecurityGroupWithRules'].items()
    }
 
-   pulumi.info(f'DEBUG -- {sgs['foo'].resources['sg'].id}')
 
-
-Instead, wait on the output and then log the ID:
-
-.. code-block:: python
-
-   sgs['foo'].resources['sg'].id.apply(
-       lambda sgid: pulumi.info(f'DEBUG -- {sgid}')
-   )
-
-This will generate output if you run a ``pulumi up`` to create the resource and generate the ID. It also produces output
-on a ``pulumi preview`` if the resource was created on a previous run and the ID has already been generated. It will not
-produce output on a preview if the resource does not already exist because the resource has never been applied, but it
-will also not throw any errors.
-
-Now suppose you have a component resource which contains other component resources and you need to wait on all of those
-sub-resources to be applied before acting on their outputs. For example, a PulumiSecretsManager (PSM) creates a list of
-SecretsManagerSecrets (SMS). If we want to produce a list of the resulting secrets' ARNs, we could wait on all of the PSMs'
-resources to be applied and then try to get at them:
-
-.. code-block:: python
-
-    pulumi.Output.all(**psm.resources).apply(lambda resources: 
-        pulumi.info(f'DEBUG -- {[secret.resources['secret'].arn
-            for secret in resources['secrets']]}'))
-
-This waits on all of the SecretsManagerSecrets' resources to be applied before accessing the downstream secrets' ARNs.
-It doesn't produce any errors, but it also doesn't produce ARNs:
-
-.. code-block:: text
-
-   DEBUG -- [<pulumi.output.Output object at 0x748bbcfe7a10>, <pulumi.output.Output object at 0x748bbcaa2970>]
-
-That's because those ``arn`` s are also Outputs, and we still have to wait for those to be applied. Luckily, we can 
-compile a list of those outputs and then wait on them all to be applied:
-
-.. code-block:: python
-
-    pulumi.Output.all(*[
-        sms.resources['secret'].arn
-        for sms in psm.resources['secrets']
-    ]).apply(
-        lambda arns: pulumi.info(f'DEBUG -- {arns}')
-    )
-
-This produces output similar to this (slightly edited for readability):
-
-.. code-block:: text
-
-   DEBUG -- [
-      'arn:aws:secretsmanager:region_name:account_number:secret:project/stack/secretname1-id',
-      'arn:aws:secretsmanager:region_name:account_number:secret:project/stack/secretname2-id'
-   ]
-
-The trick here lies in producing a list of those Outputs (the ``.arn`` s), and then using the single-star (``*list``)
-notation to expand that into a Pulumi Output made of all of those ``arn`` Outputs, and then waiting for them to apply.
-
-
-Handling secrets
+Handling Secrets
 ----------------
 
 Applications often need to operate on values such as database passwords that are considered secrets. You never want to
-store these values in plaintext, and they should always be protected by policies preventing unauthorized access. Pulumi
-allows you to store secret values directly in its configuration using hashes only decryptable with a secret passphrase.
+store these values in plaintext, since that is a security risk, and they should always be protected by policies
+preventing unauthorized access.
 
-To set a secret value, run a command like this:
+To some extent, this problem is partially solved by Pulumi itself, which allows you to store secret values directly in
+its configuration using hashes only decryptable with a secret passphrase.
+
+To set a Pulumi secret value, make sure you have the right encryption passphrase exported and run a ``pulumi config``
+statement like so:
 
 .. code-block:: bash
 
+    PULUMI_CONFIG_PASSPHRASE='a-super-secret-passphrase'
     pulumi config set --secret my-password 'P@$sw0rd'
 
-The first time you set a Pulumi secret, you will be asked to generate this passphrase. When you do, be sure to log it in
-a safe location. Any other users working with your Pulumi code will need this to manipulate your live resources.
+This will add an item to your ``Pulumi.$STACK_NAME.yaml`` file in which this secret is listed in encrypted form. This is
+considered secure because the data cannot be decrypted without the secret passphrase, which you should always keep
+secret and secure.
 
-Many AWS configurations will require that secret values come out of their Secrets Manager product. To help bridge the
-gap between Pulumi and AWS, we have the :py:class:`tb_pulumi.secrets.PulumiSecretsManager` class. Feed this a list of
-``secret_names`` which match Pulumi secret names. This module will create AWS secrets matching those Pulumi secrets.
+But many AWS configurations will require that secret values come out of their Secrets Manager product. ECS Task
+Definitions, for example, take in Secrets Manager ARNs to feed secret data into environment variables. To help bridge
+the gap between Pulumi and AWS, we have the :py:class:`tb_pulumi.secrets.PulumiSecretsManager` class. Feed this a list
+of ``secret_names`` which match Pulumi secret names. This module will create AWS secrets matching those Pulumi secrets.
 
-.. note::
-   AWS Secrets Manager applies a randomly generated suffix to each secret ARN. This value is not predictable. References
-   to secrets typically require you to use this ARN even though it is not predictable. For this reason, you may have to
-   run a ``pulumi up`` to generate these secrets before using them as part of, for example, an ECS task definition.
+For example, if we've run the above ``pulumi config`` command, we could add a section to our YAML config that looks like
+this:
+
+.. code-block:: yaml
+
+  ---
+  resources:
+  # ...
+    tb:secrets:PulumiSecretsManager:
+      secrets:
+        secret_names:
+          - my-password
+
+And later, we could add the following code to our tb_pulumi program:
+
+.. code-block:: python
+
+  psm_opts = resources.get('tb:secrets:PulumiSecretsManager', {}).get('secrets')
+  psm = tb_pulumi.secrets.PulumiSecretsManager(
+    name='my-secrets',
+    project=project,
+    **psm_opts,
+  )
+
+This would ultimately create a series of Secrets Manager entries named after the listed secrets. Using this pattern
+makes sure that your secret data stays secret the whole way through to the cloud provider.
+
+
+.. _full_stack_patterns:
+
+Acting on Fully Applied Pulumi Stacks
+-------------------------------------
+
+One limitation of raw Pulumi code is that the programmatic visibility into resources you have defined stops at the
+individual resource level. ComponentResources give you no ability to inspect those components. As shown in previous
+examples, the ThunderbirdComponentResource restores that ability.
+
+As we have also shown, the outputs generated by these Resources and ComponentResources must be applied before you can
+access their actual values. This can create some complexity where, for example, you may define a
+ThunderbirdComponentResource that contains other ThunderbirdComponentResources. To access the resources of the inner
+nested ThunderbirdComponentResource, you have to do a nested apply lambda. Your code gets very confusing at this point,
+and hard to follow and debug.
+
+Furthermore, if you need to create something like CloudWatch alarms for your resources, this leaves you defining those
+alarms individually. If you add a new resource you want to monitor, you would have to write that code, or develop some
+other module to set the monitors up.
+
+Wouldn't it be great if you could develop Pulumi code that simply acts on all resources in a project with full context
+about those resources? Then you could write any kind of stack-aware meta-tool you like and act on the entire stack at
+once.
+
+Fortunately, tb_pulumi solves this problem as well. There is an abstract class called
+:py:class:`tb_pulumi.ProjectResourceGroup` which can be extended, its :py:meth:`tb_pulumi.ProjectResourceGroup.ready`
+function implemented to act in just such a fully resolved state. This function (with a little help from
+:py:meth:`tb_pulumi.ThunderbirdPulumiProject.flatten`) recursively detects all outputs in a stack and resolves them,
+calling that ``ready`` function only when everything is completely resolved and available.
+
+For more information on developing ProjectResourceGroups, see :ref:`development`. Currently, we have two specific
+implementations.
+
+This first pertains to monitoring. That is described fully on the :ref:`monitoring_resources` page. The other is related
+to granting access to your AWS resources with :py:class:`tb_pulumi.iam.StackAccessPolicies`.
