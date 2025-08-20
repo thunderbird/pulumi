@@ -30,10 +30,15 @@ directory for you and set up the skeleton project.
 The overall development loop looks something like this:
 
 #. Adjust code to do what you need.
-x. ``pulumi preview``.
+
+#. ``pulumi preview``.
+
 #. Repeat until you're satisfied with the preview.
+
 #. ``pulumi up``
+
 #. Verify the infrastructure.
+
 #. Tweak and repeat as needed.
 
 
