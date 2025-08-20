@@ -1,5 +1,28 @@
 # tb_pulumi Changelog
 
+
+## v0.0.15
+
+### Improvements
+
+  - When building a `CloudFrontS3Service`, the S3 origin for the CloudFront distribution used to be named after the S3
+    bucket's website URL. But this is not easy on the eyes, so it now uses the S3 bucket name instead.
+  - Fixed a bug where CI automation users did not have permission to list their own frontend buckets.
+  - Added `StackAccessPolicies`, an automated way to grant read-only or administrative access to a stack's resources.
+  - Fixed a bug where XML files uploaded to an S3 bucket by way of the `object_dir` parameter in `S3Bucket` would get
+    different mimetypes depending on which platform the Pulumi client was running on. Now we force the use of
+    `application/xml` to settle the debate.
+  - Updated the version of Python we depend upon (now 3.13 or greater) because of a change in that version in how the
+    `glob` function of `pathlib` works.
+  - Tons of documentation improvements, including:
+    - A complete overhaul of the online documentation. The main pages have been almost entirely rewritten to focus on
+      example-based, incremental instruction of the library.
+    - Added developer documentation in the online docs and in the readme to make it more clear to the community how to
+      contribute, what our code standards and processes are, and how to develop on top of the patterns that have already
+      been introduced.
+    - Removed some old cruft from docs that didn't refer to real options.
+
+
 ## v0.0.14
 
 ### Improvements
