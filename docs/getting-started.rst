@@ -28,7 +28,7 @@ Get an AWS Account
 ^^^^^^^^^^^^^^^^^^
 
 This module builds infrastructure against Amazon Web Services. You will need to `sign up
-<https://signin.aws.amazon.com/signup?request_type=register>` for an account there. Our patterns default to using
+<https://signin.aws.amazon.com/signup?request_type=register>`_ for an account there. Our patterns default to using
 infrastructure that typicaly qualifies for AWS Free Tier, but you should know that usage of this tool always implies
 cost at AWS.
 
