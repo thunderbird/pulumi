@@ -300,7 +300,6 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                     destination_cidr_block=cidr,
                     route_table_id=vpc.default_route_table_id,
                     vpc_peering_connection_id=peer_conns[peername].id,
-                    tags=self.tags,
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, peer_conns[peername]]),
                 )
                 for idx, cidr in enumerate(peered_cidrs)
@@ -322,7 +321,6 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                     destination_cidr_block=cidr,
                     route_table_id=vpc.default_route_table_id,
                     vpc_peering_connection_id=peer_accs[peername].id,
-                    tags=self.tags,
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, peer_accs[peername]])
                 )
                 for idx, cidr in enumerate(peered_cidrs)
