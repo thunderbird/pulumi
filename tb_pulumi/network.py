@@ -26,6 +26,10 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/eip/>`_ used for the NAT Gateway.
         - *nat_gateway* - If ``enable_nat_gateway`` is ``True``, this is the `aws.ec2.NatGateway
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/natgateway/>`_.
+        - *peering_accepters* - Dict of `aws.ec2.VpcPeeringConnectionAcceptors
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcpeeringconnectionaccepter/>`_.
+        - *peering_connections* - Dict of `aws.ec2.VpcPeeringConnections
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcpeeringconnection/>`_.
         - *route_table_subnet_associations* - List of `aws.ec2.RouteTableAssociations
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/routetableassociation/>`_ associating the subnets
           to the VPC's default route table, enabling traffic among those subnets.
@@ -79,6 +83,16 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         ``com.amazonaws.us-east-1.secretsmanager``, only use ``secretsmanager``. Defaults to [].
     :type endpoint_interfaces: list[str], optional
 
+
+    :param peering_connections: Dict of configurations of `aws.ec2.VpcPeeringConnections
+        <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcpeeringconnection/>`_. The keys become the names
+        of the resources created. The vpc_id option will be automatically populated.
+
+    :param peering_accepters: Dict of configurations of `aws.ec2.VpcPeeringConnectionAccepters
+        <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcpeeringconnectionaccepter/>`_. The keys become the
+        names of the resources created. The vpc_id option will be automatically populated.
+    :type peering_accepters: list[dict]
+
     :param subnets: A dict where the keys are the names of AWS Availability Zones in which to build subnets and the
         values are lists of CIDRs describing valid subsets of IPs in the VPC ``cidr_block`` to build in that AZ.
         f/ex:
@@ -109,6 +123,8 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         enable_nat_gateway: bool = False,
         endpoint_gateways: list[str] = [],
         endpoint_interfaces: list[str] = [],
+        peering_connections: dict = {},
+        peering_accepters: dict = {},
         subnets: dict = {},
         opts: pulumi.ResourceOptions = None,
         **kwargs,
@@ -265,6 +281,28 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, *subnet_rs, endpoint_sg.resources['sg']]),
                 )
             )
+        
+        # Set up VPC peering
+        peer_conns = {
+            peername: aws.ec2.VpcPeeringConnection(
+                f'{name}-peerconn-{peername}',
+                vpc_id=vpc.id,
+                tags=self.tags,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
+                **connection,
+            )
+            for peername, connection in peering_connections.items()
+        }
+
+        peer_accs = {
+            peername: aws.ec2.VpcPeeringConnectionAccepter(
+                f'{name}-peeracc-{peername}',
+                tags=self.tags,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
+                **accepter,
+            )
+            for peername, accepter in peering_accepters.items()
+        }
 
         self.finish(
             resources={
@@ -274,6 +312,8 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 'internet_gateway': internet_gateway if enable_internet_gateway else None,
                 'nat_eip': nat_eip if enable_nat_gateway else None,
                 'nat_gateway': nat_gateway if enable_nat_gateway else None,
+                'peering_acceptors': peer_accs,
+                'peering_connections': peer_conns,
                 'route_table_subnet_associations': route_table_subnet_associations,
                 'subnets': subnet_rs,
                 'subnet_ig_route': subnet_ig_route if enable_internet_gateway and egress_via_internet_gateway else None,
