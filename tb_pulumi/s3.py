@@ -123,7 +123,7 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
                 content_type = mimetypes.guess_file_type(str(file))[0] or 'text/plain'
                 # Different OSes produce different mimetypes for XML files. We want consistency.
                 if content_type == 'text/xml':
-                    content_type == 'application/xml'
+                    content_type = 'application/xml'
 
                 s3_objects[str(file)] = aws.s3.BucketObjectv2(
                     f'{name}-object-{str(file).replace("/", "_").replace("-", "_").replace(".", "_")}',
