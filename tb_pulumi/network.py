@@ -301,43 +301,43 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         # Set up VPC peering. Peering the VPCs is not enough to enable network traffic. You must also create a route.
         peer_conns = {}
         peer_conn_routes = {}
-        for peername, connection in peering_connections.items():
+        for peer_name, connection in peering_connections.items():
             peered_cidrs = connection.pop('peered_cidrs', {})
-            peer_conns[peername] = aws.ec2.VpcPeeringConnection(
-                f'{name}-peerconn-{peername}',
+            peer_conns[peer_name] = aws.ec2.VpcPeeringConnection(
+                f'{name}-peerconn-{peer_name}',
                 vpc_id=vpc.id,
                 tags=self.tags,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
                 **connection,
             )
-            peer_conn_routes[peername] = [
+            peer_conn_routes[peer_name] = [
                 aws.ec2.Route(
                     f'{name}-pcxroute-{idx}',
                     destination_cidr_block=cidr,
                     route_table_id=vpc.default_route_table_id,
-                    vpc_peering_connection_id=peer_conns[peername].id,
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, peer_conns[peername]]),
+                    vpc_peering_connection_id=peer_conns[peer_name].id,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, peer_conns[peer_name]]),
                 )
                 for idx, cidr in enumerate(peered_cidrs)
             ]
 
         peer_accs = {}
         peer_acc_routes = {}
-        for peername, accepter in peering_accepters.items():
+        for peer_name, accepter in peering_accepters.items():
             peered_cidrs = accepter.pop('peered_cidrs', {})
-            peer_accs[peername] = aws.ec2.VpcPeeringConnectionAccepter(
-                f'{name}-peeracc-{peername}',
+            peer_accs[peer_name] = aws.ec2.VpcPeeringConnectionAccepter(
+                f'{name}-peeracc-{peer_name}',
                 tags=self.tags,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
                 **accepter,
             )
-            peer_acc_routes[peername] = [
+            peer_acc_routes[peer_name] = [
                 aws.ec2.Route(
                     f'{name}-pacroute-{idx}',
                     destination_cidr_block=cidr,
                     route_table_id=vpc.default_route_table_id,
-                    vpc_peering_connection_id=peer_accs[peername].id,
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, peer_accs[peername]]),
+                    vpc_peering_connection_id=peer_accs[peer_name].id,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, peer_accs[peer_name]]),
                 )
                 for idx, cidr in enumerate(peered_cidrs)
             ]
