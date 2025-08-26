@@ -492,3 +492,68 @@ class SecurityGroupWithRules(tb_pulumi.ThunderbirdComponentResource):
                 'sg': sg,
             },
         )
+
+class VpcEndpoint(tb_pulumi.ThunderbirdComponentResource):
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        aws_region: str,
+        service_name: [],
+        vpc_id: str,
+        subnet_ids: [],
+        sg_ids: [],
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        """ """
+        super().__init__('tb:network:VpcEndpoint', name, project, opts=opts, **kwargs)
+
+        #. Create VPC Endpoint
+        aws_vpc_endpoint = aws.ec2.VpcEndpoint(name,
+            service_name = service_name,
+            subnet_ids = subnet_ids,
+            vpc_endpoint_type = "Interface",
+            vpc_id = vpc_id,
+            security_group_ids = sg_ids,
+            # private_dns_enabled=False,
+            tags={
+                "Name": f"{project.name_prefix}-{name}",
+                "Project": project.name_prefix,
+                "Stack": project.stack,
+            }
+
+        )
+        self.finish(
+            resources={
+                'aws_vpc_endpoint': aws_vpc_endpoint,
+                'id': aws_vpc_endpoint.id,
+            },  
+        )
+
+class VpcEndpointPrivateDnsEnabled(tb_pulumi.ThunderbirdComponentResource):
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        vpc_endpoint_id: pulumi.Input[str],
+        private_dns_enabled: bool = True,
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        """ """
+        super().__init__('tb:network:VpcEndpointPrivateDnsEnabled', name, project, opts=opts, **kwargs)
+
+        #. Create VPC Endpoint
+        aws_client = project.get_aws_client('ec2', region_name=project.aws_region)
+        aws_vpc_endpoint_dns = aws_client.modify_vpc_endpoint(
+            VpcEndpointId = vpc_endpoint_id,
+            PrivateDnsEnabled = private_dns_enabled,
+        )
+        self.finish(
+            resources={
+                'aws_vpc_endpoint_dns': aws_vpc_endpoint_dns,
+                # 'name': aws_vpc_endpoint_dns,
+                'private_dns_enabled': private_dns_enabled,
+            },  
+        )
