@@ -134,7 +134,6 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
                 )
             )
 
-        pulumi.info('DEBUG -- rjung -- HERE!')
         neon_assignments = [
             neon.VpcEndpointAssignment(
                 f'{self.name}-neonasgn-{idx}',
@@ -142,6 +141,7 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
                 region_id=f'aws-{project.aws_region}',
                 vpc_endpoint_id=endpoint.id,
                 label=f'{self.name}-{subnet_ids[idx]}',
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[*vpc_endpoints]),
             )
             for idx, endpoint in enumerate(vpc_endpoints)
         ]
