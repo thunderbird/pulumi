@@ -121,7 +121,7 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
                 aws.ec2.VpcEndpoint(
                     endpoint_name,
                     private_dns_enabled=False,
-                    security_group_ids=[vpc_endpoint_sg.id],
+                    security_group_ids=[vpc_endpoint_sg.resources['sg'].id],
                     service_name=service_name,
                     subnet_ids=subnet_ids,
                     vpc_endpoint_type='Interface',
