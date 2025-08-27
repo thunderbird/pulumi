@@ -123,7 +123,7 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
                     private_dns_enabled=False,
                     security_group_ids=[vpc_endpoint_sg.resources['sg'].id],
                     service_name=service_name,
-                    subnet_ids=subnet_ids,
+                    subnet_ids=[subnet_ids[idx]],
                     vpc_endpoint_type='Interface',
                     vpc_id=vpc_id,
                     opts=pulumi.ResourceOptions(
