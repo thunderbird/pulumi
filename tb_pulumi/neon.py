@@ -51,6 +51,10 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         subnet_ids: list[str],
         vpc_id: str,
+        # Technically, we could also offer egress_security_group_ids, but it doesn't make any sense in this context
+        egress_cidrs: list[str] = ['0.0.0.0/0'],
+        ingress_cidrs: list[str] = [],
+        ingress_security_group_ids: list[str] = [],
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
     ):
@@ -62,29 +66,47 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
             tags=tags,
         )
 
+        sg_rules = {
+            'egress': [
+                {
+                    'description': 'Allow postgres',
+                    'protocol': 'tcp',
+                    'from_port': 5432,
+                    'to_port': 5432,
+                    'cidr_blocks': egress_cidrs,
+                }
+            ],
+            'ingress': [],
+        }
+        if ingress_cidrs:
+            sg_rules['ingress'].append(
+                {
+                    'description': 'Allow postgres',
+                    'protocol': 'tcp',
+                    'from_port': 5432,
+                    'to_port': 5432,
+                    'cidr_blocks': ingress_cidrs,
+                }
+            )
+        if ingress_security_group_ids:
+            sg_rules['ingress'].extend(
+                [
+                    {
+                        'description': 'Allow postgres',
+                        'protocol': 'tcp',
+                        'from_port': 5432,
+                        'to_port': 5432,
+                        'security_group_id': sgid,
+                    }
+                    for sgid in ingress_security_group_ids
+                ]
+            )
+
         # Create a security group allowing Postgres's TCP traffic through the endpoints to come
         vpc_endpoint_sg = tb_pulumi.network.SecurityGroupWithRules(
             f'{self.name}-neonsg',
             project=project,
             vpc_id=vpc_id,
-            rules={
-                'ingress': [
-                    {
-                        'description': 'Allow postgres',
-                        'protocol': 'tcp',
-                        'from_port': 5432,
-                        'to_port': 5432,
-                    }
-                ],
-                'egress': [
-                    {
-                        'description': 'Allow postgres',
-                        'protocol': 'tcp',
-                        'from_port': 5432,
-                        'to_port': 5432,
-                    }
-                ],
-            },
             opts=pulumi.ResourceOptions(parent=self),
         )
 
@@ -107,8 +129,8 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
                     tags=tags,
                 )
             )
-        
+
         # Establish the VPC assignment on Neon's side
-        # neon_assignment = 
+        # neon_assignment =
 
         self.finish(resources={'vpc_endpoints': vpc_endpoints})
