@@ -1,80 +1,114 @@
-"""Infrastructural patterns related to N seon PrivateLink."""
-
 import pulumi
 import pulumi_aws as aws
-import tb_pulumi
 import pulumi_neon as neon
+import tb_pulumi
+
+#: Mapping of all AWS service endpoints for all supported regions. Ref: https://neon.com/docs/guides/neon-private-networking
+NEON_AWS_SERVICE_ENDPOINTS = {
+    'us-east-1': [
+        'com.amazonaws.vpce.us-east-1.vpce-svc-0de57c578b0e614a9',
+        'com.amazonaws.vpce.us-east-1.vpce-svc-02a0abd91f32f1ed7',
+    ],
+    'us-east-2': [
+        'com.amazonaws.vpce.us-east-2.vpce-svc-010736480bcef5824',
+        'com.amazonaws.vpce.us-east-2.vpce-svc-0465c21ce8ba95fb2',
+    ],
+    'eu-central-1': [
+        'com.amazonaws.vpce.eu-central-1.vpce-svc-05554c35009a5eccb',
+    ],
+    'aws-eu-west-2': [
+        'com.amazonaws.vpce.eu-west-2.vpce-svc-0c6fedbe99fced2cd',
+    ],
+    'us-west-2': [
+        'com.amazonaws.vpce.us-west-2.vpce-svc-060e0d5f582365b8e',
+        'com.amazonaws.vpce.us-west-2.vpce-svc-07b750990c172f22f',
+    ],
+    'ap-southeast-1': [
+        'com.amazonaws.vpce.ap-southeast-1.vpce-svc-07c68d307f9f05687',
+    ],
+    'ap-southeast-2': [
+        'com.amazonaws.vpce.ap-southeast-2.vpce-svc-031161490f5647f32',
+    ],
+    'aws-sa-east-1': [
+        'com.amazonaws.vpce.sa-east-1.vpce-svc-061204a851dbd1a47',
+    ],
+}
 
 
-class NeonVpcAssignment(tb_pulumi.ThunderbirdComponentResource):
-    """Assigns a VPC to a Neon PrivateLink endpoint service.
+class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:neon:NeonDatabaseEndpoint``
 
-    Args:
-        name: The name of the resource.
-        vpc_id: The ID of the VPC to assign.
-        service_id: The ID of the Neon PrivateLink endpoint service.
-        opts: Optional resource options.
+    Construct a VPC Endpoint in the specific way required by NeonDB to establish private database communication.
+
+    First, we must create a VpcEndpoint with DNS disabled on the AWS/VPC side. Then we must create the VPC Endpoint
+    Assignment on the NeonDB side. Then we must wait for that Assignment to be complete. Then we can enable DNS on the
+    endpoint.
     """
 
     def __init__(
-            self,
-            name: str,
-            project: tb_pulumi.ThunderbirdPulumiProject,
-            org_id: pulumi.Input[str],
-            region_id: pulumi.Input[str],
-            vpc_endpoint_id: pulumi.Input[str],
-            opts: pulumi.ResourceOptions = None,
-            **kwargs,
-            ):
-        super().__init__('tb_pulumi:NeonVpcAssignment', name, project, opts=opts, **kwargs)
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        subnet_ids: list[str],
+        vpc_id: str,
+        opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
+    ):
+        super().__init__(
+            'tb:neon:NeonDatabaseEndpoint',
+            name=name,
+            project=project,
+            opts=opts,
+            tags=tags,
+        )
 
-        assignment = neon.VpcEndpointAssignment(
-            f'{name}',
-            org_id = org_id,
-            region_id = region_id,
-            vpc_endpoint_id = vpc_endpoint_id,
-            label = f'{name}',
+        # Create a security group allowing Postgres's TCP traffic through the endpoints to come
+        vpc_endpoint_sg = tb_pulumi.network.SecurityGroupWithRules(
+            f'{self.name}-neonsg',
+            project=project,
+            vpc_id=vpc_id,
+            rules={
+                'ingress': [
+                    {
+                        'description': 'Allow postgres',
+                        'protocol': 'tcp',
+                        'from_port': 5432,
+                        'to_port': 5432,
+                    }
+                ],
+                'egress': [
+                    {
+                        'description': 'Allow postgres',
+                        'protocol': 'tcp',
+                        'from_port': 5432,
+                        'to_port': 5432,
+                    }
+                ],
+            },
             opts=pulumi.ResourceOptions(parent=self),
         )
 
-        self.finish(
-            resources={
-                'assignment': assignment,
-            },
-        )
+        # Build a VPC endpoint for each of the service endpoints on Neon's side
+        vpc_endpoints = []
+        for idx, service_name in enumerate(NEON_AWS_SERVICE_ENDPOINTS.get(project.aws_region, [])):
+            endpoint_name = f'{self.name}-neonvpce-{idx}'
+            tags = self.tags.copy()
+            tags.update({'Name': endpoint_name})
+            vpc_endpoints.append(
+                aws.ec2.VpcEndpoint(
+                    endpoint_name,
+                    private_dns_enabled=False,
+                    security_group_ids=[vpc_endpoint_sg],
+                    service_name=service_name,
+                    subnet_ids=subnet_ids,
+                    vpc_endpoint_type='Interface',
+                    vpc_id=vpc_id,
+                    opts=pulumi.ResourceOptions(parent=self, ignore_changes=['private_dns_enabled']),
+                    tags=tags,
+                )
+            )
+        
+        # Establish the VPC assignment on Neon's side
+        # neon_assignment = 
 
-class NeonVpcEndpointRestriction(tb_pulumi.ThunderbirdComponentResource):
-    """Restricts a Neon PrivateLink endpoint to a specific VPC.
-
-    Args:
-        name: The name of the resource.
-        vpc_id: The ID of the VPC to restrict.
-        service_id: The ID of the Neon PrivateLink endpoint service.
-        opts: Optional resource options.
-    """
-
-    def __init__(
-            self,
-            name: str,
-            project: tb_pulumi.ThunderbirdPulumiProject,
-            neon_project_id: pulumi.Input[str],
-            vpc_endpoint_id: pulumi.Input[str],
-            opts: pulumi.ResourceOptions = None,
-            **kwargs,
-            ):
-        super().__init__('tb_pulumi:NeonVpcEndpointRestriction', name, project, opts=opts, **kwargs)
-
-        restriction = neon.VpcEndpointRestriction(
-            f'{name}',
-            project_id = neon_project_id,
-            vpc_endpoint_id = vpc_endpoint_id,
-            label = f'{name}',
-            opts=pulumi.ResourceOptions(parent=self),
-        )
-
-        self.finish(
-            resources={
-                'label': restriction.label.apply(lambda label: f'{label}'),
-            },
-        )
-
+        self.finish(resources={'vpc_endpoints': vpc_endpoints})
