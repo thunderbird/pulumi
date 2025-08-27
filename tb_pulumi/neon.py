@@ -49,6 +49,7 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
+        neon_org_id: str,
         subnet_ids: list[str],
         vpc_id: str,
         # Technically, we could also offer egress_security_group_ids, but it doesn't make any sense in this context
@@ -133,7 +134,24 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
                 )
             )
 
+        neon_assignments = [
+            neon.VpcEndpointAssignment(
+                f'{self.name}-neonasgn',
+                org_id=neon_org_id,
+                region_id=f'aws-{project.aws_region}',
+                vpc_endpoint_id=endpoint.id,
+                label=f'{self.name}-{subnet_ids[idx]}',
+            )
+            for idx, endpoint in enumerate(vpc_endpoints)
+        ]
+
         # Establish the VPC assignment on Neon's side
         # neon_assignment =
 
-        self.finish(resources={'vpc_endpoints': vpc_endpoints})
+        self.finish(
+            resources={
+                'neon_assignments': neon_assignments,
+                'vpc_endpoint_sg': vpc_endpoint_sg,
+                'vpc_endpoints': vpc_endpoints,
+            }
+        )
