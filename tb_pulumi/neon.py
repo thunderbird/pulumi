@@ -134,6 +134,7 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
                 )
             )
 
+        pulumi.info('DEBUG -- rjung -- HERE!')
         neon_assignments = [
             neon.VpcEndpointAssignment(
                 f'{self.name}-neonasgn-{idx}',
