@@ -3,6 +3,8 @@ import pulumi_aws as aws
 import pulumi_neon as neon
 import tb_pulumi
 
+from time import sleep
+
 #: Mapping of all AWS service endpoints for all supported regions. Ref: https://neon.com/docs/guides/neon-private-networking
 NEON_AWS_SERVICE_ENDPOINTS = {
     'us-east-1': [
@@ -50,7 +52,7 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         neon_org_id: str,
-        subnet_ids: list[str],
+        subnets: list[str],
         vpc_id: str,
         # Technically, we could also offer egress_security_group_ids, but it doesn't make any sense in this context
         egress_cidrs: list[str] = ['0.0.0.0/0'],
@@ -67,6 +69,7 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
             tags=tags,
         )
 
+        subnet_ids = [subnet.id for subnet in subnets]
         sg_rules = {
             'egress': [
                 {
@@ -133,21 +136,77 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
                     tags=tags,
                 )
             )
+        vpc_endpoint_ids = [endpoint.id for endpoint in vpc_endpoints]
 
-        neon_assignments = [
-            neon.VpcEndpointAssignment(
-                f'{self.name}-neonasgn-{idx}',
-                org_id=neon_org_id,
-                region_id=f'aws-{project.aws_region}',
-                vpc_endpoint_id=endpoint.id,
-                label=f'{self.name}-{subnet_ids[idx]}',
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[*vpc_endpoints]),
+        neon_assignments = []
+
+        def __endpoints_pulumi_complete(vpce_ids: list):
+            pulumi.info(f'DEBUG -- vpce_ids: {vpce_ids}')
+            neon_assignments = [
+                neon.VpcEndpointAssignment(
+                    f'{self.name}-neonasgn-{idx}',
+                    org_id=neon_org_id,
+                    region_id=f'aws-{project.aws_region}',
+                    vpc_endpoint_id=endpoint,
+                    label=f'{self.name}-{project.aws_region}',
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[*vpc_endpoints]),
+                )
+                for idx, endpoint in enumerate(vpce_ids)
+            ]
+
+            pulumi.info(f'DEBUG -- neon_assignments: {neon_assignments}')
+            pulumi.Output.all(*neon_assignments).apply(
+                lambda assignments: __assignments_pulumi_complete(assignments, vpce_ids)
             )
-            for idx, endpoint in enumerate(vpc_endpoints)
-        ]
 
-        # Establish the VPC assignment on Neon's side
-        # neon_assignment =
+        def __assignments_pulumi_complete(assignments, vpce_ids):
+            for idx, assignment in enumerate(assignments):
+                __poll_vpce_status(vpce_id=vpce_ids[idx])
+
+            for vpce_id in vpce_ids:
+                __enable_vpc_endpoint_dns(vpce_id=vpce_id)
+                __poll_vpc_endpoint_dns(vpce_id=vpce_id)
+
+        def __get_vpc_endpoint_status(vpce_id: str):
+            ec2 = project.get_aws_client('ec2')
+            response = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpce_id])
+            status = {
+                'dns_enabled': response['VpcEndpoints'][0]['PrivateDnsEnabled'],
+                'state': response['VpcEndpoints'][0]['State'],
+            }
+            import json
+
+            pulumi.info(f'DEBUG -- status: {json.dumps(status, indent=2)}')
+            return status
+
+        def __poll_vpce_status(vpce_id: str):
+            wait_secs = 1
+            status = __get_vpc_endpoint_status(vpce_id=vpce_id)['state']
+            while status.lower() != 'available':
+                sleep(wait_secs)
+                wait_secs *= 2
+                status = __get_vpc_endpoint_status(vpce_id=vpce_id)['state']
+
+        def __enable_vpc_endpoint_dns(vpce_id: str):
+            ec2 = project.get_aws_client('ec2')
+            response = ec2.modify_vpc_endpoint(VpcEndpointId=vpce_id, PrivateDnsEnabled=True)
+            if not response.get('Return', False):
+                pulumi.error(f'Failed to enable DNS on VPC Endpoint {vpce_id}')
+            else:
+                pulumi.info(f'Private DNS Enabled on VPC Endpoint {vpce_id}')
+
+        def __poll_vpc_endpoint_dns(vpce_id: str):
+            wait_secs = 1
+            dns_enabled = __get_vpc_endpoint_status(vpce_id=vpce_id)['dns_enabled']
+            while not dns_enabled:
+                sleep(wait_secs)
+                wait_secs *= 2
+                dns_enabled = __get_vpc_endpoint_status(vpce_id=vpce_id)['dns_enabled']
+
+        pulumi.Output.all(*vpc_endpoint_ids).apply(lambda vpce_ids: __endpoints_pulumi_complete(vpce_ids))
+        # First, wait for pulumi state
+        # Second, wait for Neon API state
+        # Then enable DNS
 
         self.finish(
             resources={
