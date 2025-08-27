@@ -107,6 +107,7 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
             f'{self.name}-neonsg',
             project=project,
             vpc_id=vpc_id,
+            rules=sg_rules,
             opts=pulumi.ResourceOptions(parent=self),
         )
 
