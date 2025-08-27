@@ -303,16 +303,18 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         peer_conn_routes = {}
         for peer_name, connection in peering_connections.items():
             peered_cidrs = connection.pop('peered_cidrs', {})
+            tags = self.tags.copy()
+            tags.update({'Name': f'{project.name_prefix}-to-{peer_name}'})
             peer_conns[peer_name] = aws.ec2.VpcPeeringConnection(
                 f'{name}-peerconn-{peer_name}',
                 vpc_id=vpc.id,
-                tags=self.tags,
+                tags=tags,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
                 **connection,
             )
             peer_conn_routes[peer_name] = [
                 aws.ec2.Route(
-                    f'{name}-pcxroute-{idx}',
+                    f'{name}-pcxroute-{peer_name}-{idx}',
                     destination_cidr_block=cidr,
                     route_table_id=vpc.default_route_table_id,
                     vpc_peering_connection_id=peer_conns[peer_name].id,
