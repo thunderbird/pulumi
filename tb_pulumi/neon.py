@@ -136,7 +136,7 @@ class NeonDatabaseEndpoint(tb_pulumi.ThunderbirdComponentResource):
 
         neon_assignments = [
             neon.VpcEndpointAssignment(
-                f'{self.name}-neonasgn',
+                f'{self.name}-neonasgn-{idx}',
                 org_id=neon_org_id,
                 region_id=f'aws-{project.aws_region}',
                 vpc_endpoint_id=endpoint.id,
