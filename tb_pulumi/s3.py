@@ -324,7 +324,6 @@ class S3BucketSecureWebsite(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
-        # oai_id: pulumi.Input[],
         bucket_name: str,
         website_config: dict,
         opts: pulumi.ResourceOptions = None,
@@ -353,96 +352,21 @@ class S3BucketSecureWebsite(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
         )
 
-        # Required or else we can't apply ACLs or a bucket policy, which are required elements of an S3 website
+        # We need to block public access to the bucket
         bucket_pab = aws.s3.BucketPublicAccessBlock(
             f'{name}-bucket-pab',
             bucket=bucket_name,
-            block_public_acls=False,
+            block_public_acls=True,
             block_public_policy=True,
             ignore_public_acls=True,
             restrict_public_buckets=True,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
         )
 
-        bucket_acl = aws.s3.BucketAclV2(
-            f'{name}-bucket-acl',
-            bucket=bucket_name,
-            acl='public-read',
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket, bucket_oc, bucket_pab]),
-        )
-
-        # needed for s3 origin config
-        # oai = aws.cloudfront.OriginAccessIdentity(
-        #     f"{project.name_prefix}-autoconfig-oai",
-        #     comment="OAI for autoconfig bucket"
-        # )
-
-        policy_json = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
-        # policy_json['Statement'][0] = {
-        #     'Sid': 'PublicReadGetObject',
-        #     'Effect': 'Allow',
-        #     'Principal': '*',
-        #     'Action': ['s3:GetObject'],
-        #     'Resource': [f'arn:aws:s3:::{bucket_name}/*'],
-        # }
-
-        policy_json['Statement'] = [
-        {
-            "Sid": "AllowCloudFrontPrincipalReadOnly",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "cloudfront.amazonaws.com"
-            },
-            "Action": [
-                "s3:GetObject"
-            ],
-            "Resource": f"arn:aws:s3:::{bucket_name}/*",
-            "Condition": {
-                "StringEquals": {
-                    "AWS:SourceArn": f"arn:aws:cloudfront::{project.aws_account_id}:distribution/*"
-                }
-            }
-        },
-        {
-            "Sid": "AllowCloudFrontS3ListBucket",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "cloudfront.amazonaws.com"
-            },
-            "Action": [
-                "s3:ListBucket"
-            ],
-            "Resource": f"arn:aws:s3:::{bucket_name}",
-            "Condition": {
-                "StringEquals": {
-                    "AWS:SourceArn": f"arn:aws:cloudfront::{project.aws_account_id}:distribution/*"
-                }
-            }
-        }
-        ]
-        
-        policy_json = json.dumps(policy_json)
-        policy = aws.s3.BucketPolicy(
-            f'{name}-policy',
-            bucket=bucket_name,
-            policy=policy_json,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket, bucket_oc, bucket_pab]),
-        )
-
-        # website = aws.s3.BucketWebsiteConfigurationV2(
-        #     f'{name}-website',
-        #     bucket=bucket_name,
-        #     **website_config,
-        #     opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
-        # )
-
         self.finish(
             resources={
                 'bucket': bucket,
-                'bucket_acl': bucket_acl,
                 'bucket_oc': bucket_oc,
                 'bucket_pab': bucket_pab,
-                'policy': policy,
-                # 'website': website,
             }
         )
