@@ -97,20 +97,20 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         )
 
         canonical_user = aws.s3.get_canonical_user_id().id
-        logging_bucket_acl = aws.s3.BucketAclV2(
-            f'{name}-bucketacl',
-            bucket=logging_bucket.id,
-            access_control_policy={
-                'grants': [
-                    {
-                        'grantee': {'type': 'CanonicalUser', 'id': canonical_user},
-                        'permission': 'FULL_CONTROL',
-                    }
-                ],
-                'owner': {'id': canonical_user},
-            },
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket, logging_bucket_ownership]),
-        )
+        # logging_bucket_acl = aws.s3.BucketAclV2(
+        #     f'{name}-bucketacl',
+        #     bucket=logging_bucket.id,
+        #     access_control_policy={
+        #         'grants': [
+        #             {
+        #                 'grantee': {'type': 'CanonicalUser', 'id': canonical_user},
+        #                 'permission': 'FULL_CONTROL',
+        #             }
+        #         ],
+        #         'owner': {'id': canonical_user},
+        #     },
+        #     opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket, logging_bucket_ownership]),
+        # )
 
         # Merge logging settings from the config file with this generated bucket name
         logging_config = {'bucket': logging_bucket.bucket_domain_name}
@@ -161,7 +161,7 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
                 'cloudfront_distribution': cloudfront_distribution,
                 'invalidation_policy': invalidation_policy,
                 'logging_bucket': logging_bucket,
-                'logging_bucket_acl': logging_bucket_acl,
+                # 'logging_bucket_acl': logging_bucket_acl,
                 'logging_bucket_ownership': logging_bucket_ownership,
             }
         )

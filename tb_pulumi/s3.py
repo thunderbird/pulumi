@@ -270,3 +270,179 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
                 'website': website,
             }
         )
+
+
+class S3BucketSecureWebsite(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:s3:S3BuckeSecureWebsite``
+
+    Builds an S3 bucket and sets up a **public access** static website from its contents.
+
+    Produces the following ``resources``:
+
+        - **bucket** - A :py:class:`tb_pulumi.s3.S3Bucket` to host the static files.
+        - **bucket_acl** - An `aws.s3.BucketAclV2
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketaclv2/>`_ describing public read access.
+        - **bucket_oc** - An `aws.s3.BucketOwnershipControls
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketownershipcontrols/>`_ describing how object
+          ownership works.
+        - **bucket_pab** - An `aws.s3.BucketPublicAccessBlock
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpublicaccessblock/>`_ which disables the
+          blocks on public access.
+        - **objects** - A dict where the keys are files discovered in the ``content_dir`` local directory and the values
+          are `aws.s3.BucketObjectv2 <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketobjectv2/>`_ s.
+        - **policy** - An `aws.s3.BucketPolicy
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpolicy/#inputs>`_ allowing public read access
+          to the bucket contents.
+        - **website** - An `aws.s3.BucketWebsiteConfigurationV2
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketwebsiteconfigurationv2/>`_ defining the
+          operating parameters of the website.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param bucket_name: The name of the S3 bucket to host a public website in.
+    :type bucket_name: str
+
+    :param website_config: A dict of options describing a `BucketWebsiteConfigurationV2 resource
+        <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketwebsiteconfigurationv2/#inputs>`_ .
+    :type website_config: dict
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+
+    :param kwargs: Additional arguments to pass into the :py:class:`S3Bucket` constructor.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        # oai_id: pulumi.Input[],
+        bucket_name: str,
+        website_config: dict,
+        opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
+        **kwargs,
+    ):
+        super().__init__('tb:s3:S3BucketSecureWebsite', name=name, project=project, opts=opts, tags=tags)
+
+        bucket = S3Bucket(
+            f'{name}-bucket',
+            project=project,
+            bucket_name=bucket_name,
+            enable_server_side_encryption=False,
+            enable_versioning=False,
+            exclude_from_project=True,
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self),
+            **kwargs,
+        )
+
+        # Required or else we can't place an ACL on the bucket
+        bucket_oc = aws.s3.BucketOwnershipControls(
+            f'{name}-bucket-oc',
+            bucket=bucket_name,
+            rule={'objectOwnership': 'ObjectWriter'},
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
+        )
+
+        # Required or else we can't apply ACLs or a bucket policy, which are required elements of an S3 website
+        bucket_pab = aws.s3.BucketPublicAccessBlock(
+            f'{name}-bucket-pab',
+            bucket=bucket_name,
+            block_public_acls=False,
+            block_public_policy=True,
+            ignore_public_acls=True,
+            restrict_public_buckets=True,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
+        )
+
+        bucket_acl = aws.s3.BucketAclV2(
+            f'{name}-bucket-acl',
+            bucket=bucket_name,
+            acl='public-read',
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket, bucket_oc, bucket_pab]),
+        )
+
+        # needed for s3 origin config
+        # oai = aws.cloudfront.OriginAccessIdentity(
+        #     f"{project.name_prefix}-autoconfig-oai",
+        #     comment="OAI for autoconfig bucket"
+        # )
+
+        policy_json = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
+        # policy_json['Statement'][0] = {
+        #     'Sid': 'PublicReadGetObject',
+        #     'Effect': 'Allow',
+        #     'Principal': '*',
+        #     'Action': ['s3:GetObject'],
+        #     'Resource': [f'arn:aws:s3:::{bucket_name}/*'],
+        # }
+
+        policy_json['Statement'] = [
+        {
+            "Sid": "AllowCloudFrontPrincipalReadOnly",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "cloudfront.amazonaws.com"
+            },
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": f"arn:aws:s3:::{bucket_name}/*",
+            "Condition": {
+                "StringEquals": {
+                    "AWS:SourceArn": f"arn:aws:cloudfront::{project.aws_account_id}:distribution/*"
+                }
+            }
+        },
+        {
+            "Sid": "AllowCloudFrontS3ListBucket",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "cloudfront.amazonaws.com"
+            },
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": f"arn:aws:s3:::{bucket_name}",
+            "Condition": {
+                "StringEquals": {
+                    "AWS:SourceArn": f"arn:aws:cloudfront::{project.aws_account_id}:distribution/*"
+                }
+            }
+        }
+        ]
+        
+        policy_json = json.dumps(policy_json)
+        policy = aws.s3.BucketPolicy(
+            f'{name}-policy',
+            bucket=bucket_name,
+            policy=policy_json,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket, bucket_oc, bucket_pab]),
+        )
+
+        # website = aws.s3.BucketWebsiteConfigurationV2(
+        #     f'{name}-website',
+        #     bucket=bucket_name,
+        #     **website_config,
+        #     opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
+        # )
+
+        self.finish(
+            resources={
+                'bucket': bucket,
+                'bucket_acl': bucket_acl,
+                'bucket_oc': bucket_oc,
+                'bucket_pab': bucket_pab,
+                'policy': policy,
+                # 'website': website,
+            }
+        )
