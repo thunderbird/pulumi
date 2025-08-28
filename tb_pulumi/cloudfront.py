@@ -39,6 +39,9 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
+    :param service_bucket_name: The name of the s3 bucket used to host the secure site.
+    :type service_bucket_name: str
+
     :param logging_bucket_name: Name of the S3 bucket which holds access logs for the distribution.
     :type logging_bucket_name: str
 
@@ -61,6 +64,7 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
+        service_bucket_name: str,
         logging_bucket_name: str,
         distribution: dict = {},
         forcibly_destroy_bucket: bool = False,
@@ -97,27 +101,28 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         )
 
         canonical_user = aws.s3.get_canonical_user_id().id
-        # logging_bucket_acl = aws.s3.BucketAclV2(
-        #     f'{name}-bucketacl',
-        #     bucket=logging_bucket.id,
-        #     access_control_policy={
-        #         'grants': [
-        #             {
-        #                 'grantee': {'type': 'CanonicalUser', 'id': canonical_user},
-        #                 'permission': 'FULL_CONTROL',
-        #             }
-        #         ],
-        #         'owner': {'id': canonical_user},
-        #     },
-        #     opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket, logging_bucket_ownership]),
-        # )
+        logging_bucket_acl = aws.s3.BucketAclV2(
+            f'{name}-bucketacl',
+            bucket=logging_bucket.id,
+            access_control_policy={
+                'grants': [
+                    {
+                        'grantee': {'type': 'CanonicalUser', 'id': canonical_user},
+                        'permission': 'FULL_CONTROL',
+                    }
+                ],
+                'owner': {'id': canonical_user},
+            },
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket, logging_bucket_ownership]),
+        )
 
         # Merge logging settings from the config file with this generated bucket name
         logging_config = {'bucket': logging_bucket.bucket_domain_name}
         __config = distribution.pop('logging_config', None)
         if __config:
             logging_config.update(__config)
-
+        
+        # Create distribution
         cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
             logging_config=logging_config,
@@ -127,6 +132,45 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
                 depends_on=[logging_bucket],
             ),
             **distribution,
+        )
+
+        # Create policy document for service bucket
+        policy_json = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
+        policy_json['Statement'] = cloudfront_distribution.arn.apply(
+            lambda arn: [
+            {
+                "Sid": "AllowCloudFrontPrincipalReadOnly",
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "cloudfront.amazonaws.com"
+                },
+                "Action": [
+                    "s3:GetObject"
+                ],
+                "Resource": f"arn:aws:s3:::{service_bucket_name}/*",
+                "Condition": {
+                    "StringEquals": {
+                        "AWS:SourceArn": f"{arn}"
+                    }
+                }
+                },
+                {
+                    "Sid": "AllowCloudFrontS3ListBucket",
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Service": "cloudfront.amazonaws.com"
+                    },
+                    "Action": [
+                        "s3:ListBucket"
+                    ],
+                    "Resource": f"arn:aws:s3:::{service_bucket_name}",
+                    "Condition": {
+                        "StringEquals": {
+                            "AWS:SourceArn": f"{arn}"
+                        }
+                    }
+                }
+                ]
         )
 
         # Create a policy allowing cache invalidation of this distro
@@ -147,6 +191,13 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
             )
         )
 
+        service_bucket_policy = aws.s3.BucketPolicy(
+            f'{name}-policy',
+            bucket=service_bucket_name,
+            policy=policy_json,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[cloudfront_distribution]),
+        )
+
         invalidation_policy = aws.iam.Policy(
             f'{name}-policy-invalidation',
             name=f'{name}-cache-invalidation',
@@ -159,9 +210,10 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         self.finish(
             resources={
                 'cloudfront_distribution': cloudfront_distribution,
+                'service_bucket_policy': service_bucket_policy,
                 'invalidation_policy': invalidation_policy,
                 'logging_bucket': logging_bucket,
-                # 'logging_bucket_acl': logging_bucket_acl,
+                'logging_bucket_acl': logging_bucket_acl,
                 'logging_bucket_ownership': logging_bucket_ownership,
             }
         )
