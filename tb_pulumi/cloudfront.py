@@ -121,7 +121,7 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         __config = distribution.pop('logging_config', None)
         if __config:
             logging_config.update(__config)
-        
+
         # Create distribution
         cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
@@ -138,39 +138,23 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         policy_json = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
         policy_json['Statement'] = cloudfront_distribution.arn.apply(
             lambda arn: [
-            {
-                "Sid": "AllowCloudFrontPrincipalReadOnly",
-                "Effect": "Allow",
-                "Principal": {
-                    "Service": "cloudfront.amazonaws.com"
-                },
-                "Action": [
-                    "s3:GetObject"
-                ],
-                "Resource": f"arn:aws:s3:::{service_bucket_name}/*",
-                "Condition": {
-                    "StringEquals": {
-                        "AWS:SourceArn": f"{arn}"
-                    }
-                }
+                {
+                    'Sid': 'AllowCloudFrontPrincipalReadOnly',
+                    'Effect': 'Allow',
+                    'Principal': {'Service': 'cloudfront.amazonaws.com'},
+                    'Action': ['s3:GetObject'],
+                    'Resource': f'arn:aws:s3:::{service_bucket_name}/*',
+                    'Condition': {'StringEquals': {'AWS:SourceArn': f'{arn}'}},
                 },
                 {
-                    "Sid": "AllowCloudFrontS3ListBucket",
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": "cloudfront.amazonaws.com"
-                    },
-                    "Action": [
-                        "s3:ListBucket"
-                    ],
-                    "Resource": f"arn:aws:s3:::{service_bucket_name}",
-                    "Condition": {
-                        "StringEquals": {
-                            "AWS:SourceArn": f"{arn}"
-                        }
-                    }
-                }
-                ]
+                    'Sid': 'AllowCloudFrontS3ListBucket',
+                    'Effect': 'Allow',
+                    'Principal': {'Service': 'cloudfront.amazonaws.com'},
+                    'Action': ['s3:ListBucket'],
+                    'Resource': f'arn:aws:s3:::{service_bucket_name}',
+                    'Condition': {'StringEquals': {'AWS:SourceArn': f'{arn}'}},
+                },
+            ]
         )
 
         # Create a policy allowing cache invalidation of this distro
