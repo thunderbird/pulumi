@@ -79,12 +79,9 @@ class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
             config=config,
         )
 
-    def monitor(self, outputs):
+    def monitor(self):
         """This function gets called only after all outputs in the project have been resolved into values. It constructs
         all monitors for the resources in this project.
-
-        :param outputs: A list of resolved outputs discovered in the project.
-        :type outputs: list
         """
 
         sns_topic = aws.sns.Topic(
@@ -632,7 +629,7 @@ class Ec2InstanceAlarmGroup(tb_pulumi.monitoring.AlarmGroup):
         - ``system_status_failed``: Alarms if the system status check fails.
 
     Further detail on these metrics and more can be found on `Amazon's documentation
-    <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html>_`.
+    <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html>`_.
 
     :param name: The name of the ``Ec2InstanceAlarmGroup`` resource.
     :type name: str

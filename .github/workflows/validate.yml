@@ -10,6 +10,13 @@ on:
     branches:
       - '**'
       - '!main'
+  pull_request:
+    types:
+      - edited
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
 
 permissions:
   contents: read

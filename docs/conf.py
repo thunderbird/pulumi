@@ -10,8 +10,8 @@ import sys
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'tb_pulumi'
-copyright = '2024, Thunderbird'
-author = 'Ryan Jung, et al'
+copyright = '2025, Thunderbird'
+author = 'Thunderbird Pro Services and Community'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

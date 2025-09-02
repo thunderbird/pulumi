@@ -3,123 +3,114 @@
 Monitoring Resources
 ====================
 
-When monitoring an environment with tb_pulumi, we want to make sure alarms get set up against critical metrics for all
-resources being managed in a project. The monitoring tools in this module are designed to track your infrastructure as
-you build it and set up monitors for everything automatically. The alarms can then be tweaked or disabled entirely as
-needed.
+tb_pulumi offers a tool for setting up monitoring for your entire stack at once. This comes downstream from some other
+internals described better in :ref:`full_stack_patterns`. The short version of this is that:
 
-When you add ``ThunderbirdComponentResource`` s to a ``ThunderbirdPulumiProject``, the project tracks the resources in
-an internal mapping correlating the name of the component resource to the collection of resources it contains. These
-resources can have complex structures with nested lists, dicts, and ``ThunderbirdComponentResource`` s. The project's
-:py:meth:`tb_pulumi.ThunderbirdPulumiProject.flatten` function returns these as a flat list of unlabeled Pulumi
-``Resource`` s and ``Output`` s.
+- A :py:class:`tb_pulumi.ThunderbirdPulumiProject` tracks resources and collections of resources in an arbitrary nested
+  structure.
+- A :py:class:`tb_pulumi.ProjectResourceGroup` waits for a full application of the Pulumi stack before executing code
+  with full context of every resource in the stack.
 
-However, it is the nature of Pulumi Outputs that we do not know what type they will become when they are resolved. This
-presents a hurdle for the auto-detection of resources to monitor, which is resolved through implementations of the
-:py:class:`tb_pulumi.monitoring.MonitoringGroup` class. This class works by finding all the ``Output`` s in the
-``flatten`` ed resources, then applying them. Once applied, the resolved outputs and previously known resources are
-iterated to find supported resources of known types. The outputs are then passed into a function called ``monitor``.
-When you implement the ``MonitoringGroup`` class, the alarms you build must be defined in an implementation of
-``monitor``, not in ``__init__`` as in typical Pulumi patterns.
+And now, we add that...
 
-In addition to providing this post-apply access to all monitorable resources, the ``MonitoringGroup`` also sets up a
-configuration of overrides (allowing you to tweak or disable any alarm) and provides a method of notification for
-tripped alarms.
+- A :py:class:`tb_pulumi.monitoring.MonitoringGroup` is a ProjectResourceGroup that filters resources based on known
+  ability to monitor those resources. It is an abstract class which must be implemented by a class which can create
+  monitors in a certain platform.
+- A :py:class:`tb_pulumi.cloudwatch.CloudWatchMonitoringGroup` is a MonitoringGroup that builds monitors on the AWS
+  CloudWatch platform.
+- A :py:class:`tb_pulumi.monitoring.AlarmGroup` is a ThunderbirdComponentResource that creates alarms for a specific
+  type of resource. This is an abstract class which is implemented in more specific alarm groups.
+- More specific alarm groups, such as a :py:class:`tb_pulumi.cloudwatch.AlbAlarmGroup`, which creates CloudWatch alarms
+  for application load balancers.
 
-A ``MonitoringGroup`` 's alarms are organized and made configurable through a second class, the
-:py:class:`tb_pulumi.monitoring.AlarmGroup`. This represents an overridable set of alarms for a
-single resource (which may produce any number of metrics which we want to monitor). ``MonitoringGroup`` s must map
-resource types to ``AlarmGroup`` types that handle those resources in their ``monitor`` functions.
-
-As an example, take a look at :py:class:`tb_pulumi.cloudwatch.CloudWatchMonitoringGroup`, a ``MonitoringGroup``
-implementation that uses AWS CloudWatch to alarm on metrics produced by AWS resources. It creates a
-:py:class:`tb_pulumi.cloudwatch.LoadBalancerAlarmGroup` when it encounters a resource of type
-``aws.lb.load_balancer.LoadBalancer``. That alarm group monitors status codes and response times, among other things.
+The overall idea is that the monitoring groups inspect the post-applied Pulumi state looking for any monitorable
+resources. It creates the appropriate alarm groups for each resource it understands. If you change your infrastructure
+to, as an example, create a new ALB, the monitoring group will automatically create new alarms for it. Likewise, if you
+delete a monitored resource, its monitors will also get deleted. This requires no extra effort from the developer
+beyond defining the monitoring group.
 
 
-CloudWatch Monitoring
----------------------
+Set up a CloudWatchMonitoringGroup
+----------------------------------
 
-To create monitors for AWS resources, you may want to use AWS's metrics and alerting platform, CloudWatch. You can get
-automatic monitoring with sensible defaults for all supported resources in your stack by setting up a
-:py:class:`tb_pulumi.cloudwatch.CloudWatchMonitoringGroup`. Assuming your project is set up like in the
-:ref:`quickstart` section, you can add monitoring like this:
+Start with a basic YAML config:
+
+.. code-block:: yaml
+
+  tb:cloudwatch:CloudWatchMonitoringGroup:
+    monitoring:
+      config:
+        alarms: {}
+      notify_emails:
+        - your.email.here@domain.smth
+
+And then define one in code:
 
 .. code-block:: python
-    :linenos:
 
-    monitoring_opts = resources['tb:cloudwatch:CloudWatchMonitoringGroup']
-    monitoring = tb_pulumi.cloudwatch.CloudWatchMonitoringGroup(
-        name='my-monitoring',
-        project=project,
-        notify_emails=['your_alerting_email_here@host.tld'],
-        config=monitoring_opts,
-    )
+  monitoring_opts = resources.get('tb:cloudwatch:CloudWatchMonitoringGroup')
+  monitoring = tb_pulumi.cloudwatch.CloudWatchMonitoringGroup(
+      name=f'{project.name_prefix}-monitoring',
+      project=project,
+      **monitoring_opts,
+  )
 
-The ``CloudWatchMonitoringGroup`` will look at every resource in your ``project`` . If it is capable of setting up
-alerting for a resource, it will, using default values. If you want to tweak the alarm's configuration, pass the desired
-values in through the config object. This should look something like this:
-
-.. code-block:: yaml
-    :linenos:
-
-    tb:cloudwatch:CloudWatchMonitoringGroup:
-        alarms:
-            resource-name:
-                alarm-name:
-                    options: values
+This will build monitors for everything the module is capable of monitoring.
 
 
-The ``options: values`` settings can contain any valid inputs to the ``aws.cloudwatch.MetricAlarm`` constructor
-as `defined here <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/metricalarm/#inputs>`_. It also
-supports a special ``enabled`` option, which can be set to ``False`` to prevent the creation of the alarm.
+Override Default Alarm Settings
+-------------------------------
 
-The ``resource-name`` is the name of the resource to which the alarm applies, as it is known to Pulumi. To see a list of
-these values within your stack, you can set up your Pulumi environment and run ``pulumi stack``. You'll see output like
-this (which is heavily truncated):
-::
+The :py:class:`tb_pulumi.cloudwatch.CloudWatchMonitoringGroup` class inherits from the base
+:py:class:`tb_pulumi.monitoring.MonitoringGroup` class. That base class offers us a way of overriding the default options for
+monitors. That is its ``config`` parameter.
 
-    Current stack is mystack:
-        Managed by mymachine
-        Last updated: 9 seconds ago (2024-12-10 09:31:13.157002687 -0700 MST)
-        Pulumi version used: v3.142.0
-    Current stack resources (137):
-        TYPE                                                          NAME
-        pulumi:pulumi:Stack                                           myproject-mystack
-            ...
-        ├─ tb:fargate:FargateClusterWithLogging                       myproject-mystack-fargate
-        │  ├─ aws:kms/key:Key                                         myproject-mystack-fargate-logging
-        │  ├─ aws:iam/policy:Policy                                   myproject-mystack-fargate-policy-exec
-        │  ├─ tb:fargate:FargateServiceAlb                            myproject-mystack-fargate-fargateservicealb
-        │  │  ├─ aws:alb/targetGroup:TargetGroup                      myproject-mystack-fargate-fargateservicealb-targetgroup-myapp
-        │  │  ├─ aws:lb/loadBalancer:LoadBalancer                     myproject-mystack-fargate-fargateservicealb-alb-myapp
-        │  │  └─ aws:lb/listener:Listener                             myproject-mystack-fargate-fargateservicealb-listener-myapp
-        │  ├─ aws:cloudwatch/logGroup:LogGroup                        myproject-mystack-fargate-fargate-logs
-        │  ├─ aws:iam/policy:Policy                                   myproject-mystack-fargate-policy-logs
-        │  ├─ aws:ecs/cluster:Cluster                                 myproject-mystack-fargate-cluster
-        │  ├─ aws:iam/role:Role                                       myproject-mystack-fargate-taskrole
-        │  ├─ aws:ecs/taskDefinition:TaskDefinition                   myproject-mystack-fargate-taskdef
-        │  └─ aws:ecs/service:Service                                 myproject-mystack-fargate-service
-            ...
-
-If you wanted to change the threshold for alerting on 5xx errors in the target group, you would use
-``myproject-mystack-fargate-fargateservicealb-targetgroup-myapp`` as the ``resource-name`` in the config.
-
-The ``alarm-name`` key should be the name of an alarm that is supported by the relevant alarm group. For example,
-:py:class:`tb_pulumi.cloudwatch.AlbAlarmGroup` describes the ``target_5xx`` and ``alb_5xx`` alarms. To change a
-config for one alarm and disable another, you could write the following config:
+This is a specially formatted dict of options. Here's a reasonable skeleton to begin with:
 
 .. code-block:: yaml
-    :linenos:
 
-    tb:cloudwatch:CloudWatchMonitoringGroup:
-        alarms:
-            myproject-mystack-fargate-fargateservicealb-targetgroup-myapp:
-                target_5xx:
-                    threshold: 123
-                    evaluation_periods: 3
-                alb_5xx:
-                    enabled: False
+    alarms:
+      resource-name:
+        alarm-name:
+          enabled: True
+          # ... other options here ...
 
-Both of these pieces of data are available as tags on the alarms themselves. If you discover an alarm which needs to be
-tweaked, note the `tb_pulumi_resource_name` and `tb_pulumi_alarm_name` tags.
+The ``resource-name`` is the name of your resource as it is known to Pulumi. You can run the ``pulumi stack`` command to
+get a list of these names. Here is some heavily modified sample output to refer to. The value you want is in the
+``NAME`` column.
+
+.. code-block::
+
+    # pulumi stack
+    Current stack is foobar:
+        Owner: your-org
+        Last updated: date/time
+        Pulumi version used: v3.187.0
+    Current stack resources (###):
+        TYPE                                                  NAME
+        pulumi:pulumi:Stack                                   project-stack
+        ├─ tb:network:MultiCidrVpc                            project-stack-vpc
+        │  ├─ aws:ec2/vpc:Vpc                                 project-stack-vpc
+        │  ├─ tb:network:SecurityGroupWithRules               project-stack-vpc-endpoint-sg
+        │  │  ├─ aws:ec2/securityGroup:SecurityGroup          project-stack-vpc-endpoint-sg-sg
+        │  │  ├─ aws:ec2/securityGroupRule:SecurityGroupRule  project-stack-vpc-endpoint-sg-ingress-0
+        │  │  └─ aws:ec2/securityGroupRule:SecurityGroupRule  project-stack-vpc-endpoint-sg-egress-0
+        │  ├─ aws:ec2/subnet:Subnet                           project-stack-vpc-subnet-1
+        │  ├─ aws:ec2/internetGateway:InternetGateway         project-stack-vpc-ig
+        │  ├─ aws:ec2/subnet:Subnet                           project-stack-vpc-subnet-0
+        ...
+
+The ``alarm-name`` is defined by the AlarmGroup responding to the resource. For example, the
+:py:class:`tb_pulumi.cloudwatch.Ec2InstanceAlarmGroup` docs list several, such as ``cpu_utilization``.
+
+All alarms support the ``enabled`` option. This is implied to be ``True``, but can be set to ``False`` if you do not
+wish to build that alarm. You can also supply any other options for an ``aws.cloudwatch.MetricAlarm`` here, and those
+will override the defaults. For example, you could change the threshold and number of evaluation periods for an alarm:
+
+.. code-block:: yaml
+
+    alarms:
+      my-instance:
+        cpu_utilization:
+            threshold: 80
+            evaluation_periods: 3
