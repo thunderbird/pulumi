@@ -64,7 +64,6 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
-        service_bucket_name: str,
         logging_bucket_name: str,
         distribution: dict = {},
         forcibly_destroy_bucket: bool = False,
@@ -134,29 +133,6 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
             **distribution,
         )
 
-        # Create policy document for service bucket
-        policy_json = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
-        policy_json['Statement'] = cloudfront_distribution.arn.apply(
-            lambda arn: [
-                {
-                    'Sid': 'AllowCloudFrontPrincipalReadOnly',
-                    'Effect': 'Allow',
-                    'Principal': {'Service': 'cloudfront.amazonaws.com'},
-                    'Action': ['s3:GetObject'],
-                    'Resource': f'arn:aws:s3:::{service_bucket_name}/*',
-                    'Condition': {'StringEquals': {'AWS:SourceArn': f'{arn}'}},
-                },
-                {
-                    'Sid': 'AllowCloudFrontS3ListBucket',
-                    'Effect': 'Allow',
-                    'Principal': {'Service': 'cloudfront.amazonaws.com'},
-                    'Action': ['s3:ListBucket'],
-                    'Resource': f'arn:aws:s3:::{service_bucket_name}',
-                    'Condition': {'StringEquals': {'AWS:SourceArn': f'{arn}'}},
-                },
-            ]
-        )
-
         # Create a policy allowing cache invalidation of this distro
         invalidation_policy_json = cloudfront_distribution.arn.apply(
             lambda distro_arn: json.dumps(
@@ -175,12 +151,7 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
             )
         )
 
-        service_bucket_policy = aws.s3.BucketPolicy(
-            f'{name}-policy',
-            bucket=service_bucket_name,
-            policy=policy_json,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[cloudfront_distribution]),
-        )
+        distro_arn = cloudfront_distribution.arn.apply(lambda arn: arn if arn else '')  
 
         invalidation_policy = aws.iam.Policy(
             f'{name}-policy-invalidation',
@@ -194,7 +165,7 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         self.finish(
             resources={
                 'cloudfront_distribution': cloudfront_distribution,
-                'service_bucket_policy': service_bucket_policy,
+                'distro_arn': distro_arn,
                 'invalidation_policy': invalidation_policy,
                 'logging_bucket': logging_bucket,
                 'logging_bucket_acl': logging_bucket_acl,
