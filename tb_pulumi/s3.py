@@ -278,10 +278,10 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
         )
 
 
-class S3BucketSecureWebsite(tb_pulumi.ThunderbirdComponentResource):
-    """**Pulumi Type:** ``tb:s3:S3BuckeSecureWebsite``
+class S3BucketPrivate(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:s3:S3BucketPrivate``
 
-    Builds an S3 bucket and sets up a **public access** static website from its contents.
+    Builds a private S3 bucket.
 
     Produces the following ``resources``:
 
@@ -331,12 +331,11 @@ class S3BucketSecureWebsite(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         bucket_name: str,
-        website_config: dict,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
         **kwargs,
     ):
-        super().__init__('tb:s3:S3BucketSecureWebsite', name=name, project=project, opts=opts, tags=tags)
+        super().__init__('tb:s3:S3BucketPrivate', name=name, project=project, opts=opts, tags=tags)
 
         bucket = S3Bucket(
             f'{name}-bucket',
@@ -372,6 +371,7 @@ class S3BucketSecureWebsite(tb_pulumi.ThunderbirdComponentResource):
         self.finish(
             resources={
                 'bucket': bucket,
+                'bucket_name': bucket_name,
                 'bucket_oc': bucket_oc,
                 'bucket_pab': bucket_pab,
             }
