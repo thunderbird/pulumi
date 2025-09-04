@@ -151,8 +151,6 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
             )
         )
 
-        distro_arn = cloudfront_distribution.arn.apply(lambda arn: arn if arn else '')  
-
         invalidation_policy = aws.iam.Policy(
             f'{name}-policy-invalidation',
             name=f'{name}-cache-invalidation',
@@ -165,7 +163,6 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         self.finish(
             resources={
                 'cloudfront_distribution': cloudfront_distribution,
-                'distro_arn': distro_arn,
                 'invalidation_policy': invalidation_policy,
                 'logging_bucket': logging_bucket,
                 'logging_bucket_acl': logging_bucket_acl,
