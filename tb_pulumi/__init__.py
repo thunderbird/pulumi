@@ -443,5 +443,8 @@ class ProjectResourceGroup(ThunderbirdComponentResource):
 
         super().finish(resources=resources)
 
-        if self.on_apply is not None:
-            self.on_apply(resources)
+        def __callback(resources):
+            if self.on_apply is not None:
+                self.on_apply(resources)
+
+        pulumi.Output.apply(**resources).apply(lambda resources: __callback(resources=resources))
