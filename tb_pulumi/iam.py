@@ -345,7 +345,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                 f'{self.name}-keypolicy',
                 name=f'{user_name}-key-access',
                 policy=json.dumps(policy_doc),
-                description=f'Allows access to the secret which stores access key data for use {user_name}',
+                description=f'Allows access to the secret which stores access key data for user {user_name}',
                 path='/',
                 tags=self.tags,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[secret]),
@@ -361,7 +361,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # Add the user to all the given groups
-        group_membership = aws.iam.GroupMembership(
+        group_membership = aws.iam.UserGroupMembership(
             f'{self.name}-gpmbr',
             groups=[group.name for group in groups],
             user=user.name,
