@@ -276,3 +276,86 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
                 'website': website,
             }
         )
+
+
+class S3PrivateBucket(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:s3:S3PrivateBucket``
+
+    Builds a private S3 bucket.
+
+    Produces the following ``resources``:
+
+        - **bucket** - A :py:class:`tb_pulumi.s3.S3Bucket` to host the static files.
+        - **bucket_oc** - An `aws.s3.BucketOwnershipControls
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketownershipcontrols/>`_ describing how object
+          ownership works.
+        - **bucket_pab** - An `aws.s3.BucketPublicAccessBlock
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpublicaccessblock/>`_ which enables the
+          blocks on public access.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param bucket_name: The name of the S3 bucket.
+    :type bucket_name: str
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+
+    :param kwargs: Additional arguments to pass into the :py:class:`S3Bucket` constructor.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        bucket_name: str,
+        opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
+        **kwargs,
+    ):
+        super().__init__('tb:s3:S3PrivateBucket', name=name, project=project, opts=opts, tags=tags)
+
+        bucket = S3Bucket(
+            f'{name}-bucket',
+            project=project,
+            bucket_name=bucket_name,
+            exclude_from_project=True,
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self),
+            **kwargs,
+        )
+
+        # Required or else we can't place an ACL on the bucket
+        bucket_oc = aws.s3.BucketOwnershipControls(
+            f'{name}-bucket-oc',
+            bucket=bucket_name,
+            rule={'objectOwnership': 'ObjectWriter'},
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
+        )
+
+        # We need to block public access to the bucket
+        bucket_pab = aws.s3.BucketPublicAccessBlock(
+            f'{name}-bucket-pab',
+            bucket=bucket_name,
+            block_public_acls=True,
+            block_public_policy=True,
+            ignore_public_acls=True,
+            restrict_public_buckets=True,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[bucket]),
+        )
+
+        self.finish(
+            resources={
+                'bucket': bucket,
+                'bucket_oc': bucket_oc,
+                'bucket_pab': bucket_pab,
+            }
+        )
