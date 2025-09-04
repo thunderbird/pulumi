@@ -327,8 +327,6 @@ class S3PrivateBucket(tb_pulumi.ThunderbirdComponentResource):
             f'{name}-bucket',
             project=project,
             bucket_name=bucket_name,
-            enable_server_side_encryption=False,
-            enable_versioning=False,
             exclude_from_project=True,
             tags=self.tags,
             opts=pulumi.ResourceOptions(parent=self),
