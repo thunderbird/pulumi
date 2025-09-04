@@ -431,7 +431,8 @@ class ProjectResourceGroup(ThunderbirdComponentResource):
         raise NotImplementedError()
 
     def finish(self, resources: dict[str, Flattenable] = {}):
-        """Calls the superclass's ``finish`` function to register resources, then
+        """Calls the superclass's ``finish`` function to register resources, then calls the callback function if one was
+        set, passing in the resources.
 
         :param outputs: Dict of outputs to register with Pulumi's ``register_outputs`` function. This parameter is
             deprecated and will be removed in a future version. Defaults to {}.
@@ -445,6 +446,6 @@ class ProjectResourceGroup(ThunderbirdComponentResource):
 
         def __callback(resources):
             if self.on_apply is not None:
-                self.on_apply(resources)
+                self.on_apply(resources=resources)
 
-        pulumi.Output.apply(**resources).apply(lambda resources: __callback(resources=resources))
+        pulumi.Output.all(**resources).apply(lambda resources: __callback(resources=resources))
