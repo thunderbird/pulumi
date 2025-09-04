@@ -39,9 +39,6 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
-    :param service_bucket_name: The name of the s3 bucket used to host the secure site.
-    :type service_bucket_name: str
-
     :param logging_bucket_name: Name of the S3 bucket which holds access logs for the distribution.
     :type logging_bucket_name: str
 
@@ -121,7 +118,6 @@ class CloudFrontDistribution(tb_pulumi.ThunderbirdComponentResource):
         if __config:
             logging_config.update(__config)
 
-        # Create distribution
         cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
             logging_config=logging_config,
