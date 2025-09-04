@@ -230,15 +230,18 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
 
     Produces the following ``resources``:
 
-        - *user* - The `aws.iam.User <https://www.pulumi.com/registry/packages/aws/api-docs/iam/user/>`_.
         - *access_key* - An `aws.iam.AccessKey <https://www.pulumi.com/registry/packages/aws/api-docs/iam/accesskey/>`_
           the user can authenticate with.
-        - *secret* - A :py:class:`tb_pulumi.secrets.SecretsManagerSecret` containing the secret authentication details.
+        - *group_membership* - An `aws.iam.UserGroupMembership
+          <https://www.pulumi.com/registry/packages/aws/api-docs/iam/usergroupmembership/>`_ representing this user's
+          membership in the provided groups.
         - *policy* - An `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_ granting
           the ability to retrieve this secret and its metadata.
         - *policy_attachments* A list of `aws.iam.PolicyAttachments
           <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policyattachment/>`_ to include the ``policy``
           created here and any additional policies provided wiht the ``policies`` parameter.
+        - *secret* - A :py:class:`tb_pulumi.secrets.SecretsManagerSecret` containing the secret authentication details.
+        - *user* - The `aws.iam.User <https://www.pulumi.com/registry/packages/aws/api-docs/iam/user/>`_.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -249,6 +252,10 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
     :param user_name: _description_
     :type user_name: str
 
+    :param groups: List of `aws.iam.Group <https://www.pulumi.com/registry/packages/aws/api-docs/iam/group/>`_s to make
+        this user a member of.
+    :type groups: list[aws.iam.Group]
+
     :param policies: _description_, defaults to []
     :type policies: list[aws.iam.Policy], optional
 
@@ -258,6 +265,9 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
     :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
         Defaults to {}.
     :type tags: dict, optional
+
+    :param kwargs: Any other keyword arguments which will be passed as inputs to the `aws.iam.User
+      <https://www.pulumi.com/registry/packages/aws/api-docs/iam/user/>`_ resource.
     """
 
     def __init__(
@@ -265,6 +275,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         user_name: str,
+        groups: list[aws.iam.Group] = [],
         policies: list[aws.iam.Policy] = [],
         exclude_from_project: bool = False,
         opts: pulumi.ResourceOptions = None,
@@ -285,6 +296,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
             path='/',
             tags=self.tags,
             opts=pulumi.ResourceOptions(parent=self),
+            **kwargs,
         )
 
         access_key = aws.iam.AccessKey(
@@ -333,7 +345,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                 f'{self.name}-keypolicy',
                 name=f'{user_name}-key-access',
                 policy=json.dumps(policy_doc),
-                description=f'Allows access to the secret which stores access key data for use {user_name}',
+                description=f'Allows access to the secret which stores access key data for user {user_name}',
                 path='/',
                 tags=self.tags,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[secret]),
@@ -346,6 +358,13 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
             lambda secret_tcp: secret_tcp.resources['secret'].arn.apply(
                 lambda secret_arn: __policy(secret_arn=secret_arn)
             )
+        )
+
+        # Add the user to all the given groups
+        group_membership = aws.iam.UserGroupMembership(
+            f'{self.name}-gpmbr',
+            groups=[group.name for group in groups],
+            user=user.name,
         )
 
         # Collect all policy ARNs and attach them
@@ -362,10 +381,11 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
 
         self.finish(
             resources={
-                'user': user,
                 'access_key': access_key,
+                'group_membership': group_membership,
                 'secret': secret,
                 'policy': secret_policy,
                 'policy_attachments': policy_attachments,
+                'user': user,
             }
         )
