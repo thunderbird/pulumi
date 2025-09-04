@@ -278,30 +278,20 @@ class S3BucketWebsite(tb_pulumi.ThunderbirdComponentResource):
         )
 
 
-class S3BucketPrivate(tb_pulumi.ThunderbirdComponentResource):
-    """**Pulumi Type:** ``tb:s3:S3BucketPrivate``
+class S3PrivateBucket(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:s3:S3PrivateBucket``
 
     Builds a private S3 bucket.
 
     Produces the following ``resources``:
 
         - **bucket** - A :py:class:`tb_pulumi.s3.S3Bucket` to host the static files.
-        - **bucket_acl** - An `aws.s3.BucketAclV2
-          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketaclv2/>`_ describing public read access.
         - **bucket_oc** - An `aws.s3.BucketOwnershipControls
           <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketownershipcontrols/>`_ describing how object
           ownership works.
         - **bucket_pab** - An `aws.s3.BucketPublicAccessBlock
-          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpublicaccessblock/>`_ which disables the
+          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpublicaccessblock/>`_ which enables the
           blocks on public access.
-        - **objects** - A dict where the keys are files discovered in the ``content_dir`` local directory and the values
-          are `aws.s3.BucketObjectv2 <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketobjectv2/>`_ s.
-        - **policy** - An `aws.s3.BucketPolicy
-          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpolicy/#inputs>`_ allowing public read access
-          to the bucket contents.
-        - **website** - An `aws.s3.BucketWebsiteConfigurationV2
-          <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketwebsiteconfigurationv2/>`_ defining the
-          operating parameters of the website.
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -309,12 +299,8 @@ class S3BucketPrivate(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
-    :param bucket_name: The name of the S3 bucket to host a public website in.
+    :param bucket_name: The name of the S3 bucket.
     :type bucket_name: str
-
-    :param website_config: A dict of options describing a `BucketWebsiteConfigurationV2 resource
-        <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketwebsiteconfigurationv2/#inputs>`_ .
-    :type website_config: dict
 
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
@@ -335,7 +321,7 @@ class S3BucketPrivate(tb_pulumi.ThunderbirdComponentResource):
         tags: dict = {},
         **kwargs,
     ):
-        super().__init__('tb:s3:S3BucketPrivate', name=name, project=project, opts=opts, tags=tags)
+        super().__init__('tb:s3:S3PrivateBucket', name=name, project=project, opts=opts, tags=tags)
 
         bucket = S3Bucket(
             f'{name}-bucket',
@@ -371,7 +357,6 @@ class S3BucketPrivate(tb_pulumi.ThunderbirdComponentResource):
         self.finish(
             resources={
                 'bucket': bucket,
-                'bucket_name': bucket_name,
                 'bucket_oc': bucket_oc,
                 'bucket_pab': bucket_pab,
             }
