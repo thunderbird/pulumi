@@ -324,6 +324,10 @@ class ProjectResourceGroup(ThunderbirdComponentResource):
     :param project: The ``ThunderbirdPulumiProject`` to build a resource group out of.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
+    :param on_apply: A function to call when the resources in this group have been applied, allowing you to develop
+        further resources dependent on these.
+    :type on_apply: callable
+
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
@@ -337,10 +341,14 @@ class ProjectResourceGroup(ThunderbirdComponentResource):
         pulumi_type: str,
         name: str,
         project: ThunderbirdPulumiProject,
+        on_apply: callable = None,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
     ):
         super().__init__(pulumi_type=pulumi_type, name=name, project=project, opts=opts, tags=tags)
+
+        # Internalize parameters
+        self.on_apply = on_apply
 
         # Start with a list of all resources; sort them out into known (pulumi.Resources) and unknown things
         _all_contents = self.project.flatten()
@@ -421,3 +429,19 @@ class ProjectResourceGroup(ThunderbirdComponentResource):
         """
 
         raise NotImplementedError()
+
+    def finish(self, resources: dict[str, Flattenable] = {}):
+        """Calls the superclass's ``finish`` function to register resources, then
+
+        :param outputs: Dict of outputs to register with Pulumi's ``register_outputs`` function. This parameter is
+            deprecated and will be removed in a future version. Defaults to {}.
+        :type outputs: dict[str, Any], optional
+
+        :param resources: Dict of Pulumi resources this component reosurce contains. Defaults to {}.
+        :type resources: dict[str, Flattenable], optional
+        """
+
+        super().finish(resources=resources)
+
+        if self.on_apply is not None:
+            self.on_apply(resources)

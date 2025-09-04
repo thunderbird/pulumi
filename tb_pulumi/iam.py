@@ -19,8 +19,11 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         project: tb_pulumi.ThunderbirdPulumiProject,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
+        **kwargs,
     ):
-        super().__init__(pulumi_type='tb:iam.StackAccessPolicies', name=name, project=project, opts=opts, tags=tags)
+        super().__init__(
+            pulumi_type='tb:iam.StackAccessPolicies', name=name, project=project, opts=opts, tags=tags, **kwargs
+        )
 
     def ready(self, outputs: list[pulumi.Resource]):
         """This function is called by the :py:class:`tb_pulumi.ProjectResourceGroup` after all outputs in the project
