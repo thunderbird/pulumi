@@ -434,10 +434,6 @@ class ProjectResourceGroup(ThunderbirdComponentResource):
         """Calls the superclass's ``finish`` function to register resources, then calls the callback function if one was
         set, passing in the resources.
 
-        :param outputs: Dict of outputs to register with Pulumi's ``register_outputs`` function. This parameter is
-            deprecated and will be removed in a future version. Defaults to {}.
-        :type outputs: dict[str, Any], optional
-
         :param resources: Dict of Pulumi resources this component reosurce contains. Defaults to {}.
         :type resources: dict[str, Flattenable], optional
         """
