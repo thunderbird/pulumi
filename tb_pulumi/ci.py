@@ -86,6 +86,9 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
 
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
+
+    :param kwargs: Additional arguments will be passed into the :py:class:`tb_pulumi.iam.UserWithAccessKey` resource.
+    :type kwargs: dict
     """
 
     def __init__(
