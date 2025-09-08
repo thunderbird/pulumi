@@ -292,7 +292,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
             aws.iam.PolicyAttachment(
                 f'{name}-polatt-{idx}',
                 policy_arn=policy_arn,
-                users=[user.name],
+                users=[user_name],
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
             )
 
