@@ -286,6 +286,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
             user_name=user_name,
             policies=policies,
             **kwargs,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[*policies]),
         )
 
         self.finish(
