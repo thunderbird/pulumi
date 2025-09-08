@@ -274,7 +274,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 s3_upload_policy if enable_s3_bucket_upload else None,
                 s3_full_access_policy if enable_full_s3_access else None,
                 fargate_deployment_policy if enable_fargate_deployments else None,
-                *additional_policies,
             ]
             if policy is not None
         ]
@@ -288,6 +287,14 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
             **kwargs,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[*policies]),
         )
+
+        for idx, policy_arn in enumerate(additional_policies):
+            aws.iam.PolicyAttachment(
+                f'{name}-polatt-{idx}',
+                policy_arn=policy_arn,
+                users=[user.name],
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
+            )
 
         self.finish(
             resources={
