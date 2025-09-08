@@ -4,6 +4,7 @@ import json
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
+import tb_pulumi.iam
 
 
 class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
@@ -15,11 +16,7 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
 
     Produces the following ``resources``:
 
-        - *user* - `aws.iam.User <https://www.pulumi.com/registry/packages/aws/api-docs/iam/user/>`_ to run CI
-          operations.
-        - *access_key* - `aws.iam.AccessKey <https://www.pulumi.com/registry/packages/aws/api-docs/iam/accesskey/>`_ for
-          that user's authentication.
-        - *secret* - :py:class:`tb_pulumi.secrets.SecretsManagerSecret` where the access key data is stored.
+        - *user* - :py:class:`tb_pulumi.iam.UserWithAccessKey` created for automation.
         - *ecr_image_push_policy* - `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
           defining permissions required to push container images to an ECR repository, but only if
           ``enable_ecr_image_push`` is ``True``.
@@ -39,6 +36,9 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
 
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param user_name: The name to give the IAM user. Defaults to ``{name}-ci``.
+    :type user_name: str
 
     :param additional_policies: List of ARNs of IAM policies to additionally attach to the user. Defaults to [].
     :type additional_policies: list[str], optional
@@ -106,33 +106,9 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        super().__init__('tb:ci:AutomationUser', name=name, project=project, opts=opts, **kwargs)
+        super().__init__('tb:ci:AutomationUser', name=name, project=project, opts=opts)
 
         user_name = user_name or f'{name}-ci'
-        user = aws.iam.User(
-            f'{name}-user',
-            name=f'{name}-ci',
-            tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self),
-        )
-
-        access_key = aws.iam.AccessKey(
-            f'{name}-accesskey',
-            user=user_name,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
-        )
-
-        secret_value = pulumi.Output.all(id=access_key.id, secret=access_key.secret).apply(
-            lambda args: json.dumps({'aws_access_key_id': args['id'], 'aws_secret_access_key': args['secret']})
-        )
-        secret = tb_pulumi.secrets.SecretsManagerSecret(
-            f'{name}-secret-accesskey',
-            project=project,
-            secret_name=f'{project.project}/{project.stack}/ci-access-keys',
-            secret_value=secret_value,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[access_key]),
-            tags=self.tags,
-        )
 
         if enable_ecr_image_push:
             policy_dict = {
@@ -175,15 +151,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 tags=self.tags,
             )
 
-            # Ignore unused variable rules for attachments like this using "noqa" statements for rule F841.
-            # Ref: https://docs.astral.sh/ruff/rules/unused-variable/
-            ecr_image_push_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
-                f'{name}-polatt-ecrpush',
-                users=[user],
-                policy_arn=ecr_image_push_policy.arn,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[ecr_image_push_policy, user]),
-            )
-
         if enable_s3_bucket_upload:
             policy_resources = []
             for bucket in s3_upload_buckets:
@@ -208,13 +175,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self),
                 tags=self.tags,
             )
-            s3_upload_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
-                f'{name}-polatt-s3upload',
-                users=[user],
-                policy_arn=s3_upload_policy.arn,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[s3_upload_policy, user]),
-            )
-
         if enable_full_s3_access:
             resources = []
             for bucket in s3_full_access_buckets:
@@ -240,13 +200,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self),
                 tags=self.tags,
             )
-            s3_full_access_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
-                f'{name}-polatt-s3fullaccess',
-                users=[user],
-                policy_arn=s3_full_access_policy.arn,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[s3_full_access_policy, user]),
-            )
-
         if enable_fargate_deployments:
             ecs_write_resources = []
             for cluster in fargate_clusters:
@@ -310,27 +263,31 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self),
                 tags=self.tags,
             )
-            fargate_deployment_policy_attachment = aws.iam.PolicyAttachment(  # noqa: F841
-                f'{name}-polatt-fargatedeploy',
-                users=[user],
-                policy_arn=fargate_deployment_policy.arn,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[fargate_deployment_policy, user]),
-            )
 
-            # Attach all other policies
-            for idx, policy in enumerate(additional_policies):
-                aws.iam.PolicyAttachment(
-                    f'{name}-polatt-additional-{idx}',
-                    users=[user],
-                    policy_arn=policy,
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
-                )
+        policies = [
+            policy
+            for policy in [
+                ecr_image_push_policy if enable_ecr_image_push else None,
+                s3_upload_policy if enable_s3_bucket_upload else None,
+                s3_full_access_policy if enable_full_s3_access else None,
+                fargate_deployment_policy if enable_fargate_deployments else None,
+                *additional_policies,
+            ]
+            if policy is not None
+        ]
+
+        user = tb_pulumi.iam.UserWithAccessKey(
+            f'{name}-iamuser',
+            project=self.project,
+            exclude_from_project=True,
+            user_name=user_name,
+            policies=policies,
+            **kwargs,
+        )
 
         self.finish(
             resources={
                 'user': user,
-                'access_key': access_key,
-                'secret': secret,
                 'ecr_image_push_policy': ecr_image_push_policy if enable_ecr_image_push else None,
                 's3_upload_policy': s3_upload_policy if enable_s3_bucket_upload else None,
                 's3_full_access_policy': s3_full_access_policy if enable_full_s3_access else None,

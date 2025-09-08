@@ -252,14 +252,15 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
-    :param user_name: _description_
+    :param user_name: Name to give the IAM user.
     :type user_name: str
 
-    :param groups: List of `aws.iam.Group <https://www.pulumi.com/registry/packages/aws/api-docs/iam/group/>`_s to make
+    :param groups: List of `aws.iam.Group <https://www.pulumi.com/registry/packages/aws/api-docs/iam/group/>`_ s to make
         this user a member of.
     :type groups: list[aws.iam.Group]
 
-    :param policies: _description_, defaults to []
+    :param policies: List of `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_
+        resources to attach to the user. Defaults to [].
     :type policies: list[aws.iam.Policy], optional
 
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
