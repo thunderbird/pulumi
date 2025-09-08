@@ -13,9 +13,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
     options, documented below, exist to provide some common permission sets for build and deployment patterns used
     in these modules. Additional policies can be added arbitrarily to expand these permissions.
 
-    Because CI processes affect resources built across multiple environments (which can also be interpreted as
-    multiple Pulumi stacks), these items are only created in a single stack.
-
     Produces the following ``resources``:
 
         - *user* - `aws.iam.User <https://www.pulumi.com/registry/packages/aws/api-docs/iam/user/>`_ to run CI
@@ -42,10 +39,6 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
 
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
-
-    :param active_stack: The name of the stack to manage these single-stack resources in. Defaults to 'stage'.
-        You should always set this to a stack you expect to be a permanent fixture in your infrastructure.
-    :type active_stack: str, optional
 
     :param additional_policies: List of ARNs of IAM policies to additionally attach to the user. Defaults to [].
     :type additional_policies: list[str], optional
