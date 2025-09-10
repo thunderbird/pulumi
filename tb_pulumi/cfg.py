@@ -1,6 +1,5 @@
 """Patterns related to AWS Config integration."""
 
-import json
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
@@ -19,6 +18,8 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
+        delivery_email: str = '',
+        aggregator_stack: bool = False,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
         **kwargs,
@@ -49,33 +50,29 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
         # bucket policy to allow config to write to bucket
         delivery_bucket_policy_json = tb_pulumi.constants.IAM_POLICY_DOCUMENT.copy()
         delivery_bucket_policy_json['Statement'] = [
-                {
-                    'Effect': 'Allow',
-                    'Principal': {'Service': 'config.amazonaws.com'},
-                    'Action': [
-                        's3:PutObject',
-                        's3:PutObjectAcl',
-                    ],
-                    'Resource': f'arn:aws:s3:::{bucket_name}/AWSLogs/{project.aws_account_id}/*',
-                    'Condition': {
-                        'StringEquals': {
-                            "s3:x-amz-acl": "bucket-owner-full-control"
-                        }
-                    },
-                },
-                {
-                    'Effect': 'Allow',
-                    'Principal': {'Service': 'config.amazonaws.com'},
-                    'Action': 's3:GetBucketAcl',
-                    'Resource': f'arn:aws:s3:::{bucket_name}',
-                },
-            ]
+            {
+                'Effect': 'Allow',
+                'Principal': {'Service': 'config.amazonaws.com'},
+                'Action': [
+                    's3:PutObject',
+                    's3:PutObjectAcl',
+                ],
+                'Resource': f'arn:aws:s3:::{bucket_name}/AWSLogs/{project.aws_account_id}/*',
+                'Condition': {'StringEquals': {'s3:x-amz-acl': 'bucket-owner-full-control'}},
+            },
+            {
+                'Effect': 'Allow',
+                'Principal': {'Service': 'config.amazonaws.com'},
+                'Action': 's3:GetBucketAcl',
+                'Resource': f'arn:aws:s3:::{bucket_name}',
+            },
+        ]
 
         delivery_bucket_policy = aws.s3.BucketPolicy(
             f'{name}-config-bucket-policy',
             bucket=bucket_name,
             policy=delivery_bucket_policy_json,
-            opts=pulumi.ResourceOptions(parent=delivery_bucket),
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[delivery_bucket]),
         )
 
         # recorder config
@@ -88,7 +85,9 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
         }
 
         # Reference the existing service-linked role ARN
-        config_service_linked_role_arn = f"arn:aws:iam::{project.aws_account_id}:role/aws-service-role/config.amazonaws.com/AWSServiceRoleForConfig"
+        config_service_linked_role_arn = (
+            f'arn:aws:iam::{project.aws_account_id}:role/aws-service-role/config.amazonaws.com/AWSServiceRoleForConfig'
+        )
 
         # create config recorder
         recorder = aws.cfg.Recorder(
@@ -107,11 +106,81 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(parent=recorder),
         )
 
-        # # create delivery channel
+        # create delivery channel SNS topic
+        delivery_channel_sns_topic = (
+            aws.sns.Topic(
+                f'{project.project}-{project.stack}-delivery-channel-sns-topic',
+                display_name=f'{name} Delivery Channel SNS Topic',
+                opts=pulumi.ResourceOptions(parent=self),
+                tags=self.tags,
+            )
+            if aggregator_stack
+            else None
+        )
+
+        # delivery channel sns topic email subscription if defined
+        delivery_channel_email_subscription = (
+            aws.sns.TopicSubscription(
+                f'{project.project}-{project.stack}-delivery-channel-email-subscription',
+                topic=delivery_channel_sns_topic,
+                protocol='email',
+                endpoint=delivery_email,
+                opts=pulumi.ResourceOptions(parent=delivery_channel_sns_topic),
+            )
+            if delivery_email and aggregator_stack
+            else None
+        )
+
+        # create delivery channel
         delivery_channel = aws.cfg.DeliveryChannel(
             f'{name}-delivery-channel',
             s3_bucket_name=bucket_name,
             snapshot_delivery_properties={},
-            opts=pulumi.ResourceOptions(parent=recorder, depends_on=[delivery_bucket, delivery_bucket_policy, recorder]),
+            sns_topic_arn=delivery_channel_sns_topic.arn if delivery_channel_sns_topic else None,
+            opts=pulumi.ResourceOptions(
+                parent=recorder,
+                depends_on=[delivery_bucket, delivery_bucket_policy, recorder],
+            ),
         )
-        # self.finish(resources={'config_recorder': config_recorder, 'delivery_channel': delivery_channel})
+
+        # if aggregator stack
+        # can user later if we have more tha n one account to aggregate from
+        # aggregator_account_auth = (
+        #     aws.cfg.AggregateAuthorization(
+        #         f'{project.project}-{project.stack}-agg-auth',
+        #         account_id=f'{project.aws_account_id}',
+        #         authorized_aws_region=f'{project.aws_region}',
+        #         tags=self.tags,
+        #      )
+        #     if aggregator_stack
+        #     else None
+        # )
+
+        aggregator_account = (
+            aws.cfg.ConfigurationAggregator(
+                f'{project.project}-{project.stack}-account-agg',
+                name=f'{project.project}-{project.stack}-account-agg',
+                account_aggregation_source={
+                    'account_ids': [f'{project.aws_account_id}'],
+                    'all_regions': True,
+                    # "regions": ["us-east-1"],
+                },
+                tags=self.tags,
+            )
+            if aggregator_stack
+            else None
+        )
+
+        self.finish(
+            resources={
+                'delivery_bucket': delivery_bucket,
+                'delivery_bucket_policy': delivery_bucket_policy,
+                'recorder': recorder,
+                'recorder_status': recorder_status,
+                'delivery_channel_sns_topic': delivery_channel_sns_topic,
+                'delivery_channel_email_subscription': delivery_channel_email_subscription,
+                'delivery_channel': delivery_channel,
+                'aggregator_account': aggregator_account,
+                # "aggregator_account_auth": aggregator_account_auth,
+            }
+        )
