@@ -125,7 +125,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
         assign_public_ip: bool = False,
         build_load_balancer: bool = True,
         container_security_groups: list[str] = [],
-        desired_count: int = 1,
+        desired_count: int = None,
         ecr_resources: list = ['*'],
         enable_container_insights: bool = False,
         health_check_grace_period_seconds: int = None,
@@ -325,6 +325,12 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
 
         # Fargate Service
         service_depends_on = [item for item in [cluster, fargate_service_alb, task_definition_res] if item is not None]
+        service_opts = {
+            'parent': self,
+            'depends_on': service_depends_on,
+        }
+        if not desired_count:
+            service_opts['ignore_changes'] = ['desired_count']
         service = aws.ecs.Service(
             f'{name}-service',
             name=name,
