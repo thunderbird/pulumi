@@ -152,4 +152,3 @@ class EcsServiceAutoscaler(tb_pulumi.ThunderbirdComponentResource):
             self.finish(resources={'cpu_policy': cpu_policy, 'ram_policy': ram_policy, 'target': target})
 
         pulumi.Output.all(service.cluster, service.name).apply(lambda outputs: __build_autoscaling(*outputs))
-
