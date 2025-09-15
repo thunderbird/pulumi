@@ -7,6 +7,7 @@ tb_pulumi
    :maxdepth: 4
 
    tb_pulumi
+   autoscale
    ci
    cloudfront
    cloudwatch
