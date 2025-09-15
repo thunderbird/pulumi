@@ -86,7 +86,6 @@ class EcsServiceAutoscaler(tb_pulumi.ThunderbirdComponentResource):
             # That cluster_name is actually an ARN (bug in AWS provider, maybe?)
             cluster_name = cluster_name.split('/').pop()
             service_resource_id = f'service/{cluster_name}/{service_name}'
-            pulumi.info(f'DEBUG -- rjung -- suspend: {type(suspend)}')
             target = aws.appautoscaling.Target(
                 f'{self.name}-scltgt-{service_name}',
                 resource_id=service_resource_id,
