@@ -4,6 +4,8 @@ import pulumi
 import pulumi_aws as aws
 import tb_pulumi
 
+from copy import deepcopy
+
 
 class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:network:MultiCidrVpc``
@@ -270,6 +272,8 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
 
         interfaces = []
         for svc in endpoint_interfaces:
+            tags = deepcopy(self.tags)
+            tags['Name'] = f'{project.name_prefix}-{svc}'
             interfaces.append(
                 aws.ec2.VpcEndpoint(
                     f'{name}-interface-{svc}',
@@ -279,13 +283,15 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                     subnet_ids=[subnet.id for subnet in subnet_rs],
                     vpc_endpoint_type='Interface',
                     vpc_id=vpc.id,
-                    tags=self.tags,
+                    tags=tags,
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, *subnet_rs, endpoint_sg.resources['sg']]),
                 )
             )
 
         gateways = []
         for svc in endpoint_gateways:
+            tags = deepcopy(self.tags)
+            tags['Name'] = f'{project.name_prefix}-{svc}'
             gateways.append(
                 aws.ec2.VpcEndpoint(
                     f'{name}-gateway-{svc}',
@@ -293,7 +299,7 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                     service_name=f'com.amazonaws.{self.project.aws_region}.{svc}',
                     vpc_endpoint_type='Gateway',
                     vpc_id=vpc.id,
-                    tags=self.tags,
+                    tags=tags,
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, *subnet_rs, endpoint_sg.resources['sg']]),
                 )
             )
