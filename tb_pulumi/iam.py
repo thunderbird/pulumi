@@ -270,7 +270,7 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         ``access_keys``. This is the way this module used to work, and it will be removed in a future version since it
         does not allow for cautious key rotation. Use it to migrate off of this feature, and afterward it should be set
         to False. Defaults to False.
-    :type enable_legacy_key: bool
+    :type enable_legacy_access_key: bool
 
     :param groups: List of `aws.iam.Group <https://www.pulumi.com/registry/packages/aws/api-docs/iam/group/>`_ s to make
         this user a member of.
@@ -328,156 +328,146 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                 user=user.name,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
             )
-            if enable_legacy_key
+            if enable_legacy_access_key
             else None
         )
 
-        blue_access_key = (
-            aws.iam.AccessKey(
-                f'{name}-key-blue',
+        keys = {
+            key: aws.iam.AccessKey(
+                f'{name}-key-{key}',
                 user=user.name,
+                status='Active' if active else 'Inactive',
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
             )
-            if enable_blue_key
-            else None
-        )
+            for key, active in access_keys.items()
+        }
 
-        green_access_key = (
-            aws.iam.AccessKey(
-                f'{name}-key-green',
-                user=user.name,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
+        secret_base_name = f'{self.project.project}/{self.project.stack}/iam.user.{user_name}.access_key'
+
+        # Use this function to create secrets that depend on access keys being applied
+        def __access_key_secret(
+            key_name: str, res_name: str, access_key: aws.iam.AccessKey, access_key_id: str, secret_access_key: str
+        ):
+            pulumi.info(
+                f'DEBUG -- rjung -- Secret Creation -- key_name: {key_name}, res_name: {res_name}, access_key: {access_key}'
+                f'access_key_id: {access_key_id}, secret_access_key: {secret_access_key}'
             )
-            if enable_green_key
-            else None
-        )
-
-        # The secret can only be created after the key has been created, so do it in a post-apply function
-        secret_name = f'{self.project.project}/{self.project.stack}/iam.user.{user_name}.access_key'
-
-        def __secret(name: str, access_key: aws.iam.AccessKey, access_key_id: str, secret_access_key: str):
             return tb_pulumi.secrets.SecretsManagerSecret(
-                name=name,
+                name=res_name,
                 project=self.project,
                 exclude_from_project=True,
-                secret_name=secret_name,
+                secret_name=f'{secret_base_name}.{key_name}',
                 secret_value=json.dumps({'access_key_id': access_key_id, 'secret_access_key': secret_access_key}),
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[access_key]),
             )
 
-        blue_secret = (
-            pulumi.Output.all(access_key_id=blue_access_key.id, secret_access_key=blue_access_key.secret).apply(
-                lambda outputs: __secret(
-                    name=f'{name}-keysecret-blue',
-                    access_key=blue_access_key,
-                    access_key_id=outputs['access_key_id'],
-                    secret_access_key=outputs['secret_access_key'],
-                )
-            )
-            if enable_blue_key
-            else None
-        )
-
-        green_secret = (
-            pulumi.Output.all(access_key_id=green_access_key.id, secret_access_key=green_access_key.secret).apply(
-                lambda outputs: __secret(
-                    name=f'{name}-keysecret-green',
-                    access_key=green_access_key,
-                    access_key_id=outputs['access_key_id'],
-                    secret_access_key=outputs['secret_access_key'],
-                )
-            )
-            if enable_green_key
-            else None
-        )
-
         legacy_secret = (
             pulumi.Output.all(access_key_id=legacy_access_key.id, secret_access_key=legacy_access_key.secret).apply(
-                lambda outputs: __secret(
-                    name=f'{name}-keysecret',
+                lambda outputs: __access_key_secret(
+                    key_name='legacy',
+                    res_name=f'{name}-keysecret-legacy',
                     access_key=legacy_access_key,
                     access_key_id=outputs['access_key_id'],
                     secret_access_key=outputs['secret_access_key'],
                 )
             )
-            if enable_legacy_key
+            if enable_legacy_access_key
             else None
         )
 
+        def __rjung_debug(outputs):
+            pulumi.info(f'DEBUG -- rjung -- outputs: {outputs}')
+
+        access_key_secrets = {}
+        pulumi.info('first')
+        pulumi.info(f'keys: {keys}')
+        pulumi.info(f'items: {keys.items()}')
+        pulumi.info('second')
+        for key_name, access_key in keys.items():
+            pulumi.info(f'DEBUG -- rjung -- Pre-Secret Creation -- key: {key_name}, {access_key}')
+            # access_key_secrets[key_name] = pulumi.Output.all(
+            pulumi.Output.all(
+                access_key_id=access_key.id, secret_access_key=access_key.secret
+            ).apply(
+                lambda outputs: __access_key_secret(
+                    key_name=key_name,
+                    res_name=f'{name}-keysecret-{key_name}',
+                    access_key=access_key,
+                    access_key_id=outputs['access_key_id'],
+                    secret_access_key=outputs['secret_access_key'],
+                )
+            )
+
         # The policy can only be created after the secret has been created, so do it in a post-apply function
-        def __policy(
-            secret_arns: list[str],
-        ):
-            pulumi.info(f'secret_arns: {secret_arns}')
-            resources = []
-            for arn in secret_arns:
-                resources.extend([arn, f'{arn}*'])
-            policy_doc = IAM_POLICY_DOCUMENT.copy()
-            policy_doc['Statement'][0]['Sid'] = 'AllowSecretAccess'
-            policy_doc['Statement'][0].update(
-                {
-                    'Action': [
-                        'secretsmanager:DescribeSecret',
-                        'secretsmanager:GetResourcePolicy',
-                        'secretsmanager:GetSecretValue',
-                        'secretsmanager:ListSecretVersionIds',
-                    ],
-                    'Resource': resources,
-                }
-            )
-            policy_deps = [dep for dep in [blue_access_key, green_access_key, legacy_access_key] if dep is not None]
-            return aws.iam.Policy(
-                f'{self.name}-keypolicy',
-                name=f'{user_name}-key-access',
-                policy=json.dumps(policy_doc),
-                description=f'Allows access to the secrets which store access key data for user {user_name}',
-                path='/',
-                tags=self.tags,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=policy_deps),
-            )
+        # def __policy(
+        #     secret_arns: list[str],
+        # ):
+        #     resources = []
+        #     for arn in secret_arns:
+        #         resources.extend([arn, f'{arn}*'])
+        #     policy_doc = IAM_POLICY_DOCUMENT.copy()
+        #     policy_doc['Statement'][0]['Sid'] = 'AllowSecretAccess'
+        #     policy_doc['Statement'][0].update(
+        #         {
+        #             'Action': [
+        #                 'secretsmanager:DescribeSecret',
+        #                 'secretsmanager:GetResourcePolicy',
+        #                 'secretsmanager:GetSecretValue',
+        #                 'secretsmanager:ListSecretVersionIds',
+        #             ],
+        #             'Resource': resources,
+        #         }
+        #     )
+        #     policy_deps = [dep for dep in [*access_keys.value(), legacy_access_key] if dep is not None]
+        #     return aws.iam.Policy(
+        #         f'{self.name}-keypolicy',
+        #         name=f'{user_name}-key-access',
+        #         policy=json.dumps(policy_doc),
+        #         description=f'Allows access to the secrets which store access key data for user {user_name}',
+        #         path='/',
+        #         tags=self.tags,
+        #         opts=pulumi.ResourceOptions(parent=self, depends_on=policy_deps),
+        #     )
 
-        # We need the secrets to build the policy. The secrets here are ThunderbirdComponentResources, so Pulumi doesn't
-        # know it even has a `resources` member until it has been applied. So we first apply the secrets, then Pulumi
-        # can get to its `resources`, then we apply the actual AWS `Secret` object to get its ARN for the policy.
-        pulumi.info(f'secrets: {legacy_secret.resources}')
-        secret_policy = pulumi.Output.all(
-            [
-                secret.resources['secret'].arn
-                for secret in [blue_secret, green_secret, legacy_secret]
-                if secret is not None
-            ]
-        ).apply(lambda secret_arns: __policy(secret_arns=secret_arns))
+        # # We need the secrets to build the policy. The secrets here are ThunderbirdComponentResources, so Pulumi doesn't
+        # # know it even has a `resources` member until it has been applied. So we first apply the secrets, then Pulumi
+        # # can get to its `resources`, then we apply the actual AWS `Secret` object to get its ARN for the policy.
+        # secret_policy = pulumi.Output.all(
+        #     [
+        #         secret.resources['secret'].arn
+        #         for secret in [*access_key_secrets.values(), legacy_secret]
+        #         if secret is not None
+        #     ]
+        # ).apply(lambda secret_arns: __policy(secret_arns=secret_arns))
 
-        # Add the user to all the given groups
-        group_membership = aws.iam.UserGroupMembership(
-            f'{self.name}-gpmbr',
-            groups=[group.name for group in groups],
-            user=user.name,
-        )
+        # # Add the user to all the given groups
+        # group_membership = aws.iam.UserGroupMembership(
+        #     f'{self.name}-gpmbr',
+        #     groups=[group.name for group in groups],
+        #     user=user.name,
+        # )
 
-        # Collect all policy ARNs and attach them
-        policy_arns = [secret_policy.arn, *[pol.arn for pol in policies]]
-        policy_attachments = [
-            aws.iam.PolicyAttachment(
-                f'{name}-polatt-{idx}',
-                policy_arn=arn,
-                users=[user.name],
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[user, secret_policy, *policies]),
-            )
-            for idx, arn in enumerate(policy_arns)
-        ]
+        # # Collect all policy ARNs and attach them
+        # policy_arns = [secret_policy.arn, *[pol.arn for pol in policies]]
+        # policy_attachments = [
+        #     aws.iam.PolicyAttachment(
+        #         f'{name}-polatt-{idx}',
+        #         policy_arn=arn,
+        #         users=[user.name],
+        #         opts=pulumi.ResourceOptions(parent=self, depends_on=[user, secret_policy, *policies]),
+        #     )
+        #     for idx, arn in enumerate(policy_arns)
+        # ]
 
         self.finish(
             resources={
-                'blue_access_key': blue_access_key,
-                'blue_secret': blue_secret,
-                'green_access_key': green_access_key,
-                'green_secret': green_secret,
-                'group_membership': group_membership,
-                'legacy_access_key': legacy_access_key,
-                'legacy_secret': legacy_secret,
-                'policy': secret_policy,
-                'policy_attachments': policy_attachments,
+                'access_key': legacy_access_key,
+                'access_keys': keys,
+                'access_key_secrets': access_key_secrets,
+                # 'group_membership': group_membership,
+                'secret': legacy_secret,
+                # 'policy': secret_policy,
+                # 'policy_attachments': policy_attachments,
                 'user': user,
             }
         )
