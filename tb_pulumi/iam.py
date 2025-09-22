@@ -252,23 +252,24 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
+    :param access_keys: Dict where the keys are arbitrary names for access keys to create for this user and the values
+        are booleans indicating the key should be "Active" (True) or "Inactive" (False). To rotate an access key, first
+        create a new key set to True. Then update the credentials wherever your implementation requires. Then deactivate
+        the old key by setting its entry to False. If something unexpected breaks, you can still enable it again (set to
+        True). When you're ready, delete the access key by removing its entry. Here's an example configuration where a
+        new key ("green") has been created and an old key ("blue") is deactivated but not deleted:
+
+        access_keys:
+            blue: False
+            green: True
+
     :param user_name: Name to give the IAM user.
     :type user_name: str
 
-    :param enable_blue_key: This module uses a blue/green model for rotating keys. When this is ``True``, this user will
-        have a "blue" key enabled. When ``False``, this key will be deactivated and deleted. Alternate between this and
-        the "green" key to keep your keys rotated. Defaults to True.
-    :type enable_blue_key: bool
-
-    :param enable_green_key: This module uses a blue/green model for rotating keys. When this is ``True``, this user
-        will have a "green" key enabled. When ``False``, this key will be deactivated and deleted. Alternate between
-        this and the "blue" key to keep your keys rotated. Defaults to True.
-    :type enable_blue_key: bool
-
-    :param enable_legacy_key: If ``True``, this will create an access key that is neither "blue" nor "green". You should
-        use this value only to transition into the blue/green model and away from the prior model wherein only one
-        access key was created at once. To transition, set ``enable_blue_key: True`` to build a new key. Rotate your
-        applications onto that key, then set ``enable_legacy_key`` to ``False``. Defaults to False.
+    :param enable_legacy_access_key: If ``True``, this will create an access key that is tracked outside of the dict of
+        ``access_keys``. This is the way this module used to work, and it will be removed in a future version since it
+        does not allow for cautious key rotation. Use it to migrate off of this feature, and afterward it should be set
+        to False. Defaults to False.
     :type enable_legacy_key: bool
 
     :param groups: List of `aws.iam.Group <https://www.pulumi.com/registry/packages/aws/api-docs/iam/group/>`_ s to make
@@ -294,10 +295,9 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
+        access_keys: dict,
         user_name: str,
-        enable_blue_key: bool = True,
-        enable_green_key: bool = False,
-        enable_legacy_key: bool = False,
+        enable_legacy_access_key: bool = False,
         groups: list[aws.iam.Group] = [],
         policies: list[aws.iam.Policy] = [],
         exclude_from_project: bool = False,
