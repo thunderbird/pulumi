@@ -255,6 +255,22 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
     :param user_name: Name to give the IAM user.
     :type user_name: str
 
+    :param enable_blue_key: This module uses a blue/green model for rotating keys. When this is ``True``, this user will
+        have a "blue" key enabled. When ``False``, this key will be deactivated and deleted. Alternate between this and
+        the "green" key to keep your keys rotated. Defaults to True.
+    :type enable_blue_key: bool
+
+    :param enable_green_key: This module uses a blue/green model for rotating keys. When this is ``True``, this user
+        will have a "green" key enabled. When ``False``, this key will be deactivated and deleted. Alternate between
+        this and the "blue" key to keep your keys rotated. Defaults to True.
+    :type enable_blue_key: bool
+
+    :param enable_legacy_key: If ``True``, this will create an access key that is neither "blue" nor "green". You should
+        use this value only to transition into the blue/green model and away from the prior model wherein only one
+        access key was created at once. To transition, set ``enable_blue_key: True`` to build a new key. Rotate your
+        applications onto that key, then set ``enable_legacy_key`` to ``False``. Defaults to False.
+    :type enable_legacy_key: bool
+
     :param groups: List of `aws.iam.Group <https://www.pulumi.com/registry/packages/aws/api-docs/iam/group/>`_ s to make
         this user a member of.
     :type groups: list[aws.iam.Group]
@@ -279,6 +295,9 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         user_name: str,
+        enable_blue_key: bool = True,
+        enable_green_key: bool = False,
+        enable_legacy_key: bool = False,
         groups: list[aws.iam.Group] = [],
         policies: list[aws.iam.Policy] = [],
         exclude_from_project: bool = False,
@@ -303,18 +322,42 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
             **kwargs,
         )
 
-        access_key = aws.iam.AccessKey(
-            f'{name}-key',
-            user=user.name,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
+        legacy_access_key = (
+            aws.iam.AccessKey(
+                f'{name}-key',
+                user=user.name,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
+            )
+            if enable_legacy_key
+            else None
+        )
+
+        blue_access_key = (
+            aws.iam.AccessKey(
+                f'{name}-key-blue',
+                user=user.name,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
+            )
+            if enable_blue_key
+            else None
+        )
+
+        green_access_key = (
+            aws.iam.AccessKey(
+                f'{name}-key-green',
+                user=user.name,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
+            )
+            if enable_green_key
+            else None
         )
 
         # The secret can only be created after the key has been created, so do it in a post-apply function
         secret_name = f'{self.project.project}/{self.project.stack}/iam.user.{user_name}.access_key'
 
-        def __secret(access_key_id: str, secret_access_key: str):
+        def __secret(name: str, access_key: aws.iam.AccessKey, access_key_id: str, secret_access_key: str):
             return tb_pulumi.secrets.SecretsManagerSecret(
-                name=f'{name}-keysecret',
+                name=name,
                 project=self.project,
                 exclude_from_project=True,
                 secret_name=secret_name,
@@ -322,16 +365,53 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[access_key]),
             )
 
-        secret = pulumi.Output.all(access_key_id=access_key.id, secret_access_key=access_key.secret).apply(
-            lambda outputs: __secret(
-                access_key_id=outputs['access_key_id'], secret_access_key=outputs['secret_access_key']
+        blue_secret = (
+            pulumi.Output.all(access_key_id=blue_access_key.id, secret_access_key=blue_access_key.secret).apply(
+                lambda outputs: __secret(
+                    name=f'{name}-keysecret-blue',
+                    access_key=blue_access_key,
+                    access_key_id=outputs['access_key_id'],
+                    secret_access_key=outputs['secret_access_key'],
+                )
             )
+            if enable_blue_key
+            else None
+        )
+
+        green_secret = (
+            pulumi.Output.all(access_key_id=green_access_key.id, secret_access_key=green_access_key.secret).apply(
+                lambda outputs: __secret(
+                    name=f'{name}-keysecret-green',
+                    access_key=green_access_key,
+                    access_key_id=outputs['access_key_id'],
+                    secret_access_key=outputs['secret_access_key'],
+                )
+            )
+            if enable_green_key
+            else None
+        )
+
+        legacy_secret = (
+            pulumi.Output.all(access_key_id=legacy_access_key.id, secret_access_key=legacy_access_key.secret).apply(
+                lambda outputs: __secret(
+                    name=f'{name}-keysecret',
+                    access_key=legacy_access_key,
+                    access_key_id=outputs['access_key_id'],
+                    secret_access_key=outputs['secret_access_key'],
+                )
+            )
+            if enable_legacy_key
+            else None
         )
 
         # The policy can only be created after the secret has been created, so do it in a post-apply function
         def __policy(
-            secret_arn: str,
+            secret_arns: list[str],
         ):
+            pulumi.info(f'secret_arns: {secret_arns}')
+            resources = []
+            for arn in secret_arns:
+                resources.extend([arn, f'{arn}*'])
             policy_doc = IAM_POLICY_DOCUMENT.copy()
             policy_doc['Statement'][0]['Sid'] = 'AllowSecretAccess'
             policy_doc['Statement'][0].update(
@@ -342,27 +422,31 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                         'secretsmanager:GetSecretValue',
                         'secretsmanager:ListSecretVersionIds',
                     ],
-                    'Resource': [secret_arn, f'{secret_arn}*'],
+                    'Resource': resources,
                 }
             )
+            policy_deps = [dep for dep in [blue_access_key, green_access_key, legacy_access_key] if dep is not None]
             return aws.iam.Policy(
                 f'{self.name}-keypolicy',
                 name=f'{user_name}-key-access',
                 policy=json.dumps(policy_doc),
-                description=f'Allows access to the secret which stores access key data for user {user_name}',
+                description=f'Allows access to the secrets which store access key data for user {user_name}',
                 path='/',
                 tags=self.tags,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[secret]),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=policy_deps),
             )
 
-        # We need the secret to build the policy. The `secret` here is a ThunderbirdComponentResource, so Pulumi doesn't
-        # know it even has a `resources` member until it has been applied. So we first apply `secret`, then Pulumi can
-        # get to its `resources`, then we apply the actual AWS `Secret` object to get its ARN for the policy.
-        secret_policy = secret.apply(
-            lambda secret_tcp: secret_tcp.resources['secret'].arn.apply(
-                lambda secret_arn: __policy(secret_arn=secret_arn)
-            )
-        )
+        # We need the secrets to build the policy. The secrets here are ThunderbirdComponentResources, so Pulumi doesn't
+        # know it even has a `resources` member until it has been applied. So we first apply the secrets, then Pulumi
+        # can get to its `resources`, then we apply the actual AWS `Secret` object to get its ARN for the policy.
+        pulumi.info(f'secrets: {legacy_secret.resources}')
+        secret_policy = pulumi.Output.all(
+            [
+                secret.resources['secret'].arn
+                for secret in [blue_secret, green_secret, legacy_secret]
+                if secret is not None
+            ]
+        ).apply(lambda secret_arns: __policy(secret_arns=secret_arns))
 
         # Add the user to all the given groups
         group_membership = aws.iam.UserGroupMembership(
@@ -385,9 +469,13 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
 
         self.finish(
             resources={
-                'access_key': access_key,
+                'blue_access_key': blue_access_key,
+                'blue_secret': blue_secret,
+                'green_access_key': green_access_key,
+                'green_secret': green_secret,
                 'group_membership': group_membership,
-                'secret': secret,
+                'legacy_access_key': legacy_access_key,
+                'legacy_secret': legacy_secret,
                 'policy': secret_policy,
                 'policy_attachments': policy_attachments,
                 'user': user,
