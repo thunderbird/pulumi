@@ -225,8 +225,8 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         )
 
 
-class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
-    """**Pulumi Type:** ``tb:iam:UserWithAccessKey``
+class UserWithAccessKeys(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:iam:UserWithAccessKeys``
 
     Builds an IAM user with a set of access key credentials, stores those values in a Secrets Manager secret, and
     creates an IAM policy granting access to that secret. The IAM user gets that policy attached as well as any
@@ -235,7 +235,12 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
     Produces the following ``resources``:
 
         - *access_key* - An `aws.iam.AccessKey <https://www.pulumi.com/registry/packages/aws/api-docs/iam/accesskey/>`_
-          the user can authenticate with.
+          the user can authenticate with. This is a "legacy" feature kept around to accomodate the transition to the
+          ``access_keys`` feature.
+        - *access_keys* - A dict where the values are the names of the configured access keys and the values are the
+          `aws.iam.AccessKey <https://www.pulumi.com/registry/packages/aws/api-docs/iam/accesskey/>`_ s produced.
+        - *access_key_secrets* - A dict where the values are the names of the configured access keys and the values are
+          :py:class:`tb_pulumi.secrets.SecretsManagerSecret` s.
         - *group_membership* - An `aws.iam.UserGroupMembership
           <https://www.pulumi.com/registry/packages/aws/api-docs/iam/usergroupmembership/>`_ representing this user's
           membership in the provided groups.
@@ -244,7 +249,9 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         - *policy_attachments* A list of `aws.iam.PolicyAttachments
           <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policyattachment/>`_ to include the ``policy``
           created here and any additional policies provided wiht the ``policies`` parameter.
-        - *secret* - A :py:class:`tb_pulumi.secrets.SecretsManagerSecret` containing the secret authentication details.
+        - *secret* - A :py:class:`tb_pulumi.secrets.SecretsManagerSecret` containing the secret authentication details
+          of the "legacy" ``access_key``. This feature accomodates the transition to the ``access_keys`` feature, which
+          produces the ``access_key_secrets`` resource.
         - *user* - The `aws.iam.User <https://www.pulumi.com/registry/packages/aws/api-docs/iam/user/>`_.
 
     :param name: A string identifying this set of resources.
@@ -475,9 +482,13 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                 'access_keys': keys,
                 'access_key_secrets': access_key_secrets,
                 'group_membership': group_membership,
-                'secret': legacy_secret,
                 'policy': secret_policy,
                 'policy_attachments': user_policy_attachments,
+                'secret': legacy_secret,
                 'user': user,
             }
         )
+
+
+# This term should be pluralized, but we should also maintain backward compatibility
+UserWithAccessKey = UserWithAccessKeys
