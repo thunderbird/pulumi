@@ -7,6 +7,7 @@ import re
 import string
 import tb_pulumi.secrets
 
+from copy import deepcopy
 from tb_pulumi.constants import IAM_POLICY_DOCUMENT, IAM_RESOURCE_PATHS
 
 
@@ -57,7 +58,7 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         #     quota increase).
         #   - A user group may also have only 10 attached policies, and that cannot be extended. AWS's own advice here
         #     is to create user groups -- each with as many as 10 attached policies -- and then place users into those
-        #     groups. Since users can additionally have up to 20 directly attached polices after the quota increase,
+        #     groups. Since users can additionally have up to 20 directly attached policies after the quota increase,
         #     this leads to a maximum of 120 policies. Ref: https://repost.aws/knowledge-center/iam-increase-policy-size
         #     https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html#reference_iam-quotas-entities
         #   - Most resources use the user-friendly names we provide as part of the ARN, meaning we can use patterns to
@@ -224,8 +225,8 @@ class StackAccessPolicies(tb_pulumi.ProjectResourceGroup):
         )
 
 
-class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
-    """**Pulumi Type:** ``tb:iam:UserWithAccessKey``
+class UserWithAccessKeys(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:iam:UserWithAccessKeys``
 
     Builds an IAM user with a set of access key credentials, stores those values in a Secrets Manager secret, and
     creates an IAM policy granting access to that secret. The IAM user gets that policy attached as well as any
@@ -234,7 +235,12 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
     Produces the following ``resources``:
 
         - *access_key* - An `aws.iam.AccessKey <https://www.pulumi.com/registry/packages/aws/api-docs/iam/accesskey/>`_
-          the user can authenticate with.
+          the user can authenticate with. This is a "legacy" feature kept around to accomodate the transition to the
+          ``access_keys`` feature.
+        - *access_keys* - A dict where the values are the names of the configured access keys and the values are the
+          `aws.iam.AccessKey <https://www.pulumi.com/registry/packages/aws/api-docs/iam/accesskey/>`_ s produced.
+        - *access_key_secrets* - A dict where the values are the names of the configured access keys and the values are
+          :py:class:`tb_pulumi.secrets.SecretsManagerSecret` s.
         - *group_membership* - An `aws.iam.UserGroupMembership
           <https://www.pulumi.com/registry/packages/aws/api-docs/iam/usergroupmembership/>`_ representing this user's
           membership in the provided groups.
@@ -243,7 +249,9 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         - *policy_attachments* A list of `aws.iam.PolicyAttachments
           <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policyattachment/>`_ to include the ``policy``
           created here and any additional policies provided wiht the ``policies`` parameter.
-        - *secret* - A :py:class:`tb_pulumi.secrets.SecretsManagerSecret` containing the secret authentication details.
+        - *secret* - A :py:class:`tb_pulumi.secrets.SecretsManagerSecret` containing the secret authentication details
+          of the "legacy" ``access_key``. This feature accomodates the transition to the ``access_keys`` feature, which
+          produces the ``access_key_secrets`` resource.
         - *user* - The `aws.iam.User <https://www.pulumi.com/registry/packages/aws/api-docs/iam/user/>`_.
 
     :param name: A string identifying this set of resources.
@@ -252,8 +260,25 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
+    :param access_keys: Dict where the keys are arbitrary names for access keys to create for this user and the values
+        are booleans indicating the key should be "Active" (True) or "Inactive" (False). To rotate an access key, first
+        create a new key set to True. Then update the credentials wherever your implementation requires. Then deactivate
+        the old key by setting its entry to False. If something unexpected breaks, you can still enable it again (set to
+        True). When you're ready, delete the access key by removing its entry. Here's an example configuration where a
+        new key ("green") has been created and an old key ("blue") is deactivated but not deleted:
+
+        access_keys:
+            blue: False
+            green: True
+
     :param user_name: Name to give the IAM user.
     :type user_name: str
+
+    :param enable_legacy_access_key: If ``True``, this will create an access key that is tracked outside of the dict of
+        ``access_keys``. This is the way this module used to work, and it will be removed in a future version since it
+        does not allow for cautious key rotation. Use it to migrate off of this feature, and afterward it should be set
+        to False. Defaults to False.
+    :type enable_legacy_access_key: bool
 
     :param groups: List of `aws.iam.Group <https://www.pulumi.com/registry/packages/aws/api-docs/iam/group/>`_ s to make
         this user a member of.
@@ -278,7 +303,9 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
+        access_keys: dict,
         user_name: str,
+        enable_legacy_access_key: bool = False,
         groups: list[aws.iam.Group] = [],
         policies: list[aws.iam.Policy] = [],
         exclude_from_project: bool = False,
@@ -303,36 +330,106 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
             **kwargs,
         )
 
-        access_key = aws.iam.AccessKey(
-            f'{name}-key',
-            user=user.name,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
+        legacy_access_key = (
+            aws.iam.AccessKey(
+                f'{name}-key',
+                user=user.name,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
+            )
+            if enable_legacy_access_key
+            else None
         )
 
-        # The secret can only be created after the key has been created, so do it in a post-apply function
-        secret_name = f'{self.project.project}/{self.project.stack}/iam.user.{user_name}.access_key'
+        keys = {
+            key: aws.iam.AccessKey(
+                f'{name}-key-{key}',
+                user=user.name,
+                status='Active' if active else 'Inactive',
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[user]),
+            )
+            for key, active in access_keys.items()
+        }
 
-        def __secret(access_key_id: str, secret_access_key: str):
+        secret_base_name = f'{self.project.project}/{self.project.stack}/iam.user.{user_name}.access_key'
+
+        # Use this function to create secrets that depend on access keys being applied
+        def __access_key_secret(
+            key_name: str, res_name: str, access_key: aws.iam.AccessKey, access_key_id: str, secret_access_key: str
+        ):
             return tb_pulumi.secrets.SecretsManagerSecret(
-                name=f'{name}-keysecret',
+                name=res_name,
                 project=self.project,
                 exclude_from_project=True,
-                secret_name=secret_name,
+                secret_name=f'{secret_base_name}{key_name}',
                 secret_value=json.dumps({'access_key_id': access_key_id, 'secret_access_key': secret_access_key}),
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[access_key]),
             )
 
-        secret = pulumi.Output.all(access_key_id=access_key.id, secret_access_key=access_key.secret).apply(
-            lambda outputs: __secret(
-                access_key_id=outputs['access_key_id'], secret_access_key=outputs['secret_access_key']
+        legacy_secret = (
+            pulumi.Output.all(access_key_id=legacy_access_key.id, secret_access_key=legacy_access_key.secret).apply(
+                lambda outputs: __access_key_secret(
+                    key_name='',
+                    res_name=f'{name}-keysecret',
+                    access_key=legacy_access_key,
+                    access_key_id=outputs['access_key_id'],
+                    secret_access_key=outputs['secret_access_key'],
+                )
             )
+            if enable_legacy_access_key
+            else None
         )
 
-        # The policy can only be created after the secret has been created, so do it in a post-apply function
-        def __policy(
-            secret_arn: str,
-        ):
-            policy_doc = IAM_POLICY_DOCUMENT.copy()
+        access_key_secrets = {}
+        _secret_key_names = []
+
+        def __access_key_secrets(outputs):
+            # Here we merge data from the wider-scoped list of key names and the applied output values
+            while len(outputs) > 0:
+                key_name = _secret_key_names.pop(0)
+                key_id = outputs.pop(0)
+                secret_key = outputs.pop(0)
+
+                access_key_secrets[key_name] = __access_key_secret(
+                    key_name=f'.{key_name}',
+                    res_name=f'{name}-keysecret-{key_name}',
+                    access_key=keys[key_name],
+                    access_key_id=key_id,
+                    secret_access_key=secret_key,
+                )
+
+        _secret_outputs = []
+        for key_name, key in keys.items():
+            _secret_key_names.append(key_name)
+            _secret_outputs.extend([key.id, key.secret])
+        pulumi.Output.all(*_secret_outputs).apply(lambda outputs: __access_key_secrets(outputs))
+
+        # We need the aws.secretsmanager.Secret resources to build the policy. But the secrets here are
+        # ThunderbirdComponentResources, so Pulumi doesn't know it even has a `resources` member until it has been
+        # applied. So we first apply the tb_pulumi.secretsmanager.SecretsManagerSecret, then Pulumi
+        # can get to its `resources`. Then we pull the secret ARNs and form a policy from them.
+        _policy_secrets = [secret for secret in [*access_key_secrets.values(), legacy_secret] if secret is not None]
+
+        # Called when the SecretsManagerSecrets are applied
+        def __policy_secrets_ready(policy_secrets):
+            # When the secrets are ready, extract the ARNs from them
+            policy_secret_arns = [secret.resources['secret'].arn for secret in policy_secrets]
+
+            # Wait for the ARNs to be ready, then call the next stage
+            return pulumi.Output.all(policy_secret_arns).apply(
+                # An odd thing that happens during apply here: policy_secret_arns becomes a list of lists. We must
+                # dereference that or we get a malformed policy.
+                lambda policy_secret_arns: __policy_secret_arns_ready(policy_secrets, *policy_secret_arns)
+            )
+
+        # Caled when the individual secret ARNs are applied
+        def __policy_secret_arns_ready(policy_secrets, policy_secret_arns):
+            # For each ARN, add an extra pattern to allow for all secret versions
+            all_arns = []
+            for arn in policy_secret_arns:
+                all_arns.extend([arn, f'{arn}*'])
+
+            # The policy itself allows read actions on all of these ARNs
+            policy_doc = deepcopy(IAM_POLICY_DOCUMENT)
             policy_doc['Statement'][0]['Sid'] = 'AllowSecretAccess'
             policy_doc['Statement'][0].update(
                 {
@@ -342,26 +439,22 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
                         'secretsmanager:GetSecretValue',
                         'secretsmanager:ListSecretVersionIds',
                     ],
-                    'Resource': [secret_arn, f'{secret_arn}*'],
+                    'Resource': all_arns,
                 }
             )
+
             return aws.iam.Policy(
                 f'{self.name}-keypolicy',
                 name=f'{user_name}-key-access',
                 policy=json.dumps(policy_doc),
-                description=f'Allows access to the secret which stores access key data for user {user_name}',
+                description=f'Allows access to the secrets which store access key data for user {user_name}',
                 path='/',
                 tags=self.tags,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[secret]),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=policy_secrets),
             )
 
-        # We need the secret to build the policy. The `secret` here is a ThunderbirdComponentResource, so Pulumi doesn't
-        # know it even has a `resources` member until it has been applied. So we first apply `secret`, then Pulumi can
-        # get to its `resources`, then we apply the actual AWS `Secret` object to get its ARN for the policy.
-        secret_policy = secret.apply(
-            lambda secret_tcp: secret_tcp.resources['secret'].arn.apply(
-                lambda secret_arn: __policy(secret_arn=secret_arn)
-            )
+        secret_policy = pulumi.Output.all(*_policy_secrets).apply(
+            lambda policy_secrets: __policy_secrets_ready(policy_secrets)
         )
 
         # Add the user to all the given groups
@@ -371,25 +464,31 @@ class UserWithAccessKey(tb_pulumi.ThunderbirdComponentResource):
             user=user.name,
         )
 
-        # Collect all policy ARNs and attach them
-        policy_arns = [secret_policy.arn, *[pol.arn for pol in policies]]
-        policy_attachments = [
+        # Collect all user-specified policy ARNs and attach them to the user
+        user_policy_arns = [secret_policy.arn, *[pol.arn for pol in policies]]
+        user_policy_attachments = [
             aws.iam.PolicyAttachment(
                 f'{name}-polatt-{idx}',
                 policy_arn=arn,
                 users=[user.name],
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[user, secret_policy, *policies]),
             )
-            for idx, arn in enumerate(policy_arns)
+            for idx, arn in enumerate(user_policy_arns)
         ]
 
         self.finish(
             resources={
-                'access_key': access_key,
+                'access_key': legacy_access_key,
+                'access_keys': keys,
+                'access_key_secrets': access_key_secrets,
                 'group_membership': group_membership,
-                'secret': secret,
                 'policy': secret_policy,
-                'policy_attachments': policy_attachments,
+                'policy_attachments': user_policy_attachments,
+                'secret': legacy_secret,
                 'user': user,
             }
         )
+
+
+# This term should be pluralized, but we should also maintain backward compatibility
+UserWithAccessKey = UserWithAccessKeys
