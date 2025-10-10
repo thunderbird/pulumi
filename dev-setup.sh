@@ -46,24 +46,34 @@ if [ ! -z $VIRTUAL_ENV ]; then
 fi
 echo '✅'
 
-echo -n " · Checking for conflicting virtual environments ............. "
+echo -n " · Checking for conflicting virtual environment files ........ "
 if [ -e $VENV_DIR ]; then
-    echo "❌"
-    echo
-    echo "A file already exists at $VENV_DIR. Either delete it or specify a different VENV_DIR."
-    exit 1
+    if [ ! -d $VENV_DIR ]; then
+        echo "❌"
+        echo
+        echo "A file already exists at $VENV_DIR, and it is not a directory. Either delete it or specify a different VENV_DIR."
+        exit 1
+    else
+        VENV_EXISTS=1
+    fi
+else
+    VENV_EXISTS=0
 fi
 echo '✅'
 
-echo -n " · Building a fresh virtual environment ...................... "
-virtualenv -p $PYTHON_BIN $VENV_DIR &> $VENV_BUILD_LOG
-if [ $? -ne 0 ]; then
-    echo "❌"
-    echo
-    echo "The virtual environment build failed. See $VENV_BUILD_LOG for details."
-    exit 1
+if [ $VENV_EXISTS -eq 0 ]; then
+    echo -n " · Building a fresh virtual environment ...................... "
+    virtualenv -p $PYTHON_BIN $VENV_DIR &> $VENV_BUILD_LOG
+    if [ $? -ne 0 ]; then
+        echo "❌"
+        echo
+        echo "The virtual environment build failed. See $VENV_BUILD_LOG for details."
+        exit 1
+    fi
+    echo '✅'
+else
+    echo ' · Found a virtual environment, skipping fresh build ......... ✅'
 fi
-echo '✅'
 
 echo -n " · Activating the virtual environment ........................ "
 source $VENV_DIR/bin/activate
@@ -75,7 +85,7 @@ if [ $? -ne 0 ]; then
 fi
 echo '✅'
 
-echo -n " · Installing all dependencies ............................... "
+echo -n " · Installing/updating dev dependencies ...................... "
 pip install -U .[dev] &> $VENV_PIP_LOG
 if [ $? -ne 0 ]; then
     echo "❌"
