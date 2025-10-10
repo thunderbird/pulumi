@@ -7,8 +7,5 @@ repos:
     - id: ruff-check
       args:
         - --fix
-        - --all-files
     # Run the formatter.
     - id: ruff-format
-      args:
-        - --all-files
