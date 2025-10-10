@@ -1,3 +1,4 @@
+.dev-setup/**
 build
 docs.tbz
 docs/_build
@@ -8,4 +9,5 @@ docs/make.log
 *.egg-info
 *.pyc
 __pycache__
+.venv
 venv/

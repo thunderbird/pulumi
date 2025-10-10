@@ -3,8 +3,12 @@ repos:
   # Ruff version.
   rev: v0.14.0
   hooks:
-    # Run the formatter.
-    - id: ruff-format
     # Run the linter
     - id: ruff-check
-      args: [ --fix ]
+      args:
+        - --fix
+        - --all-files
+    # Run the formatter.
+    - id: ruff-format
+      args:
+        - --all-files
