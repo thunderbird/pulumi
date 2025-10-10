@@ -22,21 +22,37 @@ We use the [ruff](https://docs.astral.sh/ruff/) tool to format our code and ensu
 without human error. Before submitting a PR, please install the dev requirements for the project and ensure your changes
 do not fail ruff executions.
 
+
+### Quick developer setup
+
+When beginning your work, run `./dev-setup.sh`. This script ensures it has a valid environment and sets up pre-commit
+hooks to validate 
+
+
+### Manual dev tool setup and workflow steps
+
+Create a branch off of the latest commits to `main`:
+
 ```bash
-# Set up a working dev environment
+git checkout main
+git pull
 git checkout -b your-branch
+```
+
+Set up a working dev environment:
+
+```bash
 virtualenv venv
 . ./venv/bin/activate
 pip install .[dev]
+pre-commit install
+```
+ 
+Make whatever edits you need now using your favorite text editor. When you commit your changes, any Python files you've
+changed will get run through Ruff. If there are unfixable errors, the commit will fail.
 
-# Make whatever edits you need now.
-# vim tb_pulumi/iam.py
-
-# Format files so they adhere to our standards
-ruff format
-
-# Auto-fix simple code problems; point out others that can't be auto-fixed
-ruff check --fix
+```bash
+git commit -am "I changed some Pulumi code"
 ```
 
 
