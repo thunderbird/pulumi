@@ -37,7 +37,9 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         - *route_table_subnet_associations* - List of `aws.ec2.RouteTableAssociations
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/routetableassociation/>`_ associating the subnets
           to the VPC's default route table, enabling traffic among those subnets.
-        - *subnets* - List of `aws.ec2.Subnets <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/subnet/>`_ in
+        - *private_subnets* - List of private `aws.ec2.Subnets <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/subnet/>`_ in
+          this VPC.
+        - *public_subnets* - List of public `aws.ec2.Subnets <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/subnet/>`_ in
           this VPC.
         - *subnet_ig_route* - If ``enable_internet_gateway`` and ``egress_via_internet_gateway`` are both ``True``,
           this is the `aws.ec2.Route <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/route/>`_ that enables
@@ -81,6 +83,14 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
 
     :param enable_nat_gateway: Build a NAT Gateway to route inbound traffic. Defaults to False.
     :type enable_nat_gateway: bool, optional
+
+    :param nat_gateway_allocation_id: If you want to use an existing EIP for the NAT Gateway, provide its allocation
+        ID here. If not provided, a new EIP will be created. Defaults to None.
+    :type nat_gateway_allocation_id: str, optional  
+
+    :param nat_gateway_secondary_allocation_ids: A list of allocation IDs of existing EIPs to associate as secondary
+        IPs for the NAT Gateway. A maximum of 7 secondary EIPs can be associated with a NAT Gateway. Defaults to None.
+    :type nat_gateway_secondary_allocation_ids: list[str], optional
 
     :param endpoint_gateways: List of public-facing AWS services (such as S3) to create VPC gateways to. Defaults to
         [].
@@ -132,11 +142,14 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
         enable_dns_hostnames: bool = None,
         enable_internet_gateway: bool = False,
         enable_nat_gateway: bool = False,
+        nat_gateway_allocation_id: str = None,
+        nat_gateway_secondary_allocation_ids: list[str] = None,
         endpoint_gateways: list[str] = [],
         endpoint_interfaces: list[str] = [],
         peering_connections: dict = {},
         peering_accepters: dict = {},
-        subnets: dict = {},
+        private_subnets: dict = {},
+        public_subnets: dict = {},
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
@@ -154,35 +167,58 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
             enable_dns_hostnames=enable_dns_hostnames,
             tags=vpc_tags,
         )
-
-        # Build subnets in that VPC
-        subnet_rs = []
-        for idx, subnet in enumerate(subnets.items()):
+        
+        # build public subnets in that VPC
+        public_subnet_rs = []
+        for idx, subnet in enumerate(public_subnets.items()):
             az, cidrs = subnet
             for cidr in cidrs:
-                subnet_resname = f'{name}-subnet-{idx}'
-                subnet_tags = {'Name': subnet_resname}
-                subnet_tags.update(self.tags)
-                subnet_rs.append(
+                public_subnet_resname = f'{name}-subnet-public-{idx}'
+                public_subnet_tags = {'Name': public_subnet_resname, 'Tier': 'Public'}
+                public_subnet_tags.update(self.tags)
+                public_subnet_rs.append(
                     aws.ec2.Subnet(
-                        subnet_resname,
+                        public_subnet_resname,
                         availability_zone=az,
                         cidr_block=cidr,
-                        tags=subnet_tags,
+                        map_public_ip_on_launch=True,
+                        tags=public_subnet_tags,
                         vpc_id=vpc.id,
                         opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
                     )
                 )
 
-        # Associate the VPC's default route table to all of the subnets
+
+        # Build private subnets in that VPC
+        private_subnet_rs = []
+        for idx, subnet in enumerate(private_subnets.items()):
+            az, cidrs = subnet
+            for cidr in cidrs:
+                private_subnet_resname = f'{name}-private_subnet-{idx}'
+                private_subnet_tags = {'Name': private_subnet_resname, 'Tier': 'Private'}
+                private_subnet_tags.update(self.tags)
+                private_subnet_rs.append(
+                    aws.ec2.Subnet(
+                        private_subnet_resname,
+                        availability_zone=az,
+                        cidr_block=cidr,
+                        tags=private_subnet_tags,
+                        map_public_ip_on_launch=False,
+                        vpc_id=vpc.id,
+                        opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
+                    )
+                )
+
+        # Associate the VPC's default route table to all of the public subnets
         route_table_subnet_associations = []
-        for idx, subnet in enumerate(subnet_rs):
+        all_subnet_rs = public_subnet_rs + private_subnet_rs
+        for idx, subnet in enumerate(public_subnet_rs):
             route_table_subnet_associations.append(
                 aws.ec2.RouteTableAssociation(
                     f'{name}-subnetassoc-{idx}',
                     route_table_id=vpc.default_route_table_id,
                     subnet_id=subnet.id,
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[subnet, vpc]),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
                 )
             )
 
@@ -210,22 +246,36 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
             )
 
         if enable_nat_gateway:
-            nat_eip = aws.ec2.Eip(
-                f'{name}-eip',
-                domain='vpc',
-                public_ipv4_pool='amazon',
-                network_border_group=self.project.aws_region,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
-                tags=self.tags,
-            )
+            # create EIP for NAT Gateway if not specified
+            if not nat_gateway_allocation_id:
+                nat_eip = aws.ec2.Eip(
+                    f'{name}-eip',
+                    domain='vpc',
+                    public_ipv4_pool='amazon',
+                    network_border_group=self.project.aws_region,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
+                    tags=self.tags,
+                )
+            else:
+                # get allocation id of specified EIP instead of creating a new one
+                nat_eip = aws.ec2.Eip.get(
+                    f'{name}-eip',
+                    id=nat_gateway_allocation_id,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
+                )
+            # if nat_gateway_secondary_allocation_ids is provided, use them as secondary EIPs for the NAT Gateway
+            if nat_gateway_secondary_allocation_ids:
+                if len(nat_gateway_secondary_allocation_ids) > 7:
+                    raise ValueError("A maximum of 7 secondary EIPs can be associated with a NAT Gateway.")
             ng_tags = {'Name': name}
             ng_tags.update(self.tags)
             nat_gateway = aws.ec2.NatGateway(
                 f'{name}-nat',
                 allocation_id=nat_eip.allocation_id,
-                subnet_id=subnets[0].id,
+                secondary_allocation_ids=nat_gateway_secondary_allocation_ids,
+                subnet_id=public_subnet_rs[0].id,
                 tags=ng_tags,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[nat_eip, subnets[0]]),
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[nat_eip, public_subnet_rs[0]]),
             )
             subnet_ng_route = (
                 aws.ec2.Route(
@@ -238,6 +288,31 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 if egress_via_nat_gateway
                 else None
             )
+            # create private_subnet_route_table
+            private_route_table = aws.ec2.RouteTable(
+                f'{name}-private-rt',
+                vpc_id=vpc.id,
+                routes=[
+                    {
+                        'cidr_block': '0.0.0.0/0',
+                        'gateway_id': nat_gateway.id,
+                    }
+                ],
+                tags={'Name': f'{name}-private-rt', **self.tags},
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[nat_gateway, vpc]),
+            )
+
+            #associate private subnets with private route table
+            private_route_table_subnet_associations = []
+            for idx, subnet in enumerate(private_subnet_rs):
+                private_route_table_subnet_associations.append(
+                    aws.ec2.RouteTableAssociation(
+                        f'{name}-private-subnetassoc-{idx}',
+                        route_table_id=private_route_table.id,
+                        subnet_id=subnet.id,
+                        opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, private_route_table]),
+                    )
+                )
 
         # If we have to build endpoints, we have to have a security group to let local traffic in
         if len(endpoint_interfaces + endpoint_gateways) > 0:
@@ -385,7 +460,8 @@ class MultiCidrVpc(tb_pulumi.ThunderbirdComponentResource):
                 'peering_connections': peer_conns,
                 'routes': routes,
                 'route_table_subnet_associations': route_table_subnet_associations,
-                'subnets': subnet_rs,
+                'private_subnets': private_subnet_rs,
+                'public_subnets': public_subnet_rs,
                 'subnet_ig_route': subnet_ig_route if enable_internet_gateway and egress_via_internet_gateway else None,
                 'subnet_ng_route': subnet_ng_route if enable_nat_gateway and egress_via_nat_gateway else None,
                 'vpc': vpc,
