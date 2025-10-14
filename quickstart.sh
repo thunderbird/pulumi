@@ -72,9 +72,7 @@ echo "tb_pulumi @ git+https://github.com/thunderbird/pulumi.git@$CODE_VERSION" >
 
 cp $REPO_DIR/__main__.py.example ./__main__.py
 cp $REPO_DIR/config.stack.yaml.example ./config.$STACK_NAME.yaml
-
-virtualenv venv
-./venv/bin/pip install -r requirements.txt
+cp $REPO_DIR/dev-setup.sh ./dev-setup.sh
 
 echo "Running a preview"
 pulumi preview
