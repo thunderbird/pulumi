@@ -27,7 +27,38 @@ Pulumi steps for you and creates all the files you need. While it may not define
 working program that you can begin to tweak. If you point this script at your code repo, it will create the ``pulumi/``
 directory for you and set up the skeleton project.
 
-The overall development loop looks something like this:
+You should also source the ``dev-setup.sh`` script each time to begin to work on the project. This ensures that you have
+all of the normal development tools installed and ready for use. It also sets up various git hooks to help us ensure
+consistently formatted Python files in PRs we review.
+
+.. code-block::
+
+  $ source dev-setup.sh
+
+   · Ensuring this setup tool can log its progress ............. ✅
+   · Making sure you're not already in a virtual environment ... ✅
+   · Checking for conflicting virtual environment files ........ ✅
+   · Building a fresh virtual environment ...................... ✅
+   · Activating the virtual environment ........................ ✅
+   · Installing/updating dev dependencies ...................... ✅
+   · Bootstrapping pre-commit hooks ............................ ✅
+
+**Notes:**
+
+- To leave the virtual environment, run ``deactivate``.
+
+- To destroy the virtual environment, deactivate it, then run ``rm -rf .venv`` in the project root.
+
+- To forcibly rebuild the virtual environment, destroy it, then re-source the script.
+
+- The ``dev-setup.sh`` script can be copied into other Pulumi projects, and it should work as-is. The quickstart script
+  does this by default.
+
+
+Development loop
+^^^^^^^^^^^^^^^^
+
+Once you begin, the overall development loop looks something like this:
 
 #. Adjust code to do what you need.
 
