@@ -55,6 +55,13 @@ changed will get run through Ruff. If there are unfixable errors, the commit wil
 git commit -am "I changed some Pulumi code"
 ```
 
+You can run these tools manually at any time (and even get some automatic fixes to check failures) by running:
+
+```bash
+ruff format
+ruff check --fix
+```
+
 ## Building Documentation
 
 Our CI workflows also require that the docs build without error. Before submitting a PR, you should verify this for
