@@ -25,8 +25,8 @@ do not fail ruff executions.
 
 ### Quick developer setup
 
-When beginning your work, run `source ./dev-setup.sh`. This script ensures it has a valid environment and sets up
-pre-commit hooks to validate 
+When beginning your work, run `source ./dev-setup.sh`. This script ensures it has a valid development environment and
+sets up pre-commit hooks to validate and format Python code files.
 
 
 ### Manual dev tool setup and workflow steps
