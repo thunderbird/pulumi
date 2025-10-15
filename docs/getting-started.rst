@@ -104,6 +104,8 @@ This will...
 
 - run you through some prompts where you can enter further project details,
 - install a simple Pulumi program intended to set up a basic networking landscape,
+- install the same ``dev-setup.sh`` script into your Pulumi directory, which allows developers to quickly set up a
+  working development environment, and
 - run a ``pulumi preview`` command to finish setting up the environment and confirm the project is working.
 
 If you are using an S3 bucket to privately store your state, you'll need to make sure you have configured your AWSCLI
