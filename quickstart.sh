@@ -72,7 +72,8 @@ echo "tb_pulumi @ git+https://github.com/thunderbird/pulumi.git@$CODE_VERSION" >
 
 cp $REPO_DIR/__main__.py.example ./__main__.py
 cp $REPO_DIR/config.stack.yaml.example ./config.$STACK_NAME.yaml
-cp $REPO_DIR/dev-setup.sh ./dev-setup.sh
+cp $REPO_DIR/dev-setup.sh .
+cp $REPO_DIR/.pre-commit-config.yaml .
 
 echo "Running a preview"
 pulumi preview
