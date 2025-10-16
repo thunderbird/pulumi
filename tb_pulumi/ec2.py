@@ -261,6 +261,9 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         allowing only port 22 from the `source_cidrs` will be created and used. Defaults to None.
     :type vpc_security_group_ids: list[str], optional
 
+    :param associate_public_ip_address: Whether to assign a public IP address to the instance. Defaults to True.
+    :type associate_public_ip_address: bool, optional
+
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
@@ -281,6 +284,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         user_data: str = None,
         vpc_id: str = None,
         vpc_security_group_ids: list[str] = None,
+        associate_public_ip_address: bool = True,
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
@@ -344,7 +348,7 @@ class SshableInstance(tb_pulumi.ThunderbirdComponentResource):
         instance = aws.ec2.Instance(
             f'{name}-instance',
             ami=ami,
-            associate_public_ip_address=True,
+            associate_public_ip_address=associate_public_ip_address,
             disable_api_stop=False,  # Jump hosts should never contain live services or
             disable_api_termination=False,  # be the source of data; they don't need protection.
             instance_type='t3.micro',
