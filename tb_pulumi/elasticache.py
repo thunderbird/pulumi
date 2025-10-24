@@ -49,10 +49,6 @@ class ElastiCacheReplicationGroup(tb_pulumi.ThunderbirdComponentResource):
     :param node_type: Instance type to build nodes with. Defaults to 'cache.t3.micro'.
     :type node_type: str, optional
 
-    :param num_cache_nodes: Number of nodes to build. If building only one node, ``automatic_failover_enabled`` must
-        be False. Defaults to 1.
-    :type num_cache_nodes: int, optional
-
     :param parameter_group_family: Parameter group family to build this parameter group from. Defaults to 'redis7',
         which comports with the default engine version.
     :type parameter_group_family: str, optional
@@ -96,7 +92,6 @@ class ElastiCacheReplicationGroup(tb_pulumi.ThunderbirdComponentResource):
         engine: str = 'redis',
         engine_version: str = '7.1',
         node_type: str = 'cache.t3.micro',
-        num_cache_nodes: int = 1,
         parameter_group_family: str = 'redis7',
         parameter_group_params: list[dict] = [],
         port=6379,
