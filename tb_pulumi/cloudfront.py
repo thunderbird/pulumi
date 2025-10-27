@@ -358,6 +358,8 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         }
         if 'default_cache_behavior' in distribution:
             default_cache_behavior.update(distribution.pop('default_cache_behavior'))
+
+        depends_on = [dep for dep in [logging_bucket, oac] if dep is not None]
         cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
             default_cache_behavior=default_cache_behavior,
@@ -373,7 +375,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             tags={**self.tags, 'Name': f'{name}-cfdistro'},
             opts=pulumi.ResourceOptions(
                 parent=self,
-                depends_on=[logging_bucket, oac],
+                depends_on=depends_on,
             ),
             **distribution,
         )
