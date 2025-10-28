@@ -246,6 +246,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         service_bucket_name: str,
         default_function_associations: dict = {},
         distribution: dict = {},
+        enable_logging: bool = True,
         forcibly_destroy_buckets: bool = False,
         origins: list[dict] = [],
         opts: pulumi.ResourceOptions = None,
@@ -267,38 +268,53 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         )
 
         # S3 bucket to store access logs from CloudFront
-        logging_bucket = aws.s3.Bucket(
-            f'{name}-loggingbucket',
-            bucket=f'{service_bucket_name}-logs',
-            force_destroy=forcibly_destroy_buckets,
-            server_side_encryption_configuration={
-                'rule': {'applyServerSideEncryptionByDefault': {'sseAlgorithm': 'AES256'}, 'bucket_key_enabled': True}
-            },
-            opts=pulumi.ResourceOptions(parent=self),
-            tags=self.tags,
+        logging_bucket = (
+            aws.s3.Bucket(
+                f'{name}-loggingbucket',
+                bucket=f'{service_bucket_name}-logs',
+                force_destroy=forcibly_destroy_buckets,
+                server_side_encryption_configuration={
+                    'rule': {
+                        'applyServerSideEncryptionByDefault': {'sseAlgorithm': 'AES256'},
+                        'bucket_key_enabled': True,
+                    }
+                },
+                opts=pulumi.ResourceOptions(parent=self),
+                tags=self.tags,
+            )
+            if enable_logging
+            else None
         )
 
-        logging_bucket_ownership = aws.s3.BucketOwnershipControls(
-            f'{name}-bucketownership',
-            bucket=logging_bucket.id,
-            rule={'object_ownership': 'BucketOwnerPreferred'},
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket]),
+        logging_bucket_ownership = (
+            aws.s3.BucketOwnershipControls(
+                f'{name}-bucketownership',
+                bucket=logging_bucket.id,
+                rule={'object_ownership': 'BucketOwnerPreferred'},
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket]),
+            )
+            if enable_logging
+            else None
         )
 
         canonical_user = aws.s3.get_canonical_user_id().id
-        logging_bucket_acl = aws.s3.BucketAclV2(
-            f'{name}-bucketacl',
-            bucket=logging_bucket.id,
-            access_control_policy={
-                'grants': [
-                    {
-                        'grantee': {'type': 'CanonicalUser', 'id': canonical_user},
-                        'permission': 'FULL_CONTROL',
-                    }
-                ],
-                'owner': {'id': canonical_user},
-            },
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket, logging_bucket_ownership]),
+        logging_bucket_acl = (
+            aws.s3.BucketAclV2(
+                f'{name}-bucketacl',
+                bucket=logging_bucket.id,
+                access_control_policy={
+                    'grants': [
+                        {
+                            'grantee': {'type': 'CanonicalUser', 'id': canonical_user},
+                            'permission': 'FULL_CONTROL',
+                        }
+                    ],
+                    'owner': {'id': canonical_user},
+                },
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[logging_bucket, logging_bucket_ownership]),
+            )
+            if enable_logging
+            else None
         )
 
         # Create an Origin Access Control to use when CloudFront talks to S3
@@ -325,8 +341,8 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         all_origins.extend(origins)
 
         # Merge logging settings from the config file with this generated bucket name
-        logging_config = {'bucket': logging_bucket.bucket_domain_name}
-        if 'logging_config' in distribution:
+        logging_config = {'bucket': logging_bucket.bucket_domain_name} if enable_logging else None
+        if 'logging_config' in distribution and enable_logging:
             logging_config.update(distribution['logging_config'])
             # Consume this now so it doesn't create kwarg problems later
             del distribution['logging_config']
@@ -342,6 +358,8 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
         }
         if 'default_cache_behavior' in distribution:
             default_cache_behavior.update(distribution.pop('default_cache_behavior'))
+
+        depends_on = [dep for dep in [logging_bucket, oac] if dep is not None]
         cloudfront_distribution = aws.cloudfront.Distribution(
             f'{name}-cfdistro',
             default_cache_behavior=default_cache_behavior,
@@ -357,7 +375,7 @@ class CloudFrontS3Service(tb_pulumi.ThunderbirdComponentResource):
             tags={**self.tags, 'Name': f'{name}-cfdistro'},
             opts=pulumi.ResourceOptions(
                 parent=self,
-                depends_on=[logging_bucket, oac],
+                depends_on=depends_on,
             ),
             **distribution,
         )
