@@ -550,7 +550,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
     ):
         """ """
 
-        super().__init__('tb:network:MultiCidrVpc', name, project, opts=opts, **kwargs)
+        super().__init__('tb:network:MultiTierVpc', name, project, opts=opts, **kwargs)
 
         # Build a VPC
         vpc_tags = {'Name': name}
