@@ -402,37 +402,47 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
 
         - *endpoint_sg* - If the ``endpoint_interfaces`` or ``endpoint_gateways`` parameters are provided, this is a
           :py:class:`tb_pulumi.network.SecurityGroupWithRules` used to define traffic through these endpoints.
+
         - *gateways* - If there are any ``endpoint_gateways`` defined, this is a list of `aws.ec2.VpcEndpoints
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcendpoint/>`_ with a ``vpc_endpoint_type`` of
           ``Gateway``.
+
         - *interfaces* - If there are any ``endpoint_interfaces`` defined, this is a list of `aws.ec2.VpcEndpoints
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcendpoint/>`_ with a ``vpc_endpoint_type`` of
           ``Interface``.
+
         - *internet_gateway* - If ``enable_internet_gateway`` is ``True``, this is the `aws.ec2.InternetGateway
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/internetgateway/>`_.
+
         - *nat_eip* - If ``enable_nat_gateway`` is ``True``, this is the `aws.ec2.Eip
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/eip/>`_ used for the NAT Gateway.
+
         - *nat_gateway* - If ``enable_nat_gateway`` is ``True``, this is the `aws.ec2.NatGateway
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/natgateway/>`_.
-        - *peering_accepters* - Dict of `aws.ec2.VpcPeeringConnectionAcceptors
+
+        - *peering_acceptors* - Dict of `aws.ec2.VpcPeeringConnectionAcceptors
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcpeeringconnectionaccepter/>`_.
+
         - *peering_connections* - Dict of `aws.ec2.VpcPeeringConnections
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcpeeringconnection/>`_.
-        - *routes* - List of all `aws.ec2.Routes <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/route/>`_ in
-          the route table.
-        - *route_table_subnet_associations* - List of `aws.ec2.RouteTableAssociations
+
+        - *private_route_table_subnet_associations* - List of `aws.ec2.RouteTableAssociations
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/routetableassociation/>`_ associating the subnets
-          to the VPC's default route table, enabling traffic among those subnets.
+          to the VPC's private route table, enabling traffic among those subnets.
+
         - *private_subnets* - List of private `aws.ec2.Subnets
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/subnet/>`_ in this VPC.
+
+        - *public_route_table_subnet_associations* - List of `aws.ec2.RouteTableAssociations
+          <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/routetableassociation/>`_ associating the subnets
+          to the VPC's private route table, enabling traffic among those subnets.
+
         - *public_subnets* - List of public `aws.ec2.Subnets
           <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/subnet/>`_ in this VPC.
-        - *subnet_ig_route* - If ``enable_internet_gateway`` and ``egress_via_internet_gateway`` are both ``True``,
-          this is the `aws.ec2.Route <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/route/>`_ that enables
-          outbound traffic through the Internet Gateway.
-        - *subnet_ng_route* - If ``enable_nat_gateway`` and ``egress_via_nat_gateway`` are both ``True``, this is the
-          `aws.ec2.Route <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/route/>`_ that enables outbound
-          traffic through the NAT Gateway.
+
+        - *routes* - List of all `aws.ec2.Routes <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/route/>`_ in
+          the route table.
+
         - *vpc* - The `aws.ec2.Vpc <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpc/>`_.
 
     :param name: A string identifying this set of resources.
@@ -442,7 +452,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
     :param additional_routes: Many of the routes that wind up in the main route table are generated automatically due
-        to necessity with endpoints, peered VPCs,e tc. If you need to define any additional routes beyond those, you can
+        to necessity with endpoints, peered VPCs, etc. If you need to define any additional routes beyond those, you can
         do so here, using docs for `aws.ec2.Route <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/route/>`_.
         The ``route_table_id`` parameter will be populated for you automatically. These routes must apply to either the
         private or the public route table. As such, this field is a dict with 'private' and 'public' keys; each of those
@@ -498,26 +508,36 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
         ``com.amazonaws.us-east-1.secretsmanager``, only use ``secretsmanager``. Defaults to [].
     :type endpoint_interfaces: list[str], optional
 
-
-    :param peering_connections: Dict of configurations of `aws.ec2.VpcPeeringConnections
-        <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcpeeringconnection/>`_. The keys become the names
-        of the resources created. The vpc_id option will be automatically populated.
-
     :param peering_accepters: Dict of configurations of `aws.ec2.VpcPeeringConnectionAccepters
         <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcpeeringconnectionaccepter/>`_. The keys become the
         names of the resources created. The vpc_id option will be automatically populated.
     :type peering_accepters: list[dict]
 
-    :param subnets: A dict where the keys are the names of AWS Availability Zones in which to build subnets and the
-        values are lists of CIDRs describing valid subsets of IPs in the VPC ``cidr_block`` to build in that AZ.
-        f/ex:
+    :param peering_connections: Dict of configurations of `aws.ec2.VpcPeeringConnections
+        <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/vpcpeeringconnection/>`_. The keys become the names
+        of the resources created. The vpc_id option will be automatically populated.
+
+    :param private_subnets: A dict where the keys are the names of AWS Availability Zones in which to build private
+        subnets and the values are lists of CIDRs describing valid subsets of IPs in the VPC ``cidr_block`` to build in
+        that AZ. f/ex:
         ::
 
             { 'us-east-1': ['10.0.100.0/24'],
               'us-east-2': ['10.0.101.0/24', '10.0.102.0/24'] }
 
         Defaults to {}.
-    :type subnets: dict, optional
+    :type private_subnets: dict, optional
+
+    :param public_subnets: A dict where the keys are the names of AWS Availability Zones in which to build public
+        subnets and the values are lists of CIDRs describing valid subsets of IPs in the VPC ``cidr_block`` to build in
+        that AZ. f/ex:
+        ::
+
+            { 'us-east-1': ['10.0.100.0/24'],
+              'us-east-2': ['10.0.101.0/24', '10.0.102.0/24'] }
+
+        Defaults to {}.
+    :type public_subnets: dict, optional
 
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
@@ -541,15 +561,13 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
         nat_gateway_secondary_allocation_ids: list[str] = None,
         endpoint_gateways: list[str] = [],
         endpoint_interfaces: list[str] = [],
-        peering_connections: dict = {},
         peering_accepters: dict = {},
+        peering_connections: dict = {},
         private_subnets: dict = {},
         public_subnets: dict = {},
         opts: pulumi.ResourceOptions = None,
         **kwargs,
     ):
-        """ """
-
         super().__init__('tb:network:MultiTierVpc', name, project, opts=opts, **kwargs)
 
         # Build a VPC
@@ -563,7 +581,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
             tags=vpc_tags,
         )
 
-        # build public subnets in that VPC
+        # Build public subnets in the VPC
         public_subnet_rs = []
         for idx, subnet in enumerate(public_subnets.items()):
             az, cidrs = subnet
@@ -583,7 +601,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                     )
                 )
 
-        # Build private subnets in VPC
+        # Build private subnets in the VPC
         private_subnet_rs = []
         for idx, subnet in enumerate(private_subnets.items()):
             az, cidrs = subnet
@@ -619,7 +637,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
             )
 
-            # create public_route_table
+            # Create public_route_table
             public_route_table = (
                 aws.ec2.RouteTable(
                     f'{name}-public-rt',
@@ -637,17 +655,6 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                 else None
             )
 
-            # subnet_ig_route = (
-            #     aws.ec2.Route(
-            #         f'{name}-igroute',
-            #         route_table_id=public_route_table.id,
-            #         destination_cidr_block='0.0.0.0/0',
-            #         gateway_id=internet_gateway.id,
-            #         opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, internet_gateway, public_route_table]),
-            #     )
-            #     if egress_via_internet_gateway
-            #     else None
-            # )
             # Associate the VPC's default route table to all of the public subnets
             public_route_table_subnet_associations = []
             if egress_via_internet_gateway:
@@ -679,10 +686,13 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                     id=nat_gateway_allocation_id,
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
                 )
+
             # if nat_gateway_secondary_allocation_ids is provided, use them as secondary EIPs for the NAT Gateway
             if nat_gateway_secondary_allocation_ids:
                 if len(nat_gateway_secondary_allocation_ids) > 7:
                     raise ValueError('A maximum of 7 secondary EIPs can be associated with a NAT Gateway.')
+
+            # Build and tag the NAT Gateway
             ng_tags = {'Name': name}
             ng_tags.update(self.tags)
             nat_gateway = aws.ec2.NatGateway(
@@ -693,7 +703,8 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                 tags=ng_tags,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[nat_eip, public_subnet_rs[0]]),
             )
-            # create private_subnet_route_table
+
+            # Create a rotue table for the private subnets
             private_route_table = (
                 aws.ec2.RouteTable(
                     f'{name}-private-rt',
@@ -710,19 +721,8 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                 if egress_via_nat_gateway
                 else None
             )
-            # private_subnet_ng_route = (
-            #     aws.ec2.Route(
-            #         f'{name}-ngroute',
-            #         route_table_id=private_route_table.id,
-            #         destination_cidr_block='0.0.0.0/0',
-            #         gateway_id=nat_gateway.id,
-            #         opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, nat_gateway, private_route_table]),
-            #     )
-            #     if egress_via_nat_gateway
-            #     else None
-            # )
 
-            # associate private subnets with private route table
+            # Associate private subnets with the private route table
             private_route_table_subnet_associations = []
             if egress_via_nat_gateway:
                 for idx, subnet in enumerate(private_subnet_rs):
@@ -735,7 +735,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                         )
                     )
 
-        # If we have to build endpoints, we have to have a security group to let local traffic in
+        # If we have to build endpoints, we have to build a security group to let local traffic in
         if len(endpoint_interfaces + endpoint_gateways) > 0:
             endpoint_sg = tb_pulumi.network.SecurityGroupWithRules(
                 f'{name}-endpoint-sg',
@@ -766,6 +766,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                 tags=self.tags,
             )
 
+        # Build the endpoint enterfaces
         interfaces = []
         for svc in endpoint_interfaces:
             tags = deepcopy(self.tags)
@@ -786,6 +787,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                 )
             )
 
+        # Build the endpoint gateways
         gateways = []
         for svc in endpoint_gateways:
             tags = deepcopy(self.tags)
@@ -829,6 +831,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                 for idx, cidr in enumerate(peered_cidrs)
             ]
 
+        # Set up any peering accepters for peering connections across regions
         peer_accs = {}
         peer_acc_routes = {}
         for peer_name, accepter in peering_accepters.items():
@@ -850,6 +853,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                 for idx, cidr in enumerate(peered_cidrs)
             ]
 
+        # Build any additional private and public routes
         additional_private_routes = [
             aws.ec2.Route(
                 f'{name}-route-{idx}',
@@ -873,8 +877,6 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
         routes = [
             route
             for route in [
-                # subnet_ig_route if enable_internet_gateway else None,
-                # private_subnet_ng_route if enable_nat_gateway else None,
                 *peer_conn_routes.values(),
                 *peer_acc_routes.values(),
                 *additional_private_routes,
