@@ -13,11 +13,14 @@ class GuardDutyAccount(tb_pulumi.ThunderbirdComponentResource):
     Produces the following ``resources``:
 
     - *detector* - `aws.guardduty.Detector
-    <https://www.pulumi.com/registry/packages/aws/api-docs/guardduty/detector/>`_ The GuardDuty detector for the account/region.
+    <https://www.pulumi.com/registry/packages/aws/api-docs/guardduty/detector/>`_
+    The GuardDuty detector for the account/region.
     - *member* - `aws.guardduty.Member
-    <https://www.pulumi.com/registry/packages/aws/api-docs/guardduty/member/>`_ The GuardDuty member resource (if organization is enabled).
+    <https://www.pulumi.com/registry/packages/aws/api-docs/guardduty/member/>`_
+    The GuardDuty member resource (if organization is enabled).
     - *invite_accepter* - `aws.guardduty.InviteAccepter
-    <https://www.pulumi.com/registry/packages/aws/api-docs/guardduty/inviteaccepter/>`_ The GuardDuty invite accepter (if organization is enabled).
+    <https://www.pulumi.com/registry/packages/aws/api-docs/guardduty/inviteaccepter/>`_
+    The GuardDuty invite accepter (if organization is enabled).
 
     :param name: A string identifying this set of resources.
     :type name: str
