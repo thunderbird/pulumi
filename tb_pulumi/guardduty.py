@@ -48,10 +48,10 @@ class GuardDutyAccount(tb_pulumi.ThunderbirdComponentResource):
             opts=opts,
             tags=tags,
         )
-        # create detector for project region
+        # create detector for project account/region
         guardduty_detector = aws.guardduty.Detector(f'{name}-guardduty', enable=True, opts=pulumi.ResourceOptions())
 
-        # enable features as needed
+        # enable features as needed via options
         enabled_features = {}
         if features:
             for feature in features:
