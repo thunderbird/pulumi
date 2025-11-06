@@ -11,6 +11,18 @@ class GuardDutyAccount(tb_pulumi.ThunderbirdComponentResource):
     Enable and Configure AWS GuardDuty for an account/region.
 
     Produces the following ``resources``:
+    - **guardduty_detector**: The GuardDuty Detector created for the account/region.
+    - **enabled_features**: A dict of enabled GuardDuty features for the account/region.
+    Args:
+        name (str): The name of the component.
+        project (tb_pulumi.ThunderbirdPulumiProject): The Thunderbird Pulumi Project this component belongs to.
+        features (dict, optional): A list of GuardDuty features to enable. Defaults to {}.
+            Each feature should be a dict with the following keys:
+            - name (str): The name of the feature to enable. E.g., "EKS_AUDIT_LOGS", "S3_DATA_EVENTS".
+            - status (str): The status of the feature. E.g., "ENABLED", "DISABLED".
+            - additional_configurations (dict, optional): Additional configurations for the feature.
+        opts (pulumi.ResourceOptions, optional): Options for the component resource. Defaults to None.
+        tags (dict, optional): Tags to apply to the resources. Defaults to {}.
 
     """
 
