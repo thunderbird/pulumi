@@ -16,7 +16,7 @@ class SecurityHubAccount(tb_pulumi.ThunderbirdComponentResource):
         name (str): The name of the component.
         project (tb_pulumi.ThunderbirdPulumiProject): The Thunderbird Pulumi Project this component belongs to.
         opts (pulumi.ResourceOptions, optional): Options for the component resource. Defaults to None.
-        tags (dict, optional): Tags to apply to the resources. Defaults to {}.  
+        tags (dict, optional): Tags to apply to the resources. Defaults to {}.
 
     """
 
