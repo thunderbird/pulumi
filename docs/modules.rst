@@ -21,3 +21,6 @@ tb_pulumi
    rds
    s3
    secrets
+   guardduty
+   securityhub
+   cfg
