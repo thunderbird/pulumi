@@ -8,22 +8,31 @@ import tb_pulumi
 
 class GuardDutyAccount(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:guardduty:GuardDutyAccount``
-    Enable and Configure AWS GuardDuty for an account/region.
+    Enable and configure AWS GuardDuty for an account/region.
 
     Produces the following ``resources``:
-    - **guardduty_detector**: The GuardDuty Detector created for the account/region.
-    - **enabled_features**: A dict of enabled GuardDuty features for the account/region.
-    Args:
-        name (str): The name of the component.
-        project (tb_pulumi.ThunderbirdPulumiProject): The Thunderbird Pulumi Project this component belongs to.
-        features (dict, optional): A list of GuardDuty features to enable. Defaults to {}.
-            Each feature should be a dict with the following keys:
-            - name (str): The name of the feature to enable. E.g., "EKS_AUDIT_LOGS", "S3_DATA_EVENTS".
-            - status (str): The status of the feature. E.g., "ENABLED", "DISABLED".
-            - additional_configurations (dict, optional): Additional configurations for the feature.
-        opts (pulumi.ResourceOptions, optional): Options for the component resource. Defaults to None.
-        tags (dict, optional): Tags to apply to the resources. Defaults to {}.
 
+    - *detector* - `aws.guardduty.Detector
+    <https://www.pulumi.com/registry/packages/aws/api-docs/guardduty/detector/>`_ The GuardDuty detector for the account/region.
+    - *member* - `aws.guardduty.Member
+    <https://www.pulumi.com/registry/packages/aws/api-docs/guardduty/member/>`_ The GuardDuty member resource (if organization is enabled).
+    - *invite_accepter* - `aws.guardduty.InviteAccepter
+    <https://www.pulumi.com/registry/packages/aws/api-docs/guardduty/inviteaccepter/>`_ The GuardDuty invite accepter (if organization is enabled).
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param organization: Whether this account is part of a GuardDuty organization.
+    :type organization: bool
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Tags to apply to the resources.
+    :type tags: dict
     """
 
     def __init__(

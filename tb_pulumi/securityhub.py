@@ -8,16 +8,32 @@ import tb_pulumi
 
 class SecurityHubAccount(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:securityhub:SecurityHubAccount``
-    Enable and Configure AWS SecurityHub for an account/region.
+
+    Enable and configure AWS Security Hub for an account/region.
 
     Produces the following ``resources``:
-    - **security_hub_account**: The SecurityHub Account created for the account/region.
-    Args:
-        name (str): The name of the component.
-        project (tb_pulumi.ThunderbirdPulumiProject): The Thunderbird Pulumi Project this component belongs to.
-        opts (pulumi.ResourceOptions, optional): Options for the component resource. Defaults to None.
-        tags (dict, optional): Tags to apply to the resources. Defaults to {}.
 
+    - *securityhub_account* - `aws.securityhub.Account
+    <https://www.pulumi.com/registry/packages/aws/api-docs/securityhub/account/>`_ The Security Hub account resource for the account/region.
+    - *member* - `aws.securityhub.Member
+    <https://www.pulumi.com/registry/packages/aws/api-docs/securityhub/member/>`_ The Security Hub member resource (if organization is enabled).
+    - *invite_accepter* - `aws.securityhub.InviteAccepter
+    <https://www.pulumi.com/registry/packages/aws/api-docs/securityhub/inviteaccepter/>`_ The Security Hub invite accepter (if organization is enabled).
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param organization: Whether this account is part of a Security Hub organization.
+    :type organization: bool
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Tags to apply to the resources.
+    :type tags: dict
     """
 
     def __init__(
