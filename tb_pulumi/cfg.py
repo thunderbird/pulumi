@@ -13,23 +13,23 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
     Produces the following ``resources``:
 
     - *delivery_bucket* - `aws.s3.Bucket
-    <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucket/>`_
-    The S3 Bucket created for AWS Config delivery.
+      <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucket/>`_
+      The S3 Bucket created for AWS Config delivery.
     - *delivery_bucket_policy* - `aws.s3.BucketPolicy
-    <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpolicy/>`_
-    The S3 Bucket Policy for the delivery bucket.
+      <https://www.pulumi.com/registry/packages/aws/api-docs/s3/bucketpolicy/>`_
+      The S3 Bucket Policy for the delivery bucket.
     - *recorder* - `aws.cfg.Recorder
-    <https://www.pulumi.com/registry/packages/aws/api-docs/cfg/recorder/>`_
-    The AWS Config Recorder created for the account/region.
+      <https://www.pulumi.com/registry/packages/aws/api-docs/cfg/recorder/>`_
+      The AWS Config Recorder created for the account/region.
     - *recorder_status* - `aws.cfg.RecorderStatus
-    <https://www.pulumi.com/registry/packages/aws/api-docs/cfg/recorderstatus/>`_
-    The AWS Config Recorder Status to enable the recorder.
+      <https://www.pulumi.com/registry/packages/aws/api-docs/cfg/recorderstatus/>`_
+      The AWS Config Recorder Status to enable the recorder.
     - *delivery_channel* - `aws.cfg.DeliveryChannel
-    <https://www.pulumi.com/registry/packages/aws/api-docs/cfg/deliverychannel/>`_
-    The AWS Config Delivery Channel created for the account/region.
+      <https://www.pulumi.com/registry/packages/aws/api-docs/cfg/deliverychannel/>`_
+      The AWS Config Delivery Channel created for the account/region.
     - *aggregator_account* - `aws.cfg.AggregatorAccount
-    <https://www.pulumi.com/registry/packages/aws/api-docs/cfg/aggregatoraccount/>`_
-    The AWS Config Aggregator for the account/region (if enabled).
+      <https://www.pulumi.com/registry/packages/aws/api-docs/cfg/aggregatoraccount/>`_
+      The AWS Config Aggregator for the account/region (if enabled).
 
     :param name: A string identifying this set of resources.
     :type name: str
@@ -41,11 +41,10 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
     :type delivery_email: str
 
     :param aggregator_stack: Whether this stack is the aggregator stack.
-    An aggregator stack in a region will accumulate data from all enabled regions/accounts.
-    
+      An aggregator stack in a region will accumulate data from all enabled regions/accounts.
     :type aggregator_stack: bool
 
-     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
     :param tags: Tags to apply to the resources.

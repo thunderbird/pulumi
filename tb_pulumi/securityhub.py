@@ -14,14 +14,14 @@ class SecurityHubAccount(tb_pulumi.ThunderbirdComponentResource):
     Produces the following ``resources``:
 
     - *securityhub_account* - `aws.securityhub.Account
-    <https://www.pulumi.com/registry/packages/aws/api-docs/securityhub/account/>`_
-    The Security Hub account resource for the account/region.
+      <https://www.pulumi.com/registry/packages/aws/api-docs/securityhub/account/>`_
+      The Security Hub account resource for the account/region.
     - *member* - `aws.securityhub.Member
-    <https://www.pulumi.com/registry/packages/aws/api-docs/securityhub/member/>`_
-    The Security Hub member resource (if organization is enabled).
+      <https://www.pulumi.com/registry/packages/aws/api-docs/securityhub/member/>`_
+      The Security Hub member resource (if organization is enabled).
     - *invite_accepter* - `aws.securityhub.InviteAccepter
-    <https://www.pulumi.com/registry/packages/aws/api-docs/securityhub/inviteaccepter/>`_
-    The Security Hub invite accepter (if organization is enabled).
+      <https://www.pulumi.com/registry/packages/aws/api-docs/securityhub/inviteaccepter/>`_
+      The Security Hub invite accepter (if organization is enabled).
 
     :param name: A string identifying this set of resources.
     :type name: str
