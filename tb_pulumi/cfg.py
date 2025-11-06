@@ -143,19 +143,6 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
             ),
         )
 
-        # if aggregator stack
-        # can user later if we have more tha n one account to aggregate from
-        # aggregator_account_auth = (
-        #     aws.cfg.AggregateAuthorization(
-        #         f'{project.project}-{project.stack}-agg-auth',
-        #         account_id=f'{project.aws_account_id}',
-        #         authorized_aws_region=f'{project.aws_region}',
-        #         tags=self.tags,
-        #      )
-        #     if aggregator_stack
-        #     else None
-        # )
-
         aggregator_account = (
             aws.cfg.ConfigurationAggregator(
                 f'{project.project}-{project.stack}-account-agg',
@@ -181,6 +168,5 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
                 'delivery_channel_email_subscription': delivery_channel_email_subscription,
                 'delivery_channel': delivery_channel,
                 'aggregator_account': aggregator_account,
-                # "aggregator_account_auth": aggregator_account_auth,
             }
         )
