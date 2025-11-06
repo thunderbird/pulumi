@@ -37,6 +37,8 @@
     sets up pre-commit hooks that ensure code meets a baseline level of linting/quality before it gets reviewed. This
     script can also be copied verbatim into downstream projects that use tb_pulumi to set up the same pre-commit hooks
     there.
+  - Added a new set of AWS account-level security monitoring classes at `cfg.AwsConfigAccount`,
+    `guardduty.GuardDutyAccount`, and `securityhub.SecurityHubAccount`.
 
 
 ## v0.0.15
