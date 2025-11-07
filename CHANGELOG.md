@@ -1,6 +1,46 @@
 # tb_pulumi Changelog
 
 
+## v0.0.16
+
+### Breaking Changes
+
+  - `ci.AwsAutomationUser` now manages its IAM user with an `iam.UserWithAccessKey` pattern. This will cause your CI
+    users to rebuild. New access keys will be issued. You will need to update your CI workflows to use the new access
+    keys, which are made available through a Secrets Manager secret.
+  - `iam.UserWithAccessKey` now allows you to create multiple access keys for the user. The intent is that you often
+    need this ability in order to carefully rotate these credentials. The documentation describes the tb_pulumi side of
+    a key rotation. The default behavior now is to use the new format for configuring these keys, encouraging users to
+    rotate away from the "legacy" key configuration. This will result in Pulumi wanting to destroy your existing key and
+    rebuilding it. This will break any workflows built around these credentials. You may set the
+    `enable_legacy_access_key` option to `True` to keep an existing key around while you plot your migration. This
+    option will be removed in a future release.
+
+### Improvements
+
+  - An `enable_logging` option has been added to the `CloudFrontS3Service` to allow for logging to be disabled.
+  - You can now add an `iam.UserWithAccessKey` to user groups without any additional code outside the class constructor.
+  - You can now automate the peering of VPCs and the routing of network connections between them using new options in
+    the `network.MultiCidrVpc` class.
+  - You can now specify the user name for the `ci.AwsAutomationUser`.
+  - Various and sundry documentation improvements and expansions.
+  - A `Name` tag has been added to VPC endpoints created by the `network.MultiCidrVpc` class. This helps with clarity
+    when using the web console, which has special support for this tag built in.
+  - Added a new `autoscale` module containing an `EcsServiceAutoscaler` class. This allows you to tack on an autoscaling
+    configuration to an existing ECS service.
+  - Added a new `network.MultiTierVpc` class, which allows for a more complex network and routing configuration. This
+    is similar in many ways to the existing `MultiCidrVpc` class, but the differences are significant enough for us to
+    split the class. We have opened a ticket to optimize this for code reuse in a future release.
+  - Refactored `ProjectResourceGroup`s to allow for more flexible reuse of the feature. You can now arbitrarily extend
+    this class to achieve a known post-apply state.
+  - Added a `dev-setup.sh` script that builds a working virtual environment with all development tools installed. It
+    sets up pre-commit hooks that ensure code meets a baseline level of linting/quality before it gets reviewed. This
+    script can also be copied verbatim into downstream projects that use tb_pulumi to set up the same pre-commit hooks
+    there.
+  - Added a new set of AWS account-level security monitoring classes at `cfg.AwsConfigAccount`,
+    `guardduty.GuardDutyAccount`, and `securityhub.SecurityHubAccount`.
+
+
 ## v0.0.15
 
 ### Improvements
