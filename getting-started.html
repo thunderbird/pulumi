@@ -1,0 +1,703 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Patterns of Use" href="patterns.html"><link rel="prev" title="tb_pulumi Documentation" href="index.html">
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.09.25 -->
+        <title>Getting Started - tb_pulumi documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=580074bf" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">tb_pulumi  documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">tb_pulumi  documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="patterns.html">Patterns of Use</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitors.html">Monitoring Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="modules.html">tb_pulumi</a><input aria-label="Toggle navigation of tb_pulumi" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="tb_pulumi.html">tb_pulumi</a></li>
+<li class="toctree-l2"><a class="reference internal" href="autoscale.html">tb_pulumi.autoscale</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ci.html">tb_pulumi.ci</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cloudfront.html">tb_pulumi.cloudfront</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cloudwatch.html">tb_pulumi.cloudwatch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">tb_pulumi.constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ec2.html">tb_pulumi.ec2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elasticache.html">tb_pulumi.elasticache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fargate.html">tb_pulumi.fargate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iam.html">tb_pulumi.iam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="monitoring.html">tb_pulumi.monitoring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="network.html">tb_pulumi.network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rds.html">tb_pulumi.rds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="s3.html">tb_pulumi.s3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="secrets.html">tb_pulumi.secrets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guardduty.html">tb_pulumi.guardduty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="securityhub.html">tb_pulumi.securityhub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cfg.html">tb_pulumi.cfg</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/getting-started.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="getting-started">
+<span id="id1"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
+<p>The tb_pulumi module has a few guiding principals and helpful features:</p>
+<ul class="simple">
+<li><p>It should meet the needs of Thunderbird Pro Services while also being otherwise useful to the community.</p></li>
+<li><p>It should reduce the overhead of working with a project long-term by front-loading most development work and moving
+most settings that one might adjust over time to a simple configuration file.</p></li>
+<li><p>It should make use of Pulumi’s extensibility to create a broader model of infrastructure management operations beyond
+the management of singular resources.</p></li>
+</ul>
+<p>In order to accomplish these things, tb_pulumi must be rather opinionated. It requires certain usage patterns and
+strongly suggests some additional usage conventions. This Getting Started guide will get you up and running with this
+tool and adapt to its particularities, setting you up to make the most use of its advanced features. When you’ve stepped
+through it, you should have a simple project structure with a basic private network configuration. This is a good
+starting point for further development.</p>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">¶</a></h2>
+<p>To use tb_pulumi, you’ll need to get through this checklist first:</p>
+<section id="get-an-aws-account">
+<h3>Get an AWS Account<a class="headerlink" href="#get-an-aws-account" title="Link to this heading">¶</a></h3>
+<p>This module builds infrastructure against Amazon Web Services. You will need to <a class="reference external" href="https://signin.aws.amazon.com/signup?request_type=register">sign up</a> for an account there. Our patterns default to using
+infrastructure that typicaly qualifies for AWS Free Tier, but you should know that usage of this tool always implies
+cost at AWS.</p>
+<p>Once you have an account, you will need to <a class="reference external" href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html">set up an access key</a>. You will then need to <a class="reference external" href="https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html">configure
+AWSCLI</a> with those credentials. You do not
+need to install the AWSCLI tool itself.</p>
+</section>
+<section id="build-a-state-backend">
+<h3>Build a State Backend<a class="headerlink" href="#build-a-state-backend" title="Link to this heading">¶</a></h3>
+<p>Pulumi keeps an accounting of the state of your infrastructure in online storage, enabling it to track that state for
+multiple users across multiple executions of Pulumi commands. There are three ways to store this. You will have to set
+up one of the following options:</p>
+<ul class="simple">
+<li><p>Create an S3 bucket in AWS. This should be a completely private bucket with no external access. The user you have
+configured an access key for must have full access to this bucket and its objects. To use this, you will have to run
+<code class="docutils literal notranslate"><span class="pre">pulumi</span> <span class="pre">login</span> <span class="pre">s3://your-bucket-name</span></code>.</p></li>
+<li><p>Create a <a class="reference external" href="https://app.pulumi.com/">Pulumi Cloud account</a>. To use this, you will have to run <code class="docutils literal notranslate"><span class="pre">pulumi</span> <span class="pre">login</span></code> without
+specifying a backend, or <code class="docutils literal notranslate"><span class="pre">pulumi</span> <span class="pre">login</span> <span class="pre">https://api.pulumi.com</span></code>.</p></li>
+<li><p>Set up a custom Pulumi Cloud server and use the URL for that server.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The name of an S3 bucket is used as part of a global domain, and so your bucket name must be globally unique. A good
+way to handle this is to include an organization name in your bucket name. As a template, you may use:
+<code class="docutils literal notranslate"><span class="pre">$ORG-$PROJECT_NAME-pulumi</span></code>.</p>
+</div>
+<p>Each time you set up to use your Pulumi code, you will need to run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pulumi<span class="w"> </span>login<span class="w"> </span><span class="nv">$YOUR_LOGIN_URL</span>
+</pre></div>
+</div>
+</section>
+<section id="install-python-3-13-or-greater">
+<h3>Install Python 3.13 or greater<a class="headerlink" href="#install-python-3-13-or-greater" title="Link to this heading">¶</a></h3>
+<p>There are many ways to install Python. You can begin with the <a class="reference external" href="https://www.pulumi.com/docs/iac/download-install/">Python downloads page</a>.</p>
+</section>
+<section id="install-pulumi">
+<h3>Install Pulumi<a class="headerlink" href="#install-pulumi" title="Link to this heading">¶</a></h3>
+<p>Pulumi provides <a class="reference external" href="https://www.pulumi.com/docs/iac/download-install/">instructions for installation</a> on their website.
+You should follow those instructions to install the latest version of Pulumi.</p>
+<p>You should also come to understand the <a class="reference external" href="https://www.pulumi.com/docs/iac/concepts/">basic concepts of Pulumi</a>,
+particularly <a class="reference external" href="https://www.pulumi.com/docs/iac/concepts/resources/">Resources</a> and <a class="reference external" href="https://www.pulumi.com/docs/iac/concepts/resources/components/">Component Resources</a>.</p>
+</section>
+</section>
+<section id="quickstart">
+<span id="id2"></span><h2>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">¶</a></h2>
+<p>After ensuring you meet the above prerequisites, run the <code class="docutils literal notranslate"><span class="pre">quickstart.sh</span></code> script, adjusting the following command to
+refer to your particular project details:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./quickstart.sh<span class="w">           </span><span class="se">\</span>
+<span class="w">    </span>/path/to/project/root<span class="w"> </span><span class="se">\ </span><span class="c1"># The root of your code project where you want to set up a tb_pulumi project</span>
+<span class="w">    </span>pulumi_login_url<span class="w">      </span><span class="se">\ </span><span class="c1"># URL to use with `pulumi login`; see below for details</span>
+<span class="w">    </span>project_name,<span class="w">         </span><span class="se">\ </span><span class="c1"># Name of your project as it will be known to pulumi</span>
+<span class="w">    </span>stack_name,<span class="w">           </span><span class="se">\ </span><span class="c1"># Name of the first stack you want to create (such as &quot;stage&quot; or &quot;dev&quot;)</span>
+<span class="w">    </span><span class="o">[</span>code_version<span class="o">]</span><span class="w">          </span><span class="c1"># Code version (git branch) that you want to pin. Optional; defaults to &quot;main&quot;</span>
+</pre></div>
+</div>
+<p>This will…</p>
+<ul class="simple">
+<li><p>run you through some prompts where you can enter further project details,</p></li>
+<li><p>install a simple Pulumi program intended to set up a basic networking landscape,</p></li>
+<li><p>install the same <code class="docutils literal notranslate"><span class="pre">dev-setup.sh</span></code> script into your Pulumi directory, which allows developers to quickly set up a
+working development environment, and</p></li>
+<li><p>run a <code class="docutils literal notranslate"><span class="pre">pulumi</span> <span class="pre">preview</span></code> command to finish setting up the environment and confirm the project is working.</p></li>
+</ul>
+<p>If you are using an S3 bucket to privately store your state, you’ll need to make sure you have configured your AWSCLI
+tool with an account that has permission to manipulate that bucket and its contents. To specify an S3 state backend, set
+the login URL to <code class="docutils literal notranslate"><span class="pre">s3://your-bucket-name</span></code>. If you will use Pulumi Cloud, use <code class="docutils literal notranslate"><span class="pre">https://api.pulumi.com</span></code>. If you have a
+<a class="reference external" href="https://www.pulumi.com/docs/pulumi-cloud/admin/self-hosted/components/api/">self-hosted Pulumi Cloud API</a>, you may
+specify your custom URL here.</p>
+<p>The output should look something like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Previewing update (mystack):
+     Type                              Name                                 Plan
+ +   pulumi:pulumi:Stack               myproject-mystack                    create
+ +   ├─ tb:network:MultiCidrVpc        myproject-mystack-vpc                create
+ +   │  ├─ aws:ec2:Vpc                 myproject-mystack-vpc                create
+ +   │  ├─ aws:ec2:Subnet              myproject-mystack-vpc-subnet-0       create
+ +   │  ├─ aws:ec2:Subnet              myproject-mystack-vpc-subnet-1       create
+ +   │  └─ aws:ec2:Subnet              myproject-mystack-vpc-subnet-2       create
+ +   ├─ aws:ec2:RouteTableAssociation  myproject-mystack-vpc-subnetassoc-0  create
+ +   ├─ aws:ec2:RouteTableAssociation  myproject-mystack-vpc-subnetassoc-1  create
+ +   └─ aws:ec2:RouteTableAssociation  myproject-mystack-vpc-subnetassoc-2  create
+
+Resources:
+    + 9 to create
+</pre></div>
+</div>
+</section>
+<section id="manual-setup">
+<h2>Manual Setup<a class="headerlink" href="#manual-setup" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p>“What’s so quick about the quickstart anyway?” ~ You, probably</p>
+</div></blockquote>
+<p>If you want to do everything the Quickstart script does manually (or just understand this project framework better),
+follow this guide.</p>
+<section id="repo-setup">
+<h3>Repo setup<a class="headerlink" href="#repo-setup" title="Link to this heading">¶</a></h3>
+<p>We strongly recommend the use of a version control system such as git when working with your tb_pulumi project. If you
+already have a repository containing the source code for your application, then it is recommended to put your Pulumi
+code inside that same repo.</p>
+<p>Create a subdirectory called <code class="docutils literal notranslate"><span class="pre">pulumi/</span></code> and create a new Pulumi project in it with the command below. If you are
+operating in an AWS region other than what is set as your default for awscli, be sure to
+<code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">AWS_REGION=your-region-here</span></code> or whatever else you may need to do to override that.</p>
+<p>All tb_pulumi projects are AWS/Python projects.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pulumi<span class="w"> </span>new<span class="w"> </span>aws-python
+</pre></div>
+</div>
+<p>Follow the prompts to complete the initial Pulumi setup. This builds the <code class="docutils literal notranslate"><span class="pre">Pulumi.yaml</span></code> file that describes project-
+wide settings.</p>
+</section>
+<section id="stack-setup">
+<h3>Stack Setup<a class="headerlink" href="#stack-setup" title="Link to this heading">¶</a></h3>
+<p>In Pulumi, a stack roughly translates to an operating environment. You should identify your needs and determine an
+appropriate name for your first stack. As an example, on the Thunderbird Services Team, we have “stage” and “prod”
+stacks to describe our testing and live environments. Initialize your first stack:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pulumi<span class="w"> </span>stack<span class="w"> </span>init<span class="w"> </span><span class="nv">$STACK_NAME</span>
+</pre></div>
+</div>
+<p>This will create a <code class="docutils literal notranslate"><span class="pre">Pulumi.$STACK_NAME.yaml</span></code> file which defines the operating parameters for this particular stack.</p>
+</section>
+<section id="set-up-tb-pulumi">
+<h3>Set up tb_pulumi<a class="headerlink" href="#set-up-tb-pulumi" title="Link to this heading">¶</a></h3>
+<p>Ensure your <code class="docutils literal notranslate"><span class="pre">pulumi</span></code> code directory contains a <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code> file with at least this repo listed:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>tb_pulumi @ git+https://github.com/thunderbird/pulumi.git
+</pre></div>
+</div>
+<p>You can pin your code to a specific version of this module by appending <code class="docutils literal notranslate"><span class="pre">&#64;branch_name</span></code> to that. For example:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>tb_pulumi @ git+https://github.com/thunderbird/pulumi.git@v0.0.14
+</pre></div>
+</div>
+<p>If your project relies on any other Python dependencies, also list them in this file. This ensures that Pulumi can
+bootstrap itself with tb_pulumi and other dependencies all accounted for.</p>
+</section>
+<section id="configure-tb-pulumi">
+<h3>Configure tb_pulumi<a class="headerlink" href="#configure-tb-pulumi" title="Link to this heading">¶</a></h3>
+<p>Whereas <code class="docutils literal notranslate"><span class="pre">Pulumi.$STACK_NAME.yaml</span></code> describes how Pulumi handles that one stack, a <code class="docutils literal notranslate"><span class="pre">config.$STACK_NAME.yaml</span></code> file
+describes the properties of tb_pulumi patterns you will later define in your Pulumi code. The contents of the
+<code class="docutils literal notranslate"><span class="pre">resources</span></code> entry will become the <code class="docutils literal notranslate"><span class="pre">config</span></code> property of your project in code.</p>
+<p>Let’s look at an example tb_pulumi configuration file.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="nn">---</span>
+<span class="linenos"> 2</span><span class="nt">resources</span><span class="p">:</span>
+<span class="linenos"> 3</span><span class="w">  </span><span class="nt">tb:network:MultiCidrVpc</span><span class="p">:</span>
+<span class="linenos"> 4</span><span class="w">    </span><span class="nt">vpc</span><span class="p">:</span>
+<span class="linenos"> 5</span><span class="w">      </span><span class="nt">cidr_block</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.0/16</span>
+<span class="linenos"> 6</span><span class="w">      </span><span class="nt">egress_via_internet_gateway</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="linenos"> 7</span><span class="w">      </span><span class="nt">enable_dns_hostnames</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="linenos"> 8</span><span class="w">      </span><span class="nt">enable_internet_gateway</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="linenos"> 9</span><span class="w">      </span><span class="nt">endpoint_interfaces</span><span class="p">:</span>
+<span class="linenos">10</span><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ecr.api</span>
+<span class="linenos">11</span><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ecr.dkr</span>
+<span class="linenos">12</span><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">logs</span>
+<span class="linenos">13</span><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretsmanager</span>
+<span class="linenos">14</span><span class="w">      </span><span class="nt">subnets</span><span class="p">:</span>
+<span class="linenos">15</span><span class="w">        </span><span class="nt">us-east-2a</span><span class="p">:</span>
+<span class="linenos">16</span><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.101.0/24</span>
+<span class="linenos">17</span><span class="w">        </span><span class="nt">us-east-2b</span><span class="p">:</span>
+<span class="linenos">18</span><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.102.0/24</span>
+<span class="linenos">19</span><span class="w">        </span><span class="nt">us-east-2c</span><span class="p">:</span>
+<span class="linenos">20</span><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.103.0/24</span>
+</pre></div>
+</div>
+<p>At the top-level (line 2) is the <code class="docutils literal notranslate"><span class="pre">resources</span></code> key. Nested inside are configurations for resource patterns. This project
+uses the <code class="docutils literal notranslate"><span class="pre">tb_pulumi.network.MultiCidrVpc</span></code> class. In Pulumi, resources have a <a class="reference external" href="https://www.pulumi.com/docs/iac/concepts/resources/names/#types">“type” string</a>, and by convention, we use the same format to
+identify these patterns. In this case, you can see how the class <code class="docutils literal notranslate"><span class="pre">tb_pulumi.network.MultiCidrVpc</span></code> maps to the type
+string <code class="docutils literal notranslate"><span class="pre">tb:network:MultiCidrVpc</span></code>.</p>
+<p>The Pulumi Type for a <code class="docutils literal notranslate"><span class="pre">MultiCidrVpc</span></code> is <code class="docutils literal notranslate"><span class="pre">tb:network:MultiCidrVpc</span></code>, so we have chosen that as a name under which we
+define our MultiCidrVpc configs (line 3).</p>
+<p>You can define multiple instances of the same pattern, so the next nested key is the name of this instance. In most of
+the use cases described in these docs and in our projects, you don’t normally need more than one VPC per environment.
+Still, you can see how this pattern and the code patterns described below can be useful in many other cases. Let’s just
+call this one <code class="docutils literal notranslate"><span class="pre">vpc</span></code>.</p>
+</section>
+<section id="write-a-tb-pulumi-program">
+<h3>Write a tb_pulumi Program<a class="headerlink" href="#write-a-tb-pulumi-program" title="Link to this heading">¶</a></h3>
+<p>The resources you’ve described in your YAML file must now be described in your Pulumi code. Under tb_pulumi’s
+conventions, this is mostly a matter of connecting the YAML config values to resource class constructors.</p>
+<p>When you issue <code class="docutils literal notranslate"><span class="pre">pulumi</span></code> commands (like “up” and “preview” and so on), Pulumi looks for a <code class="docutils literal notranslate"><span class="pre">__main__.py</span></code> file in your
+current directory and executes the code in that file. So it is this file in which you will make use of the <code class="docutils literal notranslate"><span class="pre">tb_pulumi</span></code>
+code library.</p>
+<section id="import-tb-pulumi">
+<h4>Import tb_pulumi<a class="headerlink" href="#import-tb-pulumi" title="Link to this heading">¶</a></h4>
+<p>The imports are simple enough:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># You can import the whole library</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tb_pulumi</span>
+
+<span class="c1"># ...or you can import specific modules...</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tb_pulumi</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">ec2</span><span class="p">,</span> <span class="n">fargate</span><span class="p">,</span> <span class="n">secrets</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="set-up-a-thunderbirdpulumiproject">
+<h4>Set up a ThunderbirdPulumiProject<a class="headerlink" href="#set-up-a-thunderbirdpulumiproject" title="Link to this heading">¶</a></h4>
+<p>A Pulumi project describes the infrastructural resources that underlie your application. In a typical Pulumi program,
+you describe these resources more or less in the order of dependency, passing outputs of one resource (like a subnet ID)
+as inputs to other resources (like an EC2 instance that needs to know what network space to attach to). You can even
+describe larger repeatable patterns as <code class="docutils literal notranslate"><span class="pre">ComponentResource</span></code> s.</p>
+<p>However, a raw <code class="docutils literal notranslate"><span class="pre">ComponentResource</span></code> offers us very little visibility into its makeup. Although the class allows us to
+register outputs, those outputs only ever appear in text in a console and cannot be acted on programmatically. One way
+in which tb_pulumi extends the capabilities of Pulumi is with its <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdComponentResource" title="tb_pulumi.ThunderbirdComponentResource"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdComponentResource</span></code></a>
+class, which provides us with this visibility. These are the basic building blocks of tb_pulumi programs.</p>
+<p>These <code class="docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code> s are collected together under another class, the
+<a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject" title="tb_pulumi.ThunderbirdPulumiProject"><code class="xref py py-class docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdPulumiProject</span></code></a>. This is a special kind of Pulumi project that is aware of its own
+resources. It is able to traverse all resources defined in a project and act on them and their outputs programmatically
+due to the added visibility of the <code class="docutils literal notranslate"><span class="pre">ThunderbirdComponentResource</span></code> s in use.</p>
+<p>These projects are easy to set up:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">project</span> <span class="o">=</span> <span class="n">tb_pulumi</span><span class="o">.</span><span class="n">ThunderbirdPulumiProject</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If you have followed the conventions outlined so far, <code class="docutils literal notranslate"><span class="pre">project.config</span></code> is now a Python dict representation of the YAML
+file (see <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject.config" title="tb_pulumi.ThunderbirdPulumiProject.config"><code class="xref py py-data docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdPulumiProject.config</span></code></a>) for the currently selected Pulumi stack. You can use
+this in the next step to feed parameters into resource declarations. When you change a stack (<code class="docutils literal notranslate"><span class="pre">pulumi</span> <span class="pre">stack</span> <span class="pre">select</span></code>),
+this config changes with it.</p>
+</section>
+<section id="declare-thunderbirdcomponentresources">
+<h4>Declare ThunderbirdComponentResources<a class="headerlink" href="#declare-thunderbirdcomponentresources" title="Link to this heading">¶</a></h4>
+<p>A tb_pulumi program typically does little more than map the <code class="docutils literal notranslate"><span class="pre">project.config</span></code> values into ThunderbirdComponentResource
+constructor calls. To start, for convenience, let’s pull the <code class="docutils literal notranslate"><span class="pre">resources</span></code> dict into a variable:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Pull the &quot;resources&quot; config mapping</span>
+<span class="n">resources</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;resources&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Continuing the <code class="docutils literal notranslate"><span class="pre">MultiCidrVpc</span></code> example, let’s now pull the config for our <code class="docutils literal notranslate"><span class="pre">vpc</span></code> resource:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">vpc_opts</span> <span class="o">=</span> <span class="n">resources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tb:network:MultiCidrVpc&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;vpc&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>And then define the <code class="docutils literal notranslate"><span class="pre">MultiCidrVpc</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">vpc</span> <span class="o">=</span> <span class="n">tb_pulumi</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">MultiCidrVpc</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">project</span><span class="o">.</span><span class="n">name_prefix</span><span class="si">}</span><span class="s1">-vpc&#39;</span><span class="p">,</span>
+    <span class="n">project</span><span class="o">=</span><span class="n">project</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">vpc_opts</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="tb_pulumi.html#tb_pulumi.ThunderbirdPulumiProject.name_prefix" title="tb_pulumi.ThunderbirdPulumiProject.name_prefix"><code class="xref py py-data docutils literal notranslate"><span class="pre">tb_pulumi.ThunderbirdPulumiProject.name_prefix</span></code></a> value combines the project and stack name to form a
+convenient identifier to give your resources useful names. Here, we add <code class="docutils literal notranslate"><span class="pre">-vpc</span></code> to it, giving us something like
+<code class="docutils literal notranslate"><span class="pre">myproject-stage-vpc</span></code>.</p>
+<p>Passing in the <code class="docutils literal notranslate"><span class="pre">project</span></code> created beforehand ensures the resources created by the MultiCidrVpc get tracked and become
+accessible at the project level. The ThunderbirdComponentResource cannot be created without a ThunderbirdPulumiProject.</p>
+<p>Finally, in Python, the double-star (<code class="docutils literal notranslate"><span class="pre">**variable</span></code>) notation unpacks a dict’s top level keys and values into function
+parameters (called “keyword arguments” and often referred to as “kwargs”). In this case, all of the key/value pairs in
+the YAML configuration for the MultiCidrVpc called “vpc” get passed in as arguments to the function.</p>
+<p>As a demonstration of this (and as a demonstration of code you <em>should not write</em> when using tb_pulumi), here is the
+equivalent function call without the YAML conversion:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">vpc</span> <span class="o">=</span> <span class="n">tb_pulumi</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">MultiCidrVpc</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">project</span><span class="o">.</span><span class="n">name_prefix</span><span class="si">}</span><span class="s1">-vpc&#39;</span><span class="p">,</span>
+    <span class="n">project</span><span class="o">=</span><span class="n">project</span><span class="p">,</span>
+    <span class="n">cidr_block</span><span class="o">=</span><span class="s1">&#39;10.0.0.0/16&#39;</span><span class="p">,</span>
+    <span class="n">subnets</span><span class="o">=</span><span class="p">{</span>
+      <span class="s1">&#39;us-east-1a&#39;</span><span class="p">:</span> <span class="s1">&#39;10.0.101.0/24&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;us-east-1b&#39;</span><span class="p">:</span> <span class="s1">&#39;10.0.102.0/24&#39;</span><span class="p">,</span>
+      <span class="s1">&#39;us-east-1c&#39;</span><span class="p">:</span> <span class="s1">&#39;10.0.103.0/24&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>You may note some disadvantages to this:</p>
+<ul class="simple">
+<li><p>Making configuration changes to an environment means editing code as opposed to adjusting YAML. We find the YAML to be
+more legible, and we find that after an environment is initially built, the infrastructural patterns do not often
+change. Rather, we adjust the details; we scale out new servers or use a larger instance type or allow a new IP
+address access to a system. These are easier to adjust when we can just find an entry in a sensibly organized config
+file and tweak it.</p></li>
+<li><p>Reusing the same broad infrastructural definitions becomes much harder here. Suppose we want our staging environment
+to use different IP space than our production environment. If code is written this explicitly, we must introduce
+conditionals and break Pulumi’s comprehension of stacks to accomodate each environment’s distinguishing
+characteristics.</p></li>
+</ul>
+<p>Instead, under the tb_pulumi model, we can apply different YAML configs to the same code to achieve environments that
+work the same way, but at different scales, against different sets of resources, etc.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>Additional detail on our conventions can be found in <a class="reference internal" href="patterns.html#patterns-of-use"><span class="std std-ref">Patterns of Use</span></a>.</p>
+</div>
+<p>The full listing of values supported by each pattern can be found by browsing the detailed <a class="reference internal" href="tb_pulumi.html#module-tb_pulumi" title="tb_pulumi"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tb_pulumi</span></code></a>
+documentation. The barebones config example used in the quickstart can be found in our <a class="reference external" href="https://github.com/thunderbird/pulumi/blob/main/config.stack.yaml.example">sample config</a>.</p>
+</section>
+</section>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">¶</a></h2>
+<section id="the-pulumi-virtual-environment">
+<h3>The Pulumi Virtual Environment<a class="headerlink" href="#the-pulumi-virtual-environment" title="Link to this heading">¶</a></h3>
+<p>On your first run of a <code class="docutils literal notranslate"><span class="pre">pulumi</span></code> command, Pulumi will set up a Python virtual environment for itself to work out of at
+<code class="docutils literal notranslate"><span class="pre">venv/</span></code>. If this fails, or you need to make adjustments later, you can activate Pulumi’s virtual environment to
+perform environment changes.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>./venv/bin/activate
+pip<span class="w"> </span>install<span class="w"> </span>-Ur<span class="w"> </span>requirements.txt
+</pre></div>
+</div>
+<p>It is also always safe (and often easiest) to completely delete the virtual environment. Pulumi will automatically set
+itself up again on its next run.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rm<span class="w"> </span>-rf<span class="w"> </span>venv/
+</pre></div>
+</div>
+<p>Deactivate the environment before running any more <code class="docutils literal notranslate"><span class="pre">pulumi</span></code> commands, though, or else Pulumi will become confused.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>deactivate
+pulumi<span class="w"> </span>preview
+</pre></div>
+</div>
+</section>
+<section id="pythonic-problems">
+<h3>Pythonic problems<a class="headerlink" href="#pythonic-problems" title="Link to this heading">¶</a></h3>
+<p>This Pulumi code is developed against Python 3.13 or later. If this is not your default version, you’ll need to manage
+your own virtual environment.</p>
+<p>Check your default version:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python -V
+Python 3.13.5
+</pre></div>
+</div>
+<p>If you need a newer Python, <a class="reference external" href="https://www.python.org/downloads/">download and install it</a>. Then you’ll have to set up
+the virtual environment yourself with something like this:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>virtualenv<span class="w"> </span>-p<span class="w"> </span>/path/to/python3.13<span class="w"> </span>venv
+./venv/bin/pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+<p>You could also use a tool like <a class="reference external" href="https://docs.astral.sh/uv/guides/install-python/">uv</a> to manage your Python version.</p>
+<p>After this, <code class="docutils literal notranslate"><span class="pre">pulumi</span></code> commands should work. If 3.13 is your default version of Python, Pulumi should set up its own
+virtual environment, and you should not have to do this.</p>
+</section>
+<section id="shells-other-than-bash">
+<h3>Shells other than Bash<a class="headerlink" href="#shells-other-than-bash" title="Link to this heading">¶</a></h3>
+<p>Setup instructions in these docs are designed for use with the Bourne Again SHell (Bash). The Pulumi installer places
+the <code class="docutils literal notranslate"><span class="pre">pulumi</span></code> executable in a hidden folder in your home directory: <code class="docutils literal notranslate"><span class="pre">~/.pulumi/bin</span></code>. The installer will add this to
+your default <code class="docutils literal notranslate"><span class="pre">$PATH</span></code> for you, but only on certain supported shells. If you use an alternative shell, you may need to
+do this step manually to avoid having to make an explicit path reference for every <code class="docutils literal notranslate"><span class="pre">pulumi</span></code> command.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="patterns.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Patterns of Use</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Home</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2025, Thunderbird
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Getting Started</a><ul>
+<li><a class="reference internal" href="#prerequisites">Prerequisites</a><ul>
+<li><a class="reference internal" href="#get-an-aws-account">Get an AWS Account</a></li>
+<li><a class="reference internal" href="#build-a-state-backend">Build a State Backend</a></li>
+<li><a class="reference internal" href="#install-python-3-13-or-greater">Install Python 3.13 or greater</a></li>
+<li><a class="reference internal" href="#install-pulumi">Install Pulumi</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li><a class="reference internal" href="#manual-setup">Manual Setup</a><ul>
+<li><a class="reference internal" href="#repo-setup">Repo setup</a></li>
+<li><a class="reference internal" href="#stack-setup">Stack Setup</a></li>
+<li><a class="reference internal" href="#set-up-tb-pulumi">Set up tb_pulumi</a></li>
+<li><a class="reference internal" href="#configure-tb-pulumi">Configure tb_pulumi</a></li>
+<li><a class="reference internal" href="#write-a-tb-pulumi-program">Write a tb_pulumi Program</a><ul>
+<li><a class="reference internal" href="#import-tb-pulumi">Import tb_pulumi</a></li>
+<li><a class="reference internal" href="#set-up-a-thunderbirdpulumiproject">Set up a ThunderbirdPulumiProject</a></li>
+<li><a class="reference internal" href="#declare-thunderbirdcomponentresources">Declare ThunderbirdComponentResources</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
+<li><a class="reference internal" href="#the-pulumi-virtual-environment">The Pulumi Virtual Environment</a></li>
+<li><a class="reference internal" href="#pythonic-problems">Pythonic problems</a></li>
+<li><a class="reference internal" href="#shells-other-than-bash">Shells other than Bash</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>
