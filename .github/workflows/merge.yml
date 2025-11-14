@@ -10,35 +10,45 @@ on:
     branches:
       - main
 
-permissions:
-    contents: read
-
 jobs:
+  # Build and cache devcontainer for faster CI stages
+  devcontainer-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v3
 
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2 
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and cache devcontainer
+        uses: devcontainers/ci@v0.3
+        with:
+          # Change this to point to your image name
+          imageName: ghcr.io/aatchison/pulumi/cached-devcontainer
+          cacheFrom: ghcr.io/aatchison/pulumi/cached-devcontainer
+          push: always
+          # Change this to be your CI task/script
+          runCmd: ./dev-setup.sh
+          
   # Build the documentation and publish to Github Pages
   publish-docs:
     runs-on: ubuntu-latest
     permissions:
         contents: write
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Python 3.13
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v4
 
       - name: Build docs
-        shell: bash
-        run: |
-          # Install dependencies and build the HTML docs
-          pip install .[dev]
-          cd docs
-          make clean html
-
-          # Compress for archival
-          cd _build/html
-          tar -cvjf ../../../docs.tbz ./*
+        uses: devcontainers/ci@v0.3
+        with:
+          cacheFrom: ghcr.io/aatchison/pulumi/cached-devcontainer
+          runCmd: ./build-docs.sh
 
       - name: Archive docs
         id: archive

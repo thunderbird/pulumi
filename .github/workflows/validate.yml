@@ -1,5 +1,4 @@
----
-name: validate
+name: 'validate' 
 
 concurrency:
   group: validate
@@ -22,7 +21,6 @@ permissions:
   contents: read
 
 jobs:
-
   # This job detects which parts of the repo have been changed, setting future jobs up for conditional behavior.
   detect-changes:
     runs-on: ubuntu-latest
@@ -49,44 +47,27 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.detect-changes.outputs.tb_pulumi == 'true'
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Ruff syntax checks
-        uses: astral-sh/ruff-action@v3
-        with:
-          src: './tb_pulumi'
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v4
 
       - name: Run Ruff linter
-        uses: astral-sh/ruff-action@v3
+        uses: devcontainers/ci@v0.3
         with:
-          src: './tb_pulumi'
-          args: 'format --check --diff'
-
+          cacheFrom: ghcr.io/aatchison/pulumi/cached-devcontainer
+          runCmd: ruff format --check --diff
+          
   # Attempt to build the documentation. Fail if there are errors or warnings.
   build_docs:
     needs: detect-changes
     runs-on: ubuntu-latest
     if: needs.detect-changes.outputs.docs == 'true'
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Python 3.13
-        uses: actions/setup-python@v5
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v4
+        
+      - name: build docs
+        uses: devcontainers/ci@v0.3
         with:
-          python-version: '3.13'
-
-      - name: Build docs
-        shell: bash
-        run: |
-          # GHA does `set -e` for us, but we expect the grep below to fail. Thus, we must `set +e` here.
-          set +e
-          pip install .[dev]
-          cd docs
-          make clean html |& tee make.log
-          grep '\(ERROR\|WARNING\)' make.log
-          if [ $? -eq 0 ]; then
-            echo "Problems found in docs build"
-            exit 1
-          else
-            exit 0
-          fi
+          cacheFrom: ghcr.io/aatchison/pulumi/cached-devcontainer
+          runCmd: ./build-docs.sh
+          
