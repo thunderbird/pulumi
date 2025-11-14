@@ -10,7 +10,16 @@
 		},
 		"ghcr.io/devcontainers-extra/features/pulumi:1": {},
 		"ghcr.io/devcontainers-extra/features/ruff:1": {}
-	}
+	},
+
+	"mounts": [
+		// uncomment to mount local aws credentials
+        // "source=/${localEnv:HOME}${localEnv:USERPROFILE}/.aws,target=/home/vscode/.aws,type=bind,consistency=cached",
+		// uncomment to mount ssh credentials, useful for git pushes
+		// "source=/${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
+		// uncommentand change path to any source code directory etc. Usefull for local dev
+		// "source=/${localEnv:HOME}${localEnv:USERPROFILE}/src,target=/home/vscode/src,type=bind,consistency=cached"
+    ]
 	// "postCreateCommand": "./dev-setup.sh"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
