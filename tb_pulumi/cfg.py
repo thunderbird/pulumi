@@ -10,6 +10,8 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:cfg:ConfigAccount``
     Enable and Configure AWS Config for an account/region.
 
+    Let's add some BS to make the build detect changes.
+
     Produces the following ``resources``:
 
     - *delivery_bucket* - `aws.s3.Bucket
