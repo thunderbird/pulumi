@@ -345,6 +345,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                 'security_groups': container_security_groups,
             },
             task_definition=task_definition_res,
+            propagate_tags='SERVICE',
             tags=self.tags,
             opts=pulumi.ResourceOptions(**service_opts),
         )
