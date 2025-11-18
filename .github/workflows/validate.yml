@@ -20,6 +20,9 @@ on:
 permissions:
   contents: read
 
+env:
+  CACHE_IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
 jobs:
   # This job detects which parts of the repo have been changed, setting future jobs up for conditional behavior.
   detect-changes:
@@ -53,7 +56,7 @@ jobs:
       - name: Run Ruff linter
         uses: devcontainers/ci@v0.3
         with:
-          cacheFrom: ghcr.io/aatchison/pulumi/cached-devcontainer
+          cacheFrom: ${{ env.CACHE_IMAGE_PREFIX }}/cached-devcontainer
           runCmd: ruff format --check --diff
           
   # Attempt to build the documentation. Fail if there are errors or warnings.
@@ -68,6 +71,6 @@ jobs:
       - name: build docs
         uses: devcontainers/ci@v0.3
         with:
-          cacheFrom: ghcr.io/aatchison/pulumi/cached-devcontainer
+          cacheFrom: ${{ env.CACHE_IMAGE_PREFIX }}/cached-devcontainer
           runCmd: ./build-docs.sh
           
