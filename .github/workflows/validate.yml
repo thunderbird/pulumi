@@ -24,6 +24,8 @@ jobs:
   # This job detects which parts of the repo have been changed, setting future jobs up for conditional behavior.
   detect-changes:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository }}/cached-devcontainer:latest
     outputs:
       docs: ${{ steps.check.outputs.docs }}
       tb_pulumi: ${{ steps.check.outputs.tb_pulumi }}
@@ -45,29 +47,27 @@ jobs:
   lint:
     needs: detect-changes
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository }}/cached-devcontainer:latest
     if: needs.detect-changes.outputs.tb_pulumi == 'true'
     steps:
       - name: Checkout (GitHub)
         uses: actions/checkout@v4
 
       - name: Run Ruff linter
-        uses: devcontainers/ci@v0.3
-        with:
-          cacheFrom: ghcr.io/aatchison/pulumi/cached-devcontainer
-          runCmd: ruff format --check --diff
+        run: ruff format --check --diff
           
   # Attempt to build the documentation. Fail if there are errors or warnings.
   build_docs:
     needs: detect-changes
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository }}/cached-devcontainer:latest
     if: needs.detect-changes.outputs.docs == 'true'
     steps:
       - name: Checkout (GitHub)
         uses: actions/checkout@v4
         
       - name: build docs
-        uses: devcontainers/ci@v0.3
-        with:
-          cacheFrom: ghcr.io/aatchison/pulumi/cached-devcontainer
-          runCmd: ./build-docs.sh
+        run: ./build-docs.sh
           
