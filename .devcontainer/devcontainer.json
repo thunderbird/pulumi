@@ -23,8 +23,8 @@
 		// "source=/${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
 		// uncommentand change path to any source code directory etc. Usefull for local dev
 		// "source=/${localEnv:HOME}${localEnv:USERPROFILE}/src,target=/home/vscode/src,type=bind,consistency=cached"
-    ]
-	// "postCreateCommand": "./dev-setup.sh"
+    ],
+	"postCreateCommand": "cd /home/vscode && ./dev-setup.sh"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},

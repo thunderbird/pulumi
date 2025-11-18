@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-# install deps and build
-pip install .[dev]
+# install with ./dev-setup.sh
+source ./dev-setup.sh
+
 cd docs
 make clean html |& tee make.log
 

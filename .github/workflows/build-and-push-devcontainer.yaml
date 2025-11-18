@@ -35,5 +35,3 @@ jobs:
           imageName: ${{ env.CACHE_IMAGE_PREFIX }}/cached-devcontainer
           cacheFrom: ${{ env.CACHE_IMAGE_PREFIX }}/cached-devcontainer
           push: always
-          # Change this to be your CI task/script
-          runCmd: ./dev-setup.sh
