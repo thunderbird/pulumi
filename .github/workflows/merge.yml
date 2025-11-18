@@ -10,6 +10,53 @@ on:
     branches:
       - main
 
+env:
+  CACHE_IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+
+  # Build the documentation and publish to Github Pages
+  publish-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v4
+
+      - name: Build docs
+        uses: devcontainers/ci@v0.3
+        with:
+          cacheFrom: ${{ env.CACHE_IMAGE_PREFIX }}/cached-devcontainer
+          runCmd: ./build-docs.sh
+
+      - name: Archive docs
+        id: archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docs.tbz
+
+      # This publishes the built docs into a special git branch which we tell Github to use with Github Pages
+      - name: Publish docs
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          publish_branch: gh-pages  # this is the default, but let's be explicit
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/_build/html/
+          force_orphan: true
+---
+name: merge-main
+
+concurrency:
+  group: merge-main
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+
 jobs:
   # Build and cache devcontainer for faster CI stages
   devcontainer-build:
