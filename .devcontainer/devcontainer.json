@@ -8,8 +8,12 @@
 		"ghcr.io/devcontainers/features/python:1": {
 			"version": "3.13.0"
 		},
-		"ghcr.io/devcontainers-extra/features/pulumi:1": {},
-		"ghcr.io/devcontainers-extra/features/ruff:1": {}
+		"ghcr.io/devcontainers-extra/features/pulumi:1": {
+			"version": "3.207.0"
+		},
+		"ghcr.io/devcontainers-extra/features/ruff:1": {
+			"version": "0.14.5"
+		}
 	},
 
 	"mounts": [
@@ -19,8 +23,8 @@
 		// "source=/${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
 		// uncommentand change path to any source code directory etc. Usefull for local dev
 		// "source=/${localEnv:HOME}${localEnv:USERPROFILE}/src,target=/home/vscode/src,type=bind,consistency=cached"
-    ]
-	// "postCreateCommand": "./dev-setup.sh"
+    ],
+	"postCreateCommand": "./dev-setup.sh"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
