@@ -24,8 +24,6 @@ jobs:
   # This job detects which parts of the repo have been changed, setting future jobs up for conditional behavior.
   detect-changes:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository }}/cached-devcontainer:latest
     outputs:
       docs: ${{ steps.check.outputs.docs }}
       tb_pulumi: ${{ steps.check.outputs.tb_pulumi }}
