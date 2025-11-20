@@ -17,9 +17,6 @@ from typing import Any
 #: Type alias representing valid types to be found among a ThunderbirdPulumiProject's resources
 type Flattenable = dict | list | ThunderbirdComponentResource | pulumi.Output | pulumi.Resource
 
-FINISH_OUTPUTS_DEPRECATION_MESSAGE = """Calling ThunderbirdComponentResource.finish with the "outputs" parameter is
-    DEPRECATED. This parameter will be removed in a future version."""
-
 
 class ThunderbirdPulumiProject:
     """A collection of related Pulumi resources upon which we can take bulk/collective actions. This class enforces some
@@ -192,26 +189,19 @@ class ThunderbirdComponentResource(pulumi.ComponentResource):
 
         self.resources: dict = {}  #: Resources which are members of this ComponentResource.
 
-    def finish(self, outputs: dict[str, Any] = {}, resources: dict[str, Flattenable] = {}):
+    def finish(self, resources: dict[str, Flattenable] = {}):
         """Stores the mapping of ``resources`` internally as the ``resources`` member of this component resource's
         ``ThunderbirdPulumiProject``, where they can be acted on collectively. Any implementation of this class should
         call this function at the end of its ``__init__`` function to ensure its state is properly represented.
 
         Values in ``resources`` should be of a type compatible with the :py:data:`Flattenable` custom type.
 
-        :param outputs: Dict of outputs to register with Pulumi's ``register_outputs`` function. This parameter is
-            deprecated and will be removed in a future version. Defaults to {}.
-        :type outputs: dict[str, Any], optional
-
         :param resources: Dict of Pulumi resources this component reosurce contains. Defaults to {}.
         :type resources: dict[str, Flattenable], optional
         """
 
-        # Register resources internally; register outputs with Pulumi
+        # Register resources internally;
         self.resources = resources
-        if len(outputs) > 0:
-            pulumi.warn(FINISH_OUTPUTS_DEPRECATION_MESSAGE)
-        self.register_outputs(outputs)
 
         # Register resources within the project if not excluded
         if not self.exclude_from_project:
