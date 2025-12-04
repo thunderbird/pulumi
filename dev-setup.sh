@@ -12,7 +12,7 @@
 #############################################################################################
 
 PYTHON_BIN=${1:-$(which python)}
-VENV_DIR=${2:-"./.venv"}
+VENV_DIR=${2:-"./venv"}
 DEV_SETUP_LOG_DIR="./.dev-setup"
 VENV_BUILD_LOG="$DEV_SETUP_LOG_DIR/dev-setup-venv-build.log"
 VENV_ACTIVATE_LOG="$DEV_SETUP_LOG_DIR/dev-setup-venv-activate.log"
