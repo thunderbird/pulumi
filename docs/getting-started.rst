@@ -345,7 +345,37 @@ equivalent function call without the YAML conversion:
   vpc = tb_pulumi.network.MultiCidrVpc(
       name=f'{project.name_prefix}-vpc',
       project=project,
+      additional_routes=[{
+        # .. route config
+      }],
       cidr_block='10.0.0.0/16',
+      egress_via_internet_gateway=True,
+      egress_via_nat_gateway=False,
+      enable_dns_hostnames=True,
+      enable_internet_gateway=True,
+      enable_nat_gateway=False,
+      endpoint_gateways=[
+        's3'
+      ],
+      endpoint_interfaces=[
+        'dynamodb',
+        'secretsmanager',
+      ],
+      peering_connections={
+        'other-env': {
+          'peered_cidrs': [
+            '10.1.0.0/16',
+          ],
+          'peer_vpc_id': 'vpc-abcdefg0123456789',
+          'auto_accept': True,
+          'accepter': {
+            'allow_remote_vpc_dns_resolution': True,
+          },
+          'requester': {
+            'allow_remote_vpc_dns_resolution': True,
+          },
+        },
+      },
       subnets={
         'us-east-1a': '10.0.101.0/24',
         'us-east-1b': '10.0.102.0/24',
@@ -355,11 +385,16 @@ equivalent function call without the YAML conversion:
 
 You may note some disadvantages to this:
 
+- This code is rather long and has mixed formats, what with the hardcoded ``dict``s being used among keyword arguments.
+  In the tb_pulumi version of this, the formatting is consistently YAML with the PyYAML library decoding that into
+  native types and Python's ``**`` syntax unpacking those into function arguments "magically".
+
 - Making configuration changes to an environment means editing code as opposed to adjusting YAML. We find the YAML to be
   more legible, and we find that after an environment is initially built, the infrastructural patterns do not often
   change. Rather, we adjust the details; we scale out new servers or use a larger instance type or allow a new IP
   address access to a system. These are easier to adjust when we can just find an entry in a sensibly organized config
   file and tweak it.
+
 - Reusing the same broad infrastructural definitions becomes much harder here. Suppose we want our staging environment
   to use different IP space than our production environment. If code is written this explicitly, we must introduce
   conditionals and break Pulumi's comprehension of stacks to accomodate each environment's distinguishing
@@ -400,11 +435,20 @@ itself up again on its next run.
 
   rm -rf venv/
 
-Deactivate the environment before running any more ``pulumi`` commands, though, or else Pulumi will become confused.
+When you are done working, you can leave the virtual environment with the `deactivate` command.
 
 .. code-block:: bash
 
   deactivate
+
+Whether you have the virtual environment active in your shell or not, Pulumi will use it when it runs. If the virtual
+environment does not exist, any `pulumi` commands will cause it to be rebuilt. This will not install the dev
+dependencies, though, so we recommend using the `dev-setup.sh` script or our devcontainers build.
+
+To see what changes Pulumi proposes to make in your environment, run:
+
+.. code-block:: bash
+
   pulumi preview
 
 

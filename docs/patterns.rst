@@ -42,7 +42,7 @@ For example, you can now get the ``resources`` mapping from your configuration l
 
 .. code-block:: python
 
-  resources = project.get('resources')
+  resources = project.config.get('resources')
 
 At this point, if you have not defined a ``resources`` section in your config file, ``resources`` will be ``None``. But
 if you have a good config, it will be a dict where the top-level keys are Pulumi type strings.
@@ -51,21 +51,45 @@ You could, of course, do this as well:
 
 .. code-block:: python
 
-  resources = project['resources']
+  resources = project.config['resources']
 
-But in the case where the config file is not set up right, this results in a ``KeyError`` that would require you to trap
-the statement in a ``try`` block. This is much less elegant, and Python's ``get`` function is a nice way to get a value
-back instead. Consider this instead:
+But in the case where the config file is not set up right, this results in a ``KeyError``. This is fine, and you should
+raise an exception in this case anyway. We find the ``.get()`` method is more elegant.
+
+Consider this approach instead:
 
 .. code-block:: python
 
-  import sys
-
-  resources = project.get('resources')
+  resources = project.config.get('resources')
   if not resources:
-      pulumi.error('tb_pulumi is not configured for this stack.')
-      sys.exit(1)
+      raise ValueError(f'tb_pulumi is not configured for stack {project.stack}.')
 
+Also consider the case where you need access to a nested option. The 
+
+.. code-block:: python
+
+  # This prints a big stack trace ending in a KeyError
+  child_config = resources['parent_config']['child_config']
+
+  # If you want to emit a custom error
+  try:
+    child_config = resources['parent_config']['child_config']
+  except KeyError as ex:
+    pulumi.error('No child config')
+    
+    # You can either hard sys.exit
+    import sys
+    sys.exit(1)
+
+    # Or re-raise the exception
+    raise ex
+
+  # But in this form, child_config gets None, allowing us to gracefully handle the failure
+  # with little code and extra output.
+  child_config = resources.get('parent_config', {}).get('child_config')
+  if not child_config:
+    raise ValueError('No child config')
+  
 
 Resource Patterns
 -----------------
@@ -136,13 +160,16 @@ available through the ``subnets`` resource. Here are some things you can do with
   subnet_id = vpc.resources.get('subnets')[0]
 
 Remember that this value will be a ``pulumi.Output`` , not a real subnet ID, not until Pulumi has applied the resource.
-For the most part, this is okay. You could pass that value into some other resource as an Output, and Pulumi will wait
+For the most part, this is okay. You could pass that value into some other resource as an Output, and Pulumi would wait
 for a real value before proceeding.
 
 .. code-block:: python
 
   subnet_id = vpc.resources.get('subnets')[0]
   instance_opts = resources.get('tb:ec2:SshableInstance', {}).get('my-instance')
+  if not instance_opts:
+    raise ValueError('my-instance not configured')
+
   instance = tb_pulumi.ec2.SshableInstance(
     name='my-instance',
     project=project,
@@ -151,11 +178,25 @@ for a real value before proceeding.
     opts=pulumi.ResourceOptions(depends_on=[vpc]),
   )
 
-Note that in this pattern, we only supply as defined function parameters the ones whose values come from our code. We
-still pass in as many options from the YAML config as possible.
+Note that in this pattern, we only hardcode parameters whose values are generated elsewhere in the code. As many options
+as possible are passed in directly from the YAML file.
 
-Also not the addition of the ``opts`` parameter, which specifies that the instance is dependent on the VPC config. This
-helps Pulumi set up its dependency tree.
+Also note the addition of the ``opts`` parameter, which specifies that the instance is dependent on the VPC resources.
+This helps Pulumi set up its dependency tree and prevent problems where you try to build resources that need access to
+IDs that don't exist yet.
+
+.. important::
+
+  This also showcases an important concept. Pulumi's internal dependency tree is built around ``Resource`` objects. You
+  are defining a ``Resource`` which depends on another ``Resource``. This relationship in Pulumi causes it to wait for
+  the first ``Resource`` to be fully applied before trying to apply the dependent one.
+
+  A Pulumi ``ComponentResource`` is a collection of ``Resource``s, but it is actually an extension of the ``Resource``
+  class. So Pulumi understands this as a type of resource upon which some other resource can be dependent.
+
+  A ``ThunderbirdComponentResource`` is an extension of the ``ComponentResource`` class, meaning that **even our custom
+  resource collection type can be used as a collective dependency.** In the above example, the entire ``MultiCidrVpc``
+  and every resource it contains will be applied before the ``SshableInstance`` ever gets underway.
 
 If you need to wait on that value so you can form it as text, you must write an ``apply`` lambda:
 
@@ -244,7 +285,7 @@ statement like so:
 
 .. code-block:: bash
 
-    PULUMI_CONFIG_PASSPHRASE='a-super-secret-passphrase'
+    export PULUMI_CONFIG_PASSPHRASE='a-super-secret-passphrase'
     pulumi config set --secret my-password 'P@$sw0rd'
 
 This will add an item to your ``Pulumi.$STACK_NAME.yaml`` file in which this secret is listed in encrypted form. This is

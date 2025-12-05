@@ -86,13 +86,15 @@ We use the `Ruff <https://docs.astral.sh/ruff/>`_ tool to ensure consistent code
 from cropping up. Before you submit a PR, make sure that you have installed our dev dependencies and have run Ruff
 against your code.
 
+The easiest way to do this is to use the ``dev-setup.sh`` script, which will set up pre-commit checks that automatically
+run these prerequisites. If you need to step through things manually, run:
+
 .. code-block:: bash
 
-  # You can create your own virtualenv for dev stuff, but it's also okay to reuse Pulumi's
-  source ./venv/bin/activate
-  pip install .[dev]
-  ruff format
-  ruff check --fix
+  source ./venv/bin/activate  # Activate Pulumi's virtual environment
+  pip install .[dev]  # Install special development dependencies
+  ruff format  # Auto-format Python code
+  ruff check --fix  # Detect code lint problems; fix as many as possible
 
 If the "check" call produces errors it cannot automatically fix, you will need to fix them before submitting your PR.
 
@@ -120,12 +122,12 @@ Working across multiple projects and stacks
 
 Here are some good ideas you can have for free:
 
-- The severity of headaches caused by the use of an infrastructure-as-code tool are strongly correlated to the
-  complexity of the infrastructure being managed by said tool. Therefore, you will have fewer headaches managing smaller
-  chunks of infra supporting smaller chunks of your application than you will trying to control a large network of
-  microservices all at once within the same project. Even if you develop many applications within a large monorepo, we
-  recommend developing a tb_pulumi project per application; or you can map this concept to your organizational structure
-  as it makes sense. The point is to create boundaries of relevance between your resources.
+- The severity of headaches caused by the use of an infrastructure-as-code tool is strongly correlated to the complexity
+  of the infrastructure being managed by said tool. Therefore, you will have fewer headaches managing smaller chunks of
+  infra supporting smaller chunks of your application than you will trying to control a large network of microservices
+  all at once within the same project. Even if you develop many applications within a large monorepo, we recommend
+  developing a tb_pulumi project per application; or you can map this concept to your organizational structure as it
+  makes sense. The point is to create boundaries of relevance between your resources.
 - Secrets should be protected, obviously, but they should also be designed to protect you from the impact of exposure.
   In Pulumi, your secret passphrase is all that stands between your (maybe public?) ``Pulumi.stack.yaml`` file and
   someone decrypting those values. This passphrase should be kept secret, probably should be stored in an encrypted
@@ -208,16 +210,11 @@ Create or use an infrastructure project to test your change in. It is often best
 the bare minimum infrastructure required to demonstrate the change. This helps us understand the change and reproduce
 the problem if we need to.
 
-To test a change in tb_pulumi:
+The simplest way to test a change in tb_pulumi is to adjust your test project's ``requirements.txt`` file so it uses the
+``-e`` syntax to point to your local code: ``-e ~/workspace/thunderbird/pulumi``
 
-- Commit your changes to your forked tb_pulumi branch.
-- Push the branch to GitHub or whatever other git service you want to use.
-- Adjust your test project's ``requirements.txt`` so it uses your repo and branch.
-- Delete Pulumi's virtual environment.
-- Run a ``pulumi preview --diff``.
-
-This will cause Pulumi to rebuild its virtual environment using your special version of tb_pulumi. If your change is
-effective, you should see the expected result in the diff. Repeat this cycle to make further changes.
+This will cause the Python environment to get its ``tb_pulumi`` package from that path. If your change is effective, you
+should see the expected result in the output of a `pulumi preview --diff`. Repeat this cycle to make further changes.
 
 
 Implementing a new ``ThunderbirdComponentResource``
