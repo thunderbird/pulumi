@@ -13,15 +13,16 @@ internals described better in :ref:`full_stack_patterns`. The short version of t
 
 And now, we add that...
 
-- A :py:class:`tb_pulumi.monitoring.MonitoringGroup` is a ProjectResourceGroup that filters resources based on known
+- A :py:class:`tb_pulumi.monitoring.MonitoringGroup` is a ProjectResourceGroup that filters resources based on a known
   ability to monitor those resources. It is an abstract class which must be implemented by a class which can create
   monitors in a certain platform.
-- A :py:class:`tb_pulumi.cloudwatch.CloudWatchMonitoringGroup` is a MonitoringGroup that builds monitors on the AWS
+- A :py:class:`tb_pulumi.cloudwatch.CloudWatchMonitoringGroup` is a ``MonitoringGroup`` that builds monitors on the AWS
   CloudWatch platform.
-- A :py:class:`tb_pulumi.monitoring.AlarmGroup` is a ThunderbirdComponentResource that creates alarms for a specific
+- A :py:class:`tb_pulumi.monitoring.AlarmGroup` is a ``ThunderbirdComponentResource`` that creates alarms for a specific
   type of resource. This is an abstract class which is implemented in more specific alarm groups.
-- More specific alarm groups, such as a :py:class:`tb_pulumi.cloudwatch.AlbAlarmGroup`, which creates CloudWatch alarms
-  for application load balancers.
+- There exist implementations of these ``AlarmGroup`` s which create the specific alarms relevant to a type of resource.
+  For example, we have a :py:class:`tb_pulumi.cloudwatch.AlbAlarmGroup`, which creates CloudWatch alarms for application
+  load balancers (ALBs).
 
 The overall idea is that the monitoring groups inspect the post-applied Pulumi state looking for any monitorable
 resources. It creates the appropriate alarm groups for each resource it understands. If you change your infrastructure
