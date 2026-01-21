@@ -6,7 +6,153 @@ import pulumi
 import pulumi_aws as aws
 import tb_pulumi
 
+from copy import deepcopy
 from tb_pulumi.constants import ASSUME_ROLE_POLICY, DEFAULT_AWS_SSL_POLICY
+
+
+class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        subnets: list[str],
+        assign_public_ip: bool = False,
+        ecr_resources: list = ['*'],
+        enable_container_insights: bool = False,
+        health_check_grace_period_seconds: int = None,
+        internal: bool = True,
+        key_deletion_window_in_days: int = 7,
+        load_balancer_security_groups: list[str] = [],
+        services: dict = {},
+        task_definition: dict = {},
+        opts: pulumi.ResourceOptions = None,
+        **kwargs,
+    ):
+        if len(subnets) < 1:
+            raise IndexError('You must provide at least one subnet.')
+
+        super().__init__('tb:fargate:FargateClusterWithLogging', name, project, opts=opts, **kwargs)
+        family = name
+
+        # Key to encrypt logs
+        log_key_tags = {'Name': f'{name}-fargate-logs'}
+        log_key_tags.update(self.tags)
+        log_key = aws.kms.Key(
+            f'{name}-logging',
+            description=f'Key to encrypt logs for {name}',
+            deletion_window_in_days=key_deletion_window_in_days,
+            tags=log_key_tags,
+            opts=pulumi.ResourceOptions(parent=self),
+        )
+
+        # Log group
+        log_group = aws.cloudwatch.LogGroup(
+            f'{name}-fargate-logs',
+            name=f'{name}-fargate-logs',
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self),
+        )
+
+        # Set up an assume role policy
+        arp = deepcopy(ASSUME_ROLE_POLICY)
+        arp['Statement'][0]['Principal']['Service'] = 'ecs-tasks.amazonaws.com'
+        arp = json.dumps(arp)
+
+        # IAM policy for shipping logs
+        log_doc = log_group.arn.apply(
+            lambda arn: json.dumps(
+                {
+                    'Version': '2012-10-17',
+                    'Statement': [
+                        {
+                            'Sid': 'AllowECSLogSending',
+                            'Effect': 'Allow',
+                            'Action': ['logs:CreateLogGroup'],
+                            'Resource': arn,
+                        }
+                    ],
+                }
+            )
+        )
+        policy_log_sending = aws.iam.Policy(
+            f'{name}-policy-logs',
+            name=f'{name}-logging',
+            description='Allows Fargate tasks to log to their log group',
+            policy=log_doc,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[log_group]),
+            tags=self.tags,
+        )
+
+        # IAM policy for accessing container dependencies
+        container_doc = json.dumps(
+            {
+                'Version': '2012-10-17',
+                'Statement': [
+                    {
+                        'Sid': 'AllowSecretsAccess',
+                        'Effect': 'Allow',
+                        'Action': 'secretsmanager:GetSecretValue',
+                        'Resource': f'arn:aws:secretsmanager:{self.project.aws_region}:'
+                        f'{self.project.aws_account_id}:'
+                        f'secret:{self.project.project}/{self.project.stack}/*',
+                    },
+                    {
+                        'Sid': 'AllowECRAccess',
+                        'Effect': 'Allow',
+                        'Action': [
+                            'ecr:BatchCheckLayerAvailability',
+                            'ecr:BatchGetImage',
+                            'ecr:DescribeImages',
+                            'ecr:GetDownloadUrlForLayer',
+                            'ecr:ListImages',
+                            'ecr:ListTagsForResource',
+                        ],
+                        'Resource': ecr_resources,
+                    },
+                    {
+                        'Sid': 'AllowParametersAccess',
+                        'Effect': 'Allow',
+                        'Action': 'ssm:GetParameters',
+                        'Resource': f'arn:aws:ssm:{self.project.aws_region}:{self.project.aws_account_id}:'
+                        f'parameter/{self.project.project}/{self.project.stack}/*',
+                    },
+                ],
+            }
+        )
+        policy_exec = aws.iam.Policy(
+            f'{name}-policy-exec',
+            name=f'{name}-exec',
+            description=f'Allows {self.project.project} tasks access to resources they need to run',
+            policy=container_doc,
+            opts=pulumi.ResourceOptions(parent=self),
+            tags=self.tags,
+        )
+
+        # Create an IAM role for tasks to run as
+        task_role = aws.iam.Role(
+            f'{name}-taskrole',
+            name=name,
+            description=f'Task execution role for {self.project.name_prefix}',
+            assume_role_policy=arp,
+            managed_policy_arns=[
+                'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
+                policy_log_sending,
+                policy_exec,
+            ],
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[policy_exec, policy_log_sending]),
+        )
+
+        # Fargate Cluster
+        cluster = aws.ecs.Cluster(
+            f'{name}-cluster',
+            name=name,
+            configuration={},
+            # Ref: https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_PutAccountSetting.html
+            settings=[{'name': 'containerInsights', 'value': 'enabled' if enable_container_insights else 'disabled'}],
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[log_key, log_group]),
+        )
 
 
 class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
@@ -176,7 +322,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                         {
                             'Sid': 'AllowECSLogSending',
                             'Effect': 'Allow',
-                            'Action': 'logs:CreateLogGroup',
+                            'Action': ['logs:CreateLogGroup'],
                             'Resource': arn,
                         }
                     ],
