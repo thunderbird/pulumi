@@ -16,143 +16,130 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         subnets: list[str],
-        assign_public_ip: bool = False,
-        ecr_resources: list = ['*'],
-        enable_container_insights: bool = False,
-        health_check_grace_period_seconds: int = None,
-        internal: bool = True,
-        key_deletion_window_in_days: int = 7,
-        load_balancer_security_groups: list[str] = [],
+        autoscalers: dict = {},
+        cluster: dict = {},
+        load_balancers: dict = {},
+        log_key: dict = {},
+        secrets: dict[str, list] = {},
+        ssm_params: dict[str, list] = {},
+        task_definitions: dict = {},
+        targets: dict = {},
         services: dict = {},
-        task_definition: dict = {},
         opts: pulumi.ResourceOptions = None,
-        **kwargs,
     ):
         if len(subnets) < 1:
             raise IndexError('You must provide at least one subnet.')
 
-        super().__init__('tb:fargate:FargateClusterWithLogging', name, project, opts=opts, **kwargs)
-        family = name
+        super().__init__('tb:fargate:FargateClusterWithLogging', name, project, opts=opts)
 
-        # Key to encrypt logs
+        # Build the cluster in which we will run our services. We only need one, no matter how many services we run.
+        cluster = aws.ecs.Cluster(
+            f'{name}-cluster',
+            name=name,
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self),
+            **cluster,
+        )
+
+        # Build a KMS key to encrypt all logs, one key for all services in the cluster
+        log_key_description = log_key.pop('description', f'Key to encrypt logs for {name}')
         log_key_tags = {'Name': f'{name}-fargate-logs'}
         log_key_tags.update(self.tags)
         log_key = aws.kms.Key(
             f'{name}-logging',
-            description=f'Key to encrypt logs for {name}',
-            deletion_window_in_days=key_deletion_window_in_days,
+            description=log_key_description,
             tags=log_key_tags,
             opts=pulumi.ResourceOptions(parent=self),
         )
 
-        # Log group
-        log_group = aws.cloudwatch.LogGroup(
-            f'{name}-fargate-logs',
-            name=f'{name}-fargate-logs',
-            tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self),
-        )
+        # Build a log group per service
+        log_groups = {
+            service: aws.cloudwatch.LogGroup(
+                f'{name}-loggroup-{service}',
+                kms_key_id=log_key.arn,
+                name=f'{name}-loggroup-{service}',
+                tags=self.tags,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[log_key]),
+            )
+            for service in services.keys()
+        }
 
-        # Set up an assume role policy
+        # Set up a single assume role policy (ARP) for all services
         arp = deepcopy(ASSUME_ROLE_POLICY)
         arp['Statement'][0]['Principal']['Service'] = 'ecs-tasks.amazonaws.com'
         arp = json.dumps(arp)
 
-        # IAM policy for shipping logs
-        log_doc = log_group.arn.apply(
-            lambda arn: json.dumps(
+        # Each task will need an execution role - a set of policies governing what that task is capable of doing within
+        # the AWS platform. Here we build the policy documents themselves.
+        exec_role_policy_docs = {
+            service: json.dumps(
                 {
                     'Version': '2012-10-17',
                     'Statement': [
                         {
-                            'Sid': 'AllowECSLogSending',
+                            'Sid': 'AllowSecretsAccess',
                             'Effect': 'Allow',
-                            'Action': ['logs:CreateLogGroup'],
-                            'Resource': arn,
-                        }
+                            'Action': 'secretsmanager:GetSecretValue',
+                            'Resource': secrets.get(service, []),
+                        },
+                        {
+                            'Sid': 'AllowParametersAccess',
+                            'Effect': 'Allow',
+                            'Action': 'ssm:GetParameters',
+                            'Resource': ssm_params.get(service, []),
+                        },
                     ],
                 }
             )
-        )
-        policy_log_sending = aws.iam.Policy(
-            f'{name}-policy-logs',
-            name=f'{name}-logging',
-            description='Allows Fargate tasks to log to their log group',
-            policy=log_doc,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[log_group]),
-            tags=self.tags,
-        )
+            for service in services.keys()
+        }
 
-        # IAM policy for accessing container dependencies
-        container_doc = json.dumps(
-            {
-                'Version': '2012-10-17',
-                'Statement': [
-                    {
-                        'Sid': 'AllowSecretsAccess',
-                        'Effect': 'Allow',
-                        'Action': 'secretsmanager:GetSecretValue',
-                        'Resource': f'arn:aws:secretsmanager:{self.project.aws_region}:'
-                        f'{self.project.aws_account_id}:'
-                        f'secret:{self.project.project}/{self.project.stack}/*',
-                    },
-                    {
-                        'Sid': 'AllowECRAccess',
-                        'Effect': 'Allow',
-                        'Action': [
-                            'ecr:BatchCheckLayerAvailability',
-                            'ecr:BatchGetImage',
-                            'ecr:DescribeImages',
-                            'ecr:GetDownloadUrlForLayer',
-                            'ecr:ListImages',
-                            'ecr:ListTagsForResource',
-                        ],
-                        'Resource': ecr_resources,
-                    },
-                    {
-                        'Sid': 'AllowParametersAccess',
-                        'Effect': 'Allow',
-                        'Action': 'ssm:GetParameters',
-                        'Resource': f'arn:aws:ssm:{self.project.aws_region}:{self.project.aws_account_id}:'
-                        f'parameter/{self.project.project}/{self.project.stack}/*',
-                    },
+        # Build the exec role IAM policy resources themselves
+        exec_role_policies = {
+            service: aws.iam.Policy(
+                f'{name}-execrolepolicy-{service}',
+                name=f'{name}-{service}',
+                description=f'Grants permissions needed to run the {service} service for {self.project.name_prefix}',
+                policy=exec_role_policy_docs[service],
+                opts=pulumi.ResourceOptions(parent=self),
+                tags=self.tags,
+            )
+            for service in services.keys()
+        }
+
+        # Build the execution roles using the policies just built
+        exec_roles = {
+            service: aws.iam.Role(
+                f'{name}-execrole-{service}',
+                name=f'{name}-{service}',
+                description=f'Task execution role for running the {service} service for {self.project.name_prefix}',
+                assume_role_policy=arp,
+                managed_policy_arns=[
+                    # This AWS managed policy allows access to ECR and log streams
+                    'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
+                    exec_role_policies[service],
                 ],
-            }
-        )
-        policy_exec = aws.iam.Policy(
-            f'{name}-policy-exec',
-            name=f'{name}-exec',
-            description=f'Allows {self.project.project} tasks access to resources they need to run',
-            policy=container_doc,
-            opts=pulumi.ResourceOptions(parent=self),
-            tags=self.tags,
-        )
+                tags=self.tags,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[exec_role_policies[service]]),
+            )
+            for service in services.keys()
+        }
 
-        # Create an IAM role for tasks to run as
-        task_role = aws.iam.Role(
-            f'{name}-taskrole',
-            name=name,
-            description=f'Task execution role for {self.project.name_prefix}',
-            assume_role_policy=arp,
-            managed_policy_arns=[
-                'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
-                policy_log_sending,
-                policy_exec,
-            ],
-            tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[policy_exec, policy_log_sending]),
-        )
+        # First we build out task definitions. Later, we can refer to them by name. Since task definitions are
+        # one-to-one with cluster services, the task_name here is assumed to match with a service name.
+        task_definitions = {}
+        for task_name, task_config in task_definitions.items():
+            task_name: aws.ecs.TaskDefinition(
+                f'{name}-taskdef-{task_name}',
+                execution_role_arn=exec_roles[task_name].arn,
+                tags=self.tags,
+                **task_config,
+            )
 
-        # Fargate Cluster
-        cluster = aws.ecs.Cluster(
-            f'{name}-cluster',
-            name=name,
-            configuration={},
-            # Ref: https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_PutAccountSetting.html
-            settings=[{'name': 'containerInsights', 'value': 'enabled' if enable_container_insights else 'disabled'}],
-            tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self, depends_on=[log_key, log_group]),
-        )
+        ### Target groups
+        ### Load Balancer
+        ### Services
+        ### Autoscalers
 
 
 class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
