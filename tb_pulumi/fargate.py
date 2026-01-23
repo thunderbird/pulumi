@@ -267,7 +267,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         }
 
         self.finish(
-            outputs={
+            resources={
                 'autoscalers': scalers,
                 'cluster': ecs_cluster,
                 'container_security_groups': cont_sgs,
