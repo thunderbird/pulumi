@@ -66,8 +66,9 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ThunderbirdPulumiProject to add these resources to.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
-    :param subnets: A list of subnet IDs to build Fargate containers on. There must be at least one subnet to use.
-    :type subnets: list[str]
+    :param subnets: A list of `aws.ec2.Subnet <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/subnet/>`_ s
+      to build Fargate containers on. There must be at least one subnet to use.
+    :type subnets: list[aws.ec2.Subnet]
 
     :param autoscalers: A dict where the keys are names of services you wish to autoscale and the values are valid
       parameters for a :py:class:`tb_pulumi.autoscale.EcsServiceAutoscaler`. Do not provide the ``service`` option, as
@@ -119,11 +120,13 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
               service_name:
                   assign_public_ip: yes|no  # "yes" required for containers to talk to the internet
                   container_name: |
-                      "Name of a container in a task definition's ``container_definitions`` to route traffic to"
+                    "Name of a container in a task definition's ``container_definitions`` to route traffic to"
                   container_port: "Port to route traffic to on the container."
                   load_balancer: "Name of the load balancer routing traffic for this service"
                   service: |
-                      "Dict of additional options to pass to the aws.ecs.Service resource constructor."
+                    "Dict of additional options to pass to the aws.ecs.Service resource constructor."
+                  target: |
+                    "Name of the target defined for this port"
 
       Defaults to {}.
     :type services: dict, optional
@@ -155,7 +158,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
-        subnets: list[str],
+        subnets: list[aws.ec2.Subnet],
         autoscalers: dict = {},
         cluster: dict = {},
         container_security_groups: dict[str:dict] = {},
