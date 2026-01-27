@@ -112,7 +112,7 @@ you must create only one. Consider this YAML config and Python definition of a `
           eu-central-1a:
             - 10.0.0.0/17
           eu-central-1b:
-            - 10.0.128.0/1
+            - 10.0.128.0/17
 
 .. code-block:: python
 
