@@ -107,12 +107,12 @@ you must create only one. Consider this YAML config and Python definition of a `
   resources:
     tb:network:MultiCidrVpc:
       vpc:
-      cidr_block: 10.0.0.0/16
-      subnets:
-        eu-central-1a:
-          - 10.0.0.0/17
-        eu-central-1b:
-          - 10.0.128.0/1
+        cidr_block: 10.0.0.0/16
+        subnets:
+          eu-central-1a:
+            - 10.0.0.0/17
+          eu-central-1b:
+            - 10.0.128.0/1
 
 .. code-block:: python
 
