@@ -57,7 +57,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
           `aws.lb.TargetGroup <https://www.pulumi.com/registry/packages/aws/api-docs/lb/targetgroup/>`_ s in the same
           structure as the ``targets`` parameter.
         - *task_definitions* - A dict where the keys are names of services and the values are the
-          `aws.ecs.TaskDefinition <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/taskdefinition/>` s
+          `aws.ecs.TaskDefinition <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/taskdefinition/>`_ s
           created for those services.
 
     :param name: A string identifying this set of resources.
