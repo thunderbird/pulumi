@@ -201,7 +201,7 @@ Configure tb_pulumi
 
 Whereas ``Pulumi.$STACK_NAME.yaml`` describes how Pulumi handles that one stack, a ``config.$STACK_NAME.yaml`` file
 describes the properties of tb_pulumi patterns you will later define in your Pulumi code. The contents of the
-``resources`` entry will become the ``config`` property of your project in code.
+stack YAML will become the ``config`` property of your project in code.
 
 Let's look at an example tb_pulumi configuration file.
 
