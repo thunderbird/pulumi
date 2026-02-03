@@ -5,8 +5,421 @@ import json
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
+import tb_pulumi.autoscale
 
+from copy import deepcopy
 from tb_pulumi.constants import ASSUME_ROLE_POLICY, DEFAULT_AWS_SSL_POLICY
+from tb_pulumi.network import SecurityGroupWithRules
+
+
+class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:fargate:AutoscalingFargateCluster``
+
+    Builds a Fargate cluster with a variety of ways to customize services, load balancing, and autoscaling. Sends logs
+    to CloudWatch.
+
+    The naming of keys in this configuration is significant. The parameters listed below detail this fact. In short, you
+    will define by name a series of **services** that live in your **cluster**. The services bind together a collection
+    of resources which operate together to make functional, load balanced, autoscaling services.
+
+    A service is bound to a single **task definition** which defines what containers will run in the task, what their
+    environments look like, what ports they expose, etc. It is also associated with a single **load balancer** that
+    routes traffic to your containers. This is done by associating **targets** (ports on containers) with **listeners**
+    (servers that accept traffic from originating sources and route it according to rules which determine its target).
+
+    Produces the following ``resources``:
+
+        - *autoscalers* - Dict of :py:class:`tb_pulumi.autoscale.EcsServiceAutoscaler` s created, organized in the same
+          structure as the ``autoscalers`` parameter.
+        - *cluster* - The `aws.ecs.Cluster <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/cluster/>`_
+          running the defined services.
+        - *container_security_groups* - Dict of :py:class:`tb_pulumi.network.SecurityGroupWithRules` resources in the
+          same structure as the ``container_security_groups`` parameter.
+        - *execution_role_policies* - Dict where the keys are names of services and the values are
+          `aws.iam.Policy <https://www.pulumi.com/registry/packages/aws/api-docs/iam/policy/>`_ resources defining
+          permissions that ECS has when launching tasks for that service.
+        - *execution_roles* - Dict where the keys are names of services and the values are
+          `aws.iam.Role <https://www.pulumi.com/registry/packages/aws/api-docs/iam/role/>`_ s for ECS to use when
+          launching tasks for that service.
+        - *listeners* - A dict containing
+          `aws.lb.Listener <https://www.pulumi.com/registry/packages/aws/api-docs/lb/listener/>`_ s in the same
+          structure as the ``listeners`` parameter.
+        - *load_balancer_security_groups* - A dict containing :py:class:`tb_pulumi.network.SecurityGroupWithRules`
+          resources in the same structure as the ``load_balancer_security_groups`` parameter.
+        - *load_balancers* - A dict containing
+          `aws.lb.LoadBalancer <https://www.pulumi.com/registry/packages/aws/api-docs/lb/loadbalancer/>`_ s in the same
+          structure as the ``load_balancers`` parameter.
+        - *log_groups* - A dict where the keys are names of services and the values are
+          `aws.cloudwatch.LogGroup <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/loggroup/>`_ s.
+        - *services* - A dict where the keys are names of services and the values are
+          `aws.ecs.Service <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/service/>`_ s.
+        - *target_groups* - A dict of
+          `aws.lb.TargetGroup <https://www.pulumi.com/registry/packages/aws/api-docs/lb/targetgroup/>`_ s in the same
+          structure as the ``targets`` parameter.
+        - *task_definitions* - A dict where the keys are names of services and the values are the
+          `aws.ecs.TaskDefinition <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/taskdefinition/>`_ s
+          created for those services.
+
+    :param name: A string identifying this set of resources.
+    :type name: str
+
+    :param project: The ThunderbirdPulumiProject to add these resources to.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param subnets: A list of `aws.ec2.Subnet <https://www.pulumi.com/registry/packages/aws/api-docs/ec2/subnet/>`_ s
+      to build Fargate containers on. There must be at least one subnet to use.
+    :type subnets: list[aws.ec2.Subnet]
+
+    :param autoscalers: A dict where the keys are names of services you wish to autoscale and the values are valid
+      parameters for a :py:class:`tb_pulumi.autoscale.EcsServiceAutoscaler`. Do not provide the ``service`` option, as
+      this will be implied by the key name. Defaults to {}.
+    :type autoscalers: dict, optional
+
+    :param cluster: A dict where the keys are inputs to an `aws.ecs.Cluster
+      <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/cluster/>`_ resource. Describes the cluster
+      which will house these services. Defaults to {}.
+    :type cluster: dict, optional
+
+    :param container_security_groups: A nested dict describing the security groups which will be used by a service's
+      containers to allow access exclusively from a load balancer. At the top level, the keys are names of services and
+      the values are dicts. Those dicts' keys are the names of the load_balancers these containers will allow access
+      from, and their keys are valid parameters for a :py:class:`tb_pulumi.network.SecurityGroupWithRules`. **Do not
+      supply any ingress source options.** This class will automatically specify the load balancer's security group as
+      the only valid source. Defaults to {}.
+    :type container_security_groups: _type_, optional
+
+    :param listeners: A nested dict describing your load balancers' listeners and which targets they point to. At the
+      top level, the keys are names of load balancers and the values are other dicts. Those dicts' keys are the names of
+      targets, and their values are inputs to an `aws.lb.Listener
+      <https://www.pulumi.com/registry/packages/aws/api-docs/lb/listener/>`_ resource. Defaults to {}.
+    :type listeners: dict[str, dict], optional
+
+    :param load_balancer_security_groups: A dict where the keys are the names of load balancers and the values are
+      parameters for a :py:class:`tb_pulumi.network.SecurityGroupWithRules`. The ingress rules here define what is
+      allowed to make calls to the load balanced service. Defaults to {}.
+    :type load_balancer_security_groups: dict[str, dict], optional
+
+    :param load_balancers: A dict where the keys are names you give to load balancers (as they will be referenced
+      throughout this config) and the values are inputs to `aws.lb.LoadBalancer
+      <https://www.pulumi.com/registry/packages/aws/api-docs/lb/loadbalancer/>`_ s. There should be one load balancer
+      defined for each service. If your service exposes multiple ports, you should add additional targets for those
+      ports and additional listeners to the load balancer aimed at those targets. Defaults to {}.
+    :type load_balancers: dict, optional
+
+    :param secrets: A dict where the keys are names of services and the values are lists of Secrets Manager secret ARNs.
+      These are the secrets which are required for launching the service's task. If your service's task definition
+      defines a container with a ``secrets``-based environment variable, then you will need to list the ARN or an
+      IAM-compatible ARN pattern here to grant that access to ECS at launch time. Defaults to {}.
+    :type secrets: dict[str, list], optional
+
+    :param services: A dict where the keys are the names of services (as they will be referenced throughout this
+      configuration) and the values are dicts with a specific mapping:
+      ::
+
+          services:
+              service_name:
+                  assign_public_ip: yes|no  # "yes" required for containers to talk to the internet
+                  container_name: |
+                    "Name of a container in a task definition's ``container_definitions`` to route traffic to"
+                  container_port: "Port to route traffic to on the container."
+                  load_balancer: "Name of the load balancer routing traffic for this service"
+                  service: |
+                    "Dict of additional options to pass to the aws.ecs.Service resource constructor."
+                  target: |
+                    "Name of the target defined for this port"
+
+      Defaults to {}.
+    :type services: dict, optional
+
+    :param ssm_params: A dict where the keys are names of services and the values are lists of AWS Systems Manager
+        parameter ARNs. These are the SSM parameters which are required for launching the service's task. If your
+        service's task definition defines a container with an SSM-based "secret" environment variable, then you will
+        need to list the ARN or an IAM-compatible ARN pattern here to grant that access to ECS at launch time.
+        Defaults to {}.
+    :type ssm_params: dict[str, list], optional
+
+    :param task_definitions: A dict where the keys are names of services (each service has exactly one task
+        definition) and the keys are inputs to an `aws.ecs.TaskDefinition
+        <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/taskdefinition/>`_ resource. Defaults to {}.
+    :type task_definitions: dict, optional
+
+    :param targets: A dict where the keys are the names for target groups (as they will be referenced throughout
+        this configuration) and the values are inputs to an `aws.ecs.TargetGroup
+        <https://www.pulumi.com/registry/packages/aws/api-docs/lb/targetgroup/>`_ resource. Defaults to {}.
+    :type targets: dict, optional
+
+    :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :raises IndexError: When no subnets are provided to place containers in.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        subnets: list[aws.ec2.Subnet],
+        autoscalers: dict = {},
+        cluster: dict = {},
+        container_security_groups: dict[str:dict] = {},
+        listeners: dict[str, dict] = {},
+        load_balancer_security_groups: dict[str, dict] = {},
+        load_balancers: dict = {},
+        secrets: dict[str, list] = {},
+        services: dict = {},
+        ssm_params: dict[str, list] = {},
+        task_definitions: dict = {},
+        targets: dict = {str, dict},
+        opts: pulumi.ResourceOptions = None,
+    ):
+        if len(subnets) < 1:
+            raise IndexError('You must provide at least one subnet.')
+
+        super().__init__('tb:fargate:AutoscalingFargateCluster', name, project, opts=opts)
+
+        # Build the cluster in which we will run our services. We only need one, no matter how many services we run.
+        ecs_cluster = aws.ecs.Cluster(
+            f'{name}-cluster',
+            name=name,
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self),
+            **cluster,
+        )
+
+        # Build a log group per service; these are automatically encrypted by AWS
+        log_groups = {
+            service: aws.cloudwatch.LogGroup(
+                f'{name}-loggroup-{service}',
+                name=f'{name}-loggroup-{service}',
+                tags=self.tags,
+                opts=pulumi.ResourceOptions(parent=self),
+            )
+            for service in services.keys()
+        }
+
+        # Set up a single assume role policy (ARP) to be used for all services
+        arp = deepcopy(ASSUME_ROLE_POLICY)
+        arp['Statement'][0]['Principal']['Service'] = 'ecs-tasks.amazonaws.com'
+        arp = json.dumps(arp)
+
+        # Each task will need an execution role - a set of policies governing what that task is capable of doing within
+        # the AWS platform. Here we build the policy documents for those roles.
+        exec_role_policy_docs = {}
+        for service in services.keys():
+            service_secrets = secrets.get(service, None)
+            service_params = ssm_params.get(service, None)
+            if service_secrets or service_params:
+                policy = {
+                    'Version': '2012-10-17',
+                    'Statement': [],
+                }
+                if service_secrets:
+                    policy['Statement'].append(
+                        {
+                            'Sid': 'AllowSecretsAccess',
+                            'Effect': 'Allow',
+                            'Action': 'secretsmanager:GetSecretValue',
+                            'Resource': secrets.get(service, []),
+                        }
+                    )
+                if service_params:
+                    policy['Statement'].append(
+                        {
+                            'Sid': 'AllowParametersAccess',
+                            'Effect': 'Allow',
+                            'Action': 'ssm:GetParameters',
+                            'Resource': ssm_params.get(service, []),
+                        }
+                    )
+                exec_role_policy_docs[service] = json.dumps(policy)
+
+        # Build the exec role IAM policies themselves
+        exec_role_policies = {
+            service: aws.iam.Policy(
+                f'{name}-execrolepolicy-{service}',
+                name=f'{name}-{service}',
+                description=f'Grants permissions needed to launch the {service} service for {self.project.name_prefix}',
+                policy=exec_role_policy_docs[service],
+                opts=pulumi.ResourceOptions(parent=self),
+                tags=self.tags,
+            )
+            for service in services.keys()
+        }
+
+        # Build the execution roles using the policies from above
+        exec_roles = {
+            service: aws.iam.Role(
+                f'{name}-execrole-{service}',
+                name=f'{name}-{service}',
+                description=f'Task execution role for running the {service} service for {self.project.name_prefix}',
+                assume_role_policy=arp,
+                managed_policy_arns=[
+                    # This AWS managed policy allows access to ECR and log streams
+                    'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
+                    exec_role_policies[service],
+                ],
+                tags=self.tags,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[exec_role_policies[service]]),
+            )
+            for service in services.keys()
+        }
+
+        # First we build out task definitions. Later, we can refer to them by name. Since task definitions are
+        # one-to-one with cluster services, the task_name here is assumed to match with a service name.
+        task_defs = {}
+        for task_name, task_config in task_definitions.items():
+            cont_defs = json.dumps(task_config.pop('container_definitions', {}))
+            task_defs[task_name] = aws.ecs.TaskDefinition(
+                f'{name}-taskdef-{task_name}',
+                container_definitions=cont_defs,
+                execution_role_arn=exec_roles[task_name].arn,
+                tags=self.tags,
+                **task_config,
+            )
+
+        # Build security groups for the load balancers
+        lb_sgs = {
+            lb_name: SecurityGroupWithRules(
+                f'{name}-lbsg-{lb_name}',
+                project=self.project,
+                exclude_from_project=True,
+                vpc_id=subnets[0].vpc_id,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[subnets[0]]),
+                **sg_config,
+            )
+            for lb_name, sg_config in load_balancer_security_groups.items()
+        }
+
+        # Build security groups for the containers
+        cont_sgs = {}
+        for service_name, lb_sources in container_security_groups.items():
+            for lb_name, sg_config in lb_sources.items():
+                # Inject the load balancer as a valid source for each ingress rule
+                for rule in sg_config.get('rules', {}).get('ingress', []):
+                    rule['source_security_group_id'] = lb_sgs[lb_name].resources['sg'].id
+
+                cont_sgs[service_name] = {}
+                cont_sgs[service_name][lb_name] = SecurityGroupWithRules(
+                    f'{name}-contsg-{service_name}',
+                    project=self.project,
+                    exclude_from_project=True,
+                    vpc_id=subnets[0].vpc_id,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[subnets[0], lb_sgs[lb_name]]),
+                    **sg_config,
+                )
+
+        # Build the defined load balancers
+        lbs = {
+            lb_name: aws.lb.LoadBalancer(
+                f'{name}-lb-{lb_name}',
+                security_groups=[lb_sgs[lb_name].resources['sg'].id],
+                subnets=[subnet.id for subnet in subnets],
+                tags=self.tags,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[*subnets, *lb_sgs.values()]),
+                **lb_config,
+            )
+            for lb_name, lb_config in load_balancers.items()
+        }
+
+        # Build all target groups. There may be more than one port/service involved in load balancing, so target group
+        # configs are organized under the names of the load balancers they belong to.
+        target_groups = {
+            target_name: aws.lb.TargetGroup(
+                f'{name}-lb-{target_name}',
+                vpc_id=subnets[0].vpc_id,
+                tags=self.tags,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[subnets[0]]),
+                **target_config,
+            )
+            for target_name, target_config in targets.items()
+        }
+
+        # Build the listeners, which bind the target groups to the load balancers
+        lb_listeners = {}
+        for lb_name, listener_configs in listeners.items():
+            lb_listeners[lb_name] = {
+                target_name: aws.lb.Listener(
+                    f'{name}-listener-{target_name}',
+                    default_actions=[{'type': 'forward', 'targetGroupArn': target_groups[target_name].arn}],
+                    load_balancer_arn=lbs[lb_name].arn,
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=[lbs[lb_name], target_groups[target_name]]),
+                    **listener_config,
+                )
+                for target_name, listener_config in listener_configs.items()
+            }
+
+        # For use as dependencies, get a flat list of listeners
+        all_listeners = []
+        for lb_name in lb_listeners.keys():
+            all_listeners.extend(lb_listeners[lb_name].values())
+
+        # Finally, build out the service, which brings together all of the pieces of this puzzle
+        svcs = {}
+        for service_name, service_config in services.items():
+            lb_config = target_groups[service_config['target']].arn.apply(
+                lambda arn: {
+                    'container_name': service_config['container_name'],
+                    'container_port': service_config['container_port'],
+                    'target_group_arn': arn,
+                }
+            )
+            svcs[service_name] = aws.ecs.Service(
+                f'{name}-svc-{service_name}',
+                cluster=ecs_cluster.arn,
+                launch_type='FARGATE',
+                load_balancers=[lb_config],
+                name=f'{name}-{service_name}',
+                network_configuration={
+                    'assign_public_ip': service_config.get('assign_public_ip', False),
+                    'security_groups': [cont_sgs[service_name][service_config['load_balancer']].resources['sg'].id],
+                    'subnets': [subnet.id for subnet in subnets],
+                },
+                tags=self.tags,
+                task_definition=task_defs[service_name].arn,
+                opts=pulumi.ResourceOptions(
+                    parent=self,
+                    depends_on=[
+                        ecs_cluster,
+                        cont_sgs[service_name][service_config['load_balancer']],
+                        *lbs.values(),
+                        *all_listeners,
+                        *subnets,
+                        target_groups[service_config['target']],
+                        task_defs[service_name],
+                    ],
+                ),
+                **service_config.get('service', {}),
+            )
+
+        # Build an autoscaler to keep the service scaled out
+        scalers = {
+            service_name: tb_pulumi.autoscale.EcsServiceAutoscaler(
+                f'{name}-autoscaler-{service_name}',
+                project=self.project,
+                exclude_from_project=True,
+                service=svcs[service_name],
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[svcs[service_name]]),
+                **autoscaler_config,
+            )
+            for service_name, autoscaler_config in autoscalers.items()
+        }
+
+        self.finish(
+            resources={
+                'autoscalers': scalers,
+                'cluster': ecs_cluster,
+                'container_security_groups': cont_sgs,
+                'execution_role_policies': exec_role_policies,
+                'execution_roles': exec_roles,
+                'listeners': lb_listeners,
+                'load_balancer_security_groups': lb_sgs,
+                'load_balancers': lbs,
+                'log_groups': log_groups,
+                'services': svcs,
+                'target_groups': target_groups,
+                'task_definitions': task_defs,
+            }
+        )
 
 
 class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
@@ -176,7 +589,7 @@ class FargateClusterWithLogging(tb_pulumi.ThunderbirdComponentResource):
                         {
                             'Sid': 'AllowECSLogSending',
                             'Effect': 'Allow',
-                            'Action': 'logs:CreateLogGroup',
+                            'Action': ['logs:CreateLogGroup'],
                             'Resource': arn,
                         }
                     ],

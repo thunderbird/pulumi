@@ -107,12 +107,12 @@ you must create only one. Consider this YAML config and Python definition of a `
   resources:
     tb:network:MultiCidrVpc:
       vpc:
-      cidr_block: 10.0.0.0/16
-      subnets:
-        eu-central-1a:
-          - 10.0.0.0/17
-        eu-central-1b:
-          - 10.0.128.0/1
+        cidr_block: 10.0.0.0/16
+        subnets:
+          eu-central-1a:
+            - 10.0.0.0/17
+          eu-central-1b:
+            - 10.0.128.0/17
 
 .. code-block:: python
 
@@ -191,7 +191,7 @@ IDs that don't exist yet.
   are defining a ``Resource`` which depends on another ``Resource``. This relationship in Pulumi causes it to wait for
   the first ``Resource`` to be fully applied before trying to apply the dependent one.
 
-  A Pulumi ``ComponentResource`` is a collection of ``Resource``s, but it is actually an extension of the ``Resource``
+  A Pulumi ``ComponentResource`` is a collection of ``Resource`` s, but it is actually an extension of the ``Resource``
   class. So Pulumi understands this as a type of resource upon which some other resource can be dependent.
 
   A ``ThunderbirdComponentResource`` is an extension of the ``ComponentResource`` class, meaning that **even our custom
@@ -207,7 +207,9 @@ If you need to wait on that value so you can form it as text, you must write an 
   # ... project setup, etc ...
 
   subnet_id = vpc.resources.get('subnets')[0]
-  json_text = subnet_id.apply(lambda subnet_id: json.dumps({'subnet_id': subnet_id}))
+  json_text = subnet_id.apply(
+      lambda subnet_id:
+          json.dumps({'subnet_id': subnet_id}))
 
 
 Defining multiple resources of the same type
