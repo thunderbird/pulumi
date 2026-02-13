@@ -10,35 +10,20 @@ on:
     branches:
       - main
 
-permissions:
-    contents: read
-
 jobs:
-
   # Build the documentation and publish to Github Pages
   publish-docs:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository }}/cached-devcontainer:latest
     permissions:
-        contents: write
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Python 3.13
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v4
 
       - name: Build docs
-        shell: bash
-        run: |
-          # Install dependencies and build the HTML docs
-          pip install .[dev]
-          cd docs
-          make clean html
-
-          # Compress for archival
-          cd _build/html
-          tar -cvjf ../../../docs.tbz ./*
+        run: ./build-docs.sh
 
       - name: Archive docs
         id: archive
