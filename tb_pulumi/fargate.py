@@ -243,10 +243,10 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self),
                 tags=self.tags,
             )
-            for service in services.keys()
+            for service in exec_role_policy_docs.keys()
         }
 
-        # Build the execution roles using the policies from above
+        # Build the execution roles using the policies from above, if they exist
         exec_roles = {
             service: aws.iam.Role(
                 f'{name}-execrole-{service}',
@@ -254,12 +254,23 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
                 description=f'Task execution role for running the {service} service for {self.project.name_prefix}',
                 assume_role_policy=arp,
                 managed_policy_arns=[
-                    # This AWS managed policy allows access to ECR and log streams
-                    'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
-                    exec_role_policies[service],
+                    item
+                    for item in [
+                        # This AWS managed policy allows access to ECR and log streams
+                        'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
+                        exec_role_policies[service] if service in exec_role_policies else None,
+                    ]
+                    if item is not None
                 ],
                 tags=self.tags,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[exec_role_policies[service]]),
+                opts=pulumi.ResourceOptions(
+                    parent=self,
+                    depends_on=[
+                        item
+                        for item in [exec_role_policies[service] if service in exec_role_policies else None]
+                        if item is not None
+                    ],
+                ),
             )
             for service in services.keys()
         }
