@@ -161,6 +161,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         subnets: list[aws.ec2.Subnet],
         autoscalers: dict = {},
         cluster: dict = {},
+        cluster_name: str = None,
         container_security_groups: dict[str:dict] = {},
         listeners: dict[str, dict] = {},
         load_balancer_security_groups: dict[str, dict] = {},
@@ -175,12 +176,15 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         if len(subnets) < 1:
             raise IndexError('You must provide at least one subnet.')
 
+        if cluster_name is None:
+            cluster_name = name
+
         super().__init__('tb:fargate:AutoscalingFargateCluster', name, project, opts=opts)
 
         # Build the cluster in which we will run our services. We only need one, no matter how many services we run.
         ecs_cluster = aws.ecs.Cluster(
             f'{name}-cluster',
-            name=name,
+            name=cluster_name,
             tags=self.tags,
             opts=pulumi.ResourceOptions(parent=self),
             **cluster,
