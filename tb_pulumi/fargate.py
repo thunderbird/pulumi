@@ -380,6 +380,17 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
                 if service_config.get('load_balancer', None)
                 else []
             )
+            depends_on = [
+                ecs_cluster,
+                *lbs.values(),
+                *all_listeners,
+                *subnets,
+                task_defs[service_name],
+            ]
+            if service_name in cont_sgs:
+                depends_on.append(cont_sgs[service_name][service_config['load_balancer']])
+            if service_config['target'] in target_groups:
+                depends_on.append(target_groups[service_config['target']])
             svcs[service_name] = aws.ecs.Service(
                 f'{name}-svc-{service_name}',
                 cluster=ecs_cluster.arn,
@@ -388,22 +399,16 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
                 name=f'{name}-{service_name}',
                 network_configuration={
                     'assign_public_ip': service_config.get('assign_public_ip', False),
-                    'security_groups': [cont_sgs[service_name][service_config['load_balancer']].resources['sg'].id],
+                    'security_groups': [cont_sgs[service_name][service_config['load_balancer']].resources['sg'].id]
+                    if service_name in cont_sgs
+                    else None,
                     'subnets': [subnet.id for subnet in subnets],
                 },
                 tags=self.tags,
                 task_definition=task_defs[service_name].arn,
                 opts=pulumi.ResourceOptions(
                     parent=self,
-                    depends_on=[
-                        ecs_cluster,
-                        cont_sgs[service_name][service_config['load_balancer']],
-                        *lbs.values(),
-                        *all_listeners,
-                        *subnets,
-                        target_groups[service_config['target']],
-                        task_defs[service_name],
-                    ],
+                    depends_on=depends_on,
                 ),
                 **service_config.get('service', {}),
             )
