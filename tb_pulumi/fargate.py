@@ -367,18 +367,24 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         # Finally, build out the service, which brings together all of the pieces of this puzzle
         svcs = {}
         for service_name, service_config in services.items():
-            lb_config = target_groups[service_config['target']].arn.apply(
-                lambda arn: {
-                    'container_name': service_config['container_name'],
-                    'container_port': service_config['container_port'],
-                    'target_group_arn': arn,
-                }
+            lb_config = (
+                target_groups[service_config['target']].arn.apply(
+                    lambda arn: [
+                        {
+                            'container_name': service_config['container_name'],
+                            'container_port': service_config['container_port'],
+                            'target_group_arn': arn,
+                        }
+                    ]
+                )
+                if service_config.get('load_balancer', None)
+                else []
             )
             svcs[service_name] = aws.ecs.Service(
                 f'{name}-svc-{service_name}',
                 cluster=ecs_cluster.arn,
                 launch_type='FARGATE',
-                load_balancers=[lb_config],
+                load_balancers=lb_config,
                 name=f'{name}-{service_name}',
                 network_configuration={
                     'assign_public_ip': service_config.get('assign_public_ip', False),
