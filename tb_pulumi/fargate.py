@@ -27,6 +27,9 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
     routes traffic to your containers. This is done by associating **targets** (ports on containers) with **listeners**
     (servers that accept traffic from originating sources and route it according to rules which determine its target).
 
+    For additional information, see `Patterns of Use: Designing Autoscaling Fargate Clusters
+    <patterns.html#designing-autoscaling-fargate-clusters>`_.
+
     Produces the following ``resources``:
 
         - *autoscalers* - Dict of :py:class:`tb_pulumi.autoscale.EcsServiceAutoscaler` s created, organized in the same
