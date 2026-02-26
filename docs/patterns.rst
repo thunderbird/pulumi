@@ -327,6 +327,262 @@ This would ultimately create a series of Secrets Manager entries named after the
 makes sure that your secret data stays secret the whole way through to the cloud provider.
 
 
+.. _autoscaling_fargate_cluster_patterns:
+
+Designing Autoscaling Fargate Clusters
+--------------------------------------
+
+The :py:class:`tb_pulumi.fargate.AutoscalingFargateCluster` class provides a one-stop pattern for deploying Fargate
+services. It improves upon the :py:class:`tb_pulumi.fargate.FargateClusterWithLogging` class in a variety of ways:
+
+- Supports multiple services per cluster
+- Allows full control over load balancing
+- Internally builds security groups connecting load balancers and containers
+
+.. note::
+
+    The ``FargateClusterWithLogging`` will become deprecated in a future version and eventually removed in favor of the
+    ``AutoscalingFargateCluster`` class.
+
+The class documentation is thorough, but does little to guide you through the design of your cluster and the
+configuration that leads to that design working. Therefore, we have this bit of documentation, which helps step you
+through the process of setting up a cluster.
+
+Before writing out any configuration, consider what services you will need to expose. Come up with a YAML-friendly name
+for each of them. You will eventually name some configurations after these terms, and you will need to reference them
+elsewhere before you define those services, so it is best to have a clear idea of this before diving in. In our example,
+we will define one exposed API service (``svc_exposed_api``) and one unexposed background worker service
+(``svc_background_worker``).
+
+.. note::
+  
+  You probably want your cluster running on private network space. At any rate, you will need to provide a list of valid
+  subnets on which to run your tasks. We recommend setting up a :py:class:`tb_pulumi.network.MultiCidrVpc` or a
+  :py:class:`tb_pulumi.network.MultiTierVpc` and using the subnet resources it creates as inputs to your autoscaling
+  Fargate cluster.
+
+That accomplished, begin with some YAML, following our conventions:
+
+.. code-block:: yaml
+
+  ---
+  resources:
+  # ...
+    tb:fargate:AutoscalingFargateCluster:
+      my_cluster:
+        # ...
+
+The cluster itself is little more than an organizational unit for services. Typically, you can let it run with defaults,
+specifying only a name:
+
+.. code-block:: yaml
+
+  # ...
+      my_cluster:
+        cluster: {} # You can specify other cluster settings here if necessary
+        cluster_name: my-cluster # How this appears in the ECS clusters console
+
+Now work out your task definitions. For each service you intend to run (whether it will be exposed through a load
+balancer or not), add an entry to your config:
+
+.. code-block:: yaml
+
+  # ...
+        cluster_name: my-cluster
+        task_definitions:
+          svc_background_worker:
+            container_definitions:
+              - name: ctr_background_worker
+            # ... other container/task definition options
+          svc_exposed_api:
+            # ... task definition
+
+What you put in the various service entries is `documented by AWS
+<https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_TaskDefinition.html>`_.
+
+.. note::
+
+  Task definitions can contain multiple container definitions. Each of those has a name. You can name them anything you
+  like, but they must be unique in the cluster. You will need to reference these names later in the service
+  configurations.
+
+Now define your targets. A target is a service exposed through a network port on one of your containers. Each target's
+name will be referred to later by load balancer configurations. The values for each target are the inputs to a
+`TargetGroup Pulumi resource <https://www.pulumi.com/registry/packages/aws/api-docs/lb/targetgroup/>`_.
+
+.. code-block:: yaml
+
+  # ...
+        targets:
+          tgt_exposed_api:
+            name: exposed-api-stage
+            port: 1234
+            protocol: HTTP
+            target_type: ip
+            ip_address_type: ipv4
+            health_check:
+              port: 1234
+              path: /health
+              protocol: HTTP
+
+.. note::
+
+  Not every task in a service necessarily exposes a port. The background worker in our example only ever pulls jobs from
+  another source, never even opening a network port. For these services, you should write task definitions and so on,
+  but not targets, nor load balancers, nor load balancer security groups.
+
+Now define your load balancers. You will need a load balancer for any service you wish to expose. Load balancers do not
+have to be public facing (set ``internal: yes``). The term you provide as the key for each load balancer config here
+will be referenced later in other parts of the config. The configuration options are inputs to `aws.lb.LoadBalancers
+<https://www.pulumi.com/registry/packages/aws/api-docs/lb/loadbalancer/>`_. Remember that a load balancer's ``name``
+attribute can be no longer than 32 characters, a limit imposed by AWS's API.
+
+.. code-block:: yaml
+
+  # ...
+        load_balancers:
+          lb_exposed_api:
+            enable_cross_zone_load_balancing: yes
+            internal: yes
+            ip_address_type: ipv4
+            load_balancer_type: application
+            name: exposed-api-stage # 32 characters max
+
+Next, design the security groups for your containers. In this config, we refer to our own
+:py:class:`tb_pulumi.network.SecurityGroupWithRules` pattern, and we organize around the names of services and load
+balancers. The reason for including the load balancer names here is that the code can determine the correct set of
+security group rules to allow traffic from each service's load balancer to its corresponding targets. If a service does
+not expose a port through a load balancer, use the string "none" to define a security group without making this network
+association.
+
+.. code-block:: yaml
+
+  # ...
+        container_security_groups:
+          svc_background_worker:
+            none:
+              description: SG for background worker
+              rules:
+                egress:
+                  - from_port: 0
+                    to_port: 65535
+                    protocol: tcp
+                    description: Allow all egress
+                    cidr_blocks:
+                      - 0.0.0.0/0
+                    ingress: []  # The worker doesn't allow inbound traffic
+          svc_exposed_api:
+            lb_exposed_api:
+              description: SG for API worker
+              rules:
+                egress:
+                  - from_port: 0
+                    to_port: 65535
+                    protocol: tcp
+                    description: Allow all egress
+                    cidr_blocks:
+                      - 0.0.0.0/0
+                ingress:
+                  - from_port: 1234
+                    to_port: 1234
+                    protocol: tcp
+                    description: Allow API traffic from internal network only
+                    # The source for this rule will be added programmatically, referring to the load balalncer's SG
+
+Now we do the same thing for our load balancer security groups. These are listed by the name of the load balancer they
+apply to.
+
+.. code-block:: yaml
+
+  # ...
+        load_balancer_security_groups:
+          lb_exposed_api:
+            rules:
+              egress:
+                # ... Rule to allow egress
+              ingress:
+                - from_port: 443
+                  to_port: 443
+                  protocol: tcp
+                  description: Allow TLS traffic from local network only
+                  cidr_blocks:
+                    - 10.0.0.0/8
+
+With our load balancers set up, we can now describe each one's listeners. A listener is a port the load balancer holds
+open. It is associated with some rules defining which of its targets to route traffic to. This class automatically sets
+up port-based forwarding rules between the load balancer and target you set. Use those terms when setting up listeners.
+
+.. code-block:: yaml
+
+  # ...
+        listeners:
+          lb_exposed_api: # The load balancer to attach the listener to
+            tgt_exposed_api: # The target to route this traffic to
+              certificate_arn: arn:aws:acm:etc:etc:etc # Certificate to terminate SSL with
+              port: 443
+              protocol: HTTPS
+
+
+Finally, we can define services. These are scalable workloads which tie together all of the elements we've just set up.
+If your service doesn't expose a port, you can leave off the various routing options.
+
+.. code-block:: yaml
+
+  # ...
+        services:
+          svc_background_worker:
+            assign_public_ip: yes # This is usually required, if only to access a container image repository
+            service: # Inputs to an ECS Service resource go in here
+              desired_count: 1
+            target: null # There is no target
+          svc_exposed_api:
+            assign_public_ip: yes
+            container_name: ctr_background_worker
+            container_port: 1234
+            load_balancer: lb_exposed_api
+            service:
+              desired_count: 1 # The autoscaler will take over managing this value later
+            target: tgt_exposed_api
+
+We also have to define any special resources that these services need access to in order to launch and run. This
+typically involves access to ECR registries (for pulling container images), secret values stored in AWS Secrets Manager,
+and runtime parameters stored in AWS Systems Manager (SSM). For these, provide lists of ARNs or ARN patterns under the
+names of the services that need access to them, or provide empty objects where no access is needed.
+
+.. code-block:: yaml
+
+  # ...
+        registries:
+          svc_background_worker:
+            - arn:aws:ecr:eu-central-1:123456789098:repository/bgworker/*
+          svc_exposed_api:
+            - arn:aws:ecr:eu-central-1:123456789098:repository/api/*
+        
+        secrets:
+          svc_background_worker:
+            - arn:aws:secretsmanager:eu-central-1:123456789098:secret:bgworker/stage/*
+          svc_exposed_api:
+            - arn:aws:secretsmanager:eu-central-1:123456789098:secret:bgworker/stage/*
+        
+        ssm_params: {}
+
+The last thing to write up is our autoscaling demand. Each service gets a configuration for a
+:py:class:`tb_pulumi.autoscale.EcsServiceAutoscaler`.
+
+.. code-block:: yaml
+
+  # ...
+        autoscalers:
+          svc_background_worker:
+            min_capacity: 1
+            max_capacity: 2
+          svc_exposed_api:
+            min_capacity: 2
+            max_capacity: 4
+
+And that's it! A ``pulumi up`` should bring up this cluster.
+
+
 .. _full_stack_patterns:
 
 Acting on Fully Applied Pulumi Stacks

@@ -27,6 +27,9 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
     routes traffic to your containers. This is done by associating **targets** (ports on containers) with **listeners**
     (servers that accept traffic from originating sources and route it according to rules which determine its target).
 
+    For additional information, see `Patterns of Use: Designing Autoscaling Fargate Clusters
+    <patterns.html#designing-autoscaling-fargate-clusters>`_.
+
     Produces the following ``resources``:
 
         - *autoscalers* - Dict of :py:class:`tb_pulumi.autoscale.EcsServiceAutoscaler` s created, organized in the same
@@ -106,6 +109,9 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
       ports and additional listeners to the load balancer aimed at those targets. Defaults to {}.
     :type load_balancers: dict, optional
 
+    :param registries: A dict where the keys are names of services and the values are lists of Elastic Container
+      Registry ARN patterns. If your service depends upon an image stored in ECR, you should list their ARNs here.
+
     :param secrets: A dict where the keys are names of services and the values are lists of Secrets Manager secret ARNs.
       These are the secrets which are required for launching the service's task. If your service's task definition
       defines a container with a ``secrets``-based environment variable, then you will need to list the ARN or an
@@ -161,10 +167,12 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         subnets: list[aws.ec2.Subnet],
         autoscalers: dict = {},
         cluster: dict = {},
+        cluster_name: str = None,
         container_security_groups: dict[str:dict] = {},
         listeners: dict[str, dict] = {},
         load_balancer_security_groups: dict[str, dict] = {},
         load_balancers: dict = {},
+        registries: dict[str, list] = {},
         secrets: dict[str, list] = {},
         services: dict = {},
         ssm_params: dict[str, list] = {},
@@ -175,12 +183,15 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         if len(subnets) < 1:
             raise IndexError('You must provide at least one subnet.')
 
+        if cluster_name is None:
+            cluster_name = name
+
         super().__init__('tb:fargate:AutoscalingFargateCluster', name, project, opts=opts)
 
         # Build the cluster in which we will run our services. We only need one, no matter how many services we run.
         ecs_cluster = aws.ecs.Cluster(
             f'{name}-cluster',
-            name=name,
+            name=cluster_name,
             tags=self.tags,
             opts=pulumi.ResourceOptions(parent=self),
             **cluster,
@@ -206,13 +217,30 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         # the AWS platform. Here we build the policy documents for those roles.
         exec_role_policy_docs = {}
         for service in services.keys():
+            ecr_arns = registries.get(service, None)
             service_secrets = secrets.get(service, None)
             service_params = ssm_params.get(service, None)
-            if service_secrets or service_params:
+            if ecr_arns or service_secrets or service_params:
                 policy = {
                     'Version': '2012-10-17',
                     'Statement': [],
                 }
+                if ecr_arns:
+                    policy['Statement'].append(
+                        {
+                            'Sid': 'AllowECRAccess',
+                            'Effect': 'Allow',
+                            'Action': [
+                                'ecr:BatchCheckLayerAvailability',
+                                'ecr:BatchGetImage',
+                                'ecr:DescribeImages',
+                                'ecr:GetDownloadUrlForLayer',
+                                'ecr:ListImages',
+                                'ecr:ListTagsForResource',
+                            ],
+                            'Resource': ecr_arns,
+                        }
+                    )
                 if service_secrets:
                     policy['Statement'].append(
                         {
@@ -305,9 +333,13 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         cont_sgs = {}
         for service_name, lb_sources in container_security_groups.items():
             for lb_name, sg_config in lb_sources.items():
-                # Inject the load balancer as a valid source for each ingress rule
-                for rule in sg_config.get('rules', {}).get('ingress', []):
-                    rule['source_security_group_id'] = lb_sgs[lb_name].resources['sg'].id
+                # If there's a load balancer associated with it...
+                depends_on = [subnets[0]]
+                if lb_name.lower() != 'none':
+                    # Inject the load balancer as a valid source for each ingress rule
+                    for rule in sg_config.get('rules', {}).get('ingress', []):
+                        rule['source_security_group_id'] = lb_sgs[lb_name].resources['sg'].id
+                    depends_on.append(lb_sgs[lb_name])
 
                 cont_sgs[service_name] = {}
                 cont_sgs[service_name][lb_name] = SecurityGroupWithRules(
@@ -315,7 +347,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
                     project=self.project,
                     exclude_from_project=True,
                     vpc_id=subnets[0].vpc_id,
-                    opts=pulumi.ResourceOptions(parent=self, depends_on=[subnets[0], lb_sgs[lb_name]]),
+                    opts=pulumi.ResourceOptions(parent=self, depends_on=depends_on),
                     **sg_config,
                 )
 
@@ -367,37 +399,61 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         # Finally, build out the service, which brings together all of the pieces of this puzzle
         svcs = {}
         for service_name, service_config in services.items():
-            lb_config = target_groups[service_config['target']].arn.apply(
-                lambda arn: {
-                    'container_name': service_config['container_name'],
-                    'container_port': service_config['container_port'],
-                    'target_group_arn': arn,
-                }
+            lb_config = (
+                target_groups[service_config['target']].arn.apply(
+                    lambda arn: [
+                        {
+                            'container_name': service_config['container_name'],
+                            'container_port': service_config['container_port'],
+                            'target_group_arn': arn,
+                        }
+                    ]
+                )
+                if service_config.get('load_balancer', None)
+                else []
             )
+
+            # Set up dependencies. Start with dependencies common to all services.
+            depends_on = [
+                ecs_cluster,
+                *lbs.values(),
+                *all_listeners,
+                *subnets,
+                task_defs[service_name],
+            ]
+
+            service_sgs = []
+
+            # The service depends on its container security groups
+            if service_name in cont_sgs:
+                sgs = [sg for sg in cont_sgs[service_name].values()]
+                service_sgs.extend([sg.resources['sg'].id for sg in sgs])
+                depends_on.extend(sgs)
+                # The service also depends on a load balancer SG if we have a config with a valid LB reference
+                if 'load_balancer' in service_config and service_config['load_balancer'] in cont_sgs[service_name]:
+                    depends_on.append(lb_sgs[service_config['load_balancer']])
+
+            # The service depends on a target group if we have a config defined for it
+            if service_config['target'] in target_groups:
+                depends_on.append(target_groups[service_config['target']])
+
+            # Build the service
             svcs[service_name] = aws.ecs.Service(
                 f'{name}-svc-{service_name}',
                 cluster=ecs_cluster.arn,
                 launch_type='FARGATE',
-                load_balancers=[lb_config],
+                load_balancers=lb_config,
                 name=f'{name}-{service_name}',
                 network_configuration={
                     'assign_public_ip': service_config.get('assign_public_ip', False),
-                    'security_groups': [cont_sgs[service_name][service_config['load_balancer']].resources['sg'].id],
+                    'security_groups': service_sgs,
                     'subnets': [subnet.id for subnet in subnets],
                 },
                 tags=self.tags,
                 task_definition=task_defs[service_name].arn,
                 opts=pulumi.ResourceOptions(
                     parent=self,
-                    depends_on=[
-                        ecs_cluster,
-                        cont_sgs[service_name][service_config['load_balancer']],
-                        *lbs.values(),
-                        *all_listeners,
-                        *subnets,
-                        target_groups[service_config['target']],
-                        task_defs[service_name],
-                    ],
+                    depends_on=depends_on,
                 ),
                 **service_config.get('service', {}),
             )
