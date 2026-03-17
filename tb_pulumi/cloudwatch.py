@@ -62,6 +62,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
         project: tb_pulumi.ThunderbirdPulumiProject,
         log_group: dict = {},
         log_streams: dict = {},
+        org_name: str = None,
         key: dict = {},
         key_alias: str = None,
         opts: pulumi.ResourceOptions = None,
@@ -75,9 +76,56 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
             tags=tags,
         )
 
+        # Determine the log group's name before doing anything else; we need it for the key
+        __log_group_name = (
+            f'/{org_name}/{self.project.stack}/{self.project.project}'
+            if org_name
+            else f'/{self.project.stack}/{self.project.project}'
+        )
+
+        # KMS Keys need policies to describe who can manage the keys and who can use them for encryption operations.
+        __kms_key_policy = json.dumps(
+            {
+                'Version': '2012-10-17',
+                'Id': 'key-default-1',
+                'Statement': [
+                    # The account's root user can manage this. So can users with IAM Policies allowing it.
+                    {
+                        'Sid': 'Enable IAM User Permissions',
+                        'Effect': 'Allow',
+                        'Principal': {'AWS': f'arn:aws:iam::{self.project.aws_account_id}:root'},
+                        'Action': 'kms:*',
+                        'Resource': '*',
+                    },
+                    # We have to allow the Logs platform these actions or it can't use the key
+                    {
+                        'Effect': 'Allow',
+                        'Principal': {'Service': f'logs.{self.project.aws_region}.amazonaws.com'},
+                        'Action': [
+                            'kms:Encrypt',
+                            'kms:Decrypt',
+                            'kms:ReEncrypt*',
+                            'kms:GenerateDataKey*',
+                            'kms:Describe*',
+                        ],
+                        'Resource': '*',
+                        'Condition': {
+                            'ArnLike': {
+                                'kms:EncryptionContext:aws:logs:arn': (
+                                    f'arn:aws:logs:{self.project.aws_region}:{self.project.aws_account_id}:'
+                                    f'log-group:{__log_group_name}'
+                                )
+                            }
+                        },
+                    },
+                ],
+            }
+        )
+
         # Set up the KMS Key, allowing users to override the defaults
         __key_config = {
             'enable_key_rotation': True,
+            'policy': __kms_key_policy,
             'rotation_period_in_days': 90,
             'tags': self.tags,
         }
@@ -106,15 +154,16 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
 
         # Create the log group and any streams we've been told to create
         __log_group_config = {
-            'kms_key_kd': __kms_key.id,
+            'kms_key_id': __kms_key.arn,  # Yes, this must be the ARN, and never the ID, else the API 400s at you
             'log_group_class': 'STANDARD',
-            'name': f'/{self.project.project}/{self.project.stack}',
+            'name': __log_group_name,
             'retention_in_days': 3,
             'tags': self.tags,
         }
+        __log_group_config.update(log_group)
         __log_group = aws.cloudwatch.LogGroup(
             f'{self.project.name_prefix}-loggroup',
-            **log_group,
+            **__log_group_config,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[__kms_key]),
         )
 
