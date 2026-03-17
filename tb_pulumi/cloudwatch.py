@@ -60,10 +60,10 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
-        alias: str = None,
         log_group: dict = {},
         log_streams: dict = {},
         key: dict = {},
+        key_alias: str = None,
         opts: pulumi.ResourceOptions = None,
         tags: dict = {},
     ):
@@ -78,30 +78,29 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
         # Set up the KMS Key, allowing users to override the defaults
         __key_config = {
             'enable_key_rotation': True,
-            'rotation_in_days': 90,
+            'rotation_period_in_days': 90,
             'tags': self.tags,
         }
         __key_config.update(key)
         __kms_key = aws.kms.Key(
-            f'{self.name_prefix}-key',
+            f'{self.project.name_prefix}-key',
             **__key_config,
             opts=pulumi.ResourceOptions(parent=self),
         )
 
         # Optionally, create an Alias for the Key so it's labeled and easy to find in the console.
         # KMS Alias names *must* begin with "alias/" so we cover our bases here.
-        if alias and not alias.startswith('alias/'):
-            alias = f'alias/{alias}'
+        if key_alias and not key_alias.startswith('alias/'):
+            key_alias = f'alias/{key_alias}'
 
         __alias = (
             aws.kms.Alias(
-                f'{self.name_prefix}-alias',
+                f'{self.project.name_prefix}-alias',
                 target_key_id=__kms_key.id,
-                name=alias,
+                name=key_alias,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[__kms_key]),
-                tags=self.tags,
             )
-            if alias
+            if key_alias
             else None
         )
 
@@ -114,14 +113,14 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
             'tags': self.tags,
         }
         __log_group = aws.cloudwatch.LogGroup(
-            f'{self.name_prefix}-loggroup',
+            f'{self.project.name_prefix}-loggroup',
             **log_group,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[__kms_key]),
         )
 
         __log_streams = {
             stream_id: aws.cloudwatch.LogStream(
-                f'{self.name_prefix}-logstream-{stream_name}',
+                f'{self.project.name_prefix}-logstream-{stream_name}',
                 log_group_name=__log_group.name,
                 name=stream_name,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[__log_group]),
@@ -177,20 +176,29 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
             )
         )
 
+        __read_policy_description = __log_group.name.apply(
+            lambda log_group_name: (
+                f'Grants the ability to read, filter, and query logs for log group {log_group_name}'
+            )
+        )
+
         __iam_policy_group_read = aws.iam.Policy(
-            f'{project.name_prefix}-policy-read',
-            name=f'{project.name_prefix}-cloudwatch-group-read-access',
+            f'{self.project.name_prefix}-policy-read',
+            name=f'{self.project.name_prefix}-cloudwatch-group-read-access',
+            description=__read_policy_description,
             path='/',
-            description=f'Grants the ability to read, filter, and query logs for log group {__log_group.name}',
             policy=__iam_policy_group_read_doc,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[__log_group]),
         )
 
+        __write_policy_description = __log_group.name.apply(
+            lambda log_group_name: f'Grants the ability to write events to log group {log_group_name}'
+        )
         __iam_policy_group_write = aws.iam.Policy(
-            f'{project.name_prefix}-policy-write',
-            name=f'{project.name_prefix}-cloudwatch-group-write-access',
+            f'{self.project.name_prefix}-policy-write',
+            name=f'{self.project.name_prefix}-cloudwatch-group-write-access',
+            description=__write_policy_description,
             path='/',
-            description=f'Grants the ability to write events to log group {__log_group.name}',
             policy=__iam_policy_group_write_doc,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[__log_group]),
         )
@@ -203,10 +211,10 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
                 'key_alias': __alias,
                 'log_group': __log_group,
                 'log_streams': __log_streams,
-                'iam_policies': {
-                    'read': __iam_policy_group_read,
-                    'write': __iam_policy_group_write,
-                },
+                # 'iam_policies': {
+                #     'read': __iam_policy_group_read,
+                #     'write': __iam_policy_group_write,
+                # },
                 # 'cloud_trail': _cloud_trail,
                 # 'cloud_trail_alarm': _cloud_trail_alarm,
             }
