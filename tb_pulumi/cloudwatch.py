@@ -21,24 +21,19 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
 
     Produces the following ``resources``:
 
+        - *key_alias* - `aws.kms.Alias <https://www.pulumi.com/registry/packages/aws/api-docs/kms/alias/>`_ used to name
+          the ``kms_key`` resource.
         - *kms_key* - `aws.kms.Key
           <https://www.pulumi.com/registry/packages/aws/api-docs/kms/key/>`_ used for encrypting all data in the log
           group.
-        - *key_alias* - `aws.kms.Alias <https://www.pulumi.com/registry/packages/aws/api-docs/kms/alias/>`_ used to name
-          the key.
         - *log_group* - `aws.cloudwatch.LogGroup
           <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/loggroup/>`_ where logs can be sent and
           stored.
         - *log_streams* - Dict of `aws.cloudwatch.LogStreams
           <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/logstream/>`_ created by this module.
         - *iam_policies* - Dict of `aws.iam.Policy
-          <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/logstream/>`_ s granting various levels of
-          access to these streams.
-        - *cloud_trail* - `aws.cloudtrail.Trail
-          <https://www.pulumi.com/registry/packages/aws/api-docs/cloudtrail/trail/>`_ for auditing log access.
-        - *cloud_trail_alarm* - `aws.cloudwatch.MetricAlarm
-          <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/metricalarm/>`_ that trips when log access
-          is detected.
+          <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/logstream/>`_ resources granting various
+          levels of access to these streams. There are two entries here, ``read`` and ``write``.
 
     :param name: The name of the ``CloudWatchMonitoringGroup`` resource.
     :type name: str
@@ -46,14 +41,42 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
     :param project: The ``ThunderbirdPulumiProject`` to build monitoring resources for.
     :type project: tb_pulumi.ThunderbirdPulumiProject
 
+    :param log_group: Dict of inputs to an `aws.cloudwatch.LogGroup
+        <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/loggroup/#inputs>`_. This class assumes some
+        deviations from defaults, intended to comply with Thunderbird Pro Services internal logging guidelines. Inputs
+        set here will be merged with our custom defaults, allowing you to override specific settings. This class sets
+        custom default values for the following inputs: ``log_group_class`` (``STANDARD``); ``name`` (determined from
+        other inputs); ``retention_in_days`` (``3``). We also specify the ``kms_key_id`` created by this class. Defaults
+        to {}.
+    :type log_group: dict, optional
+
+    :param log_streams: Dict where the keys are labels for the streams and the values are the names of the log streams
+        to create. Defaults to {}.
+    :type log_streams: dict, optional
+
+    :param org_name: An optional term used when determining the log group name. If you do not supply an ``org_name``,
+        the log group will be called ``/{stack}/{project_name}``. If you do supply a value, that will be prefixed by
+        ``/{org_name}``. Defaults to None.
+    :type org_name: str, optional
+
+    :param key: Dict of inputs to an `aws.kms.Key
+        <https://www.pulumi.com/registry/packages/aws/api-docs/kms/key/#inputs>`_ resource. This class makes several
+        assumptions about this key, which you can override with this parameter. For example, the default configuration
+        enables key rotation every 90 days. It also defines a key policy that allows IAM policies to control management
+        access to the key, and allows only this log group to use it for encryption purposes. Defaults to {}.
+    :type key: dict, optional
+
+    :param key_alias: If supplied, the KMS Key will be associated with an Alias, allowing users to quickly identify the
+        key. Without this, the key has no "name" so to speak. Supplying this parameter will result in the ``key_alias``
+        resource being created. Defaults to None.
+    :type key_alias: str, optional
+
     :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
 
     :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
         Defaults to {}.
     :type tags: dict, optional
-
-    TODO: Rest of the sphinx autodocs
     """
 
     def __init__(
@@ -256,16 +279,16 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
 
         self.finish(
             resources={
-                'kms_key': __kms_key,
-                'key_alias': __alias,
-                'log_group': __log_group,
-                'log_streams': __log_streams,
-                # 'iam_policies': {
-                #     'read': __iam_policy_group_read,
-                #     'write': __iam_policy_group_write,
-                # },
                 # 'cloud_trail': _cloud_trail,
                 # 'cloud_trail_alarm': _cloud_trail_alarm,
+                'iam_policies': {
+                    'read': __iam_policy_group_read,
+                    'write': __iam_policy_group_write,
+                },
+                'key_alias': __alias,
+                'kms_key': __kms_key,
+                'log_group': __log_group,
+                'log_streams': __log_streams,
             }
         )
 
