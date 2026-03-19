@@ -249,9 +249,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
         )
 
         __read_policy_description = __log_group.name.apply(
-            lambda log_group_name: (
-                f'Grants the ability to read, filter, and query logs for log group {log_group_name}'
-            )
+            lambda log_group_name: f'Grants the ability to read, filter, and query logs for log group {log_group_name}'
         )
 
         __iam_policy_group_read = aws.iam.Policy(
