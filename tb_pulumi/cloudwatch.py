@@ -11,7 +11,6 @@ from tb_pulumi.constants import CLOUDWATCH_METRIC_ALARM_DEFAULTS
 # Resources related to CloudWatch Logs
 
 
-# tb:cloudwatch:LogDestination
 class LogDestination(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type:** ``tb:cloudwatch:LogDestination``
 
@@ -289,9 +288,6 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
                 'log_streams': __log_streams,
             }
         )
-
-
-# Resources related to CloudWatch Alarms and other monitoring resources
 
 
 class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
