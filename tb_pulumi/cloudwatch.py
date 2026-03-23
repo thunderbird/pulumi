@@ -196,7 +196,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
                 name=stream_name,
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[__log_group]),
             )
-            for stream_id, stream_name in log_streams
+            for stream_id, stream_name in log_streams.items()
         }
 
         # Build an IAM Policy for each of several levels of access
