@@ -1,11 +1,293 @@
 """Infrastructural patterns related to AWS CloudWatch."""
 
+import json
 import pulumi
 import pulumi_aws as aws
 import tb_pulumi
 import tb_pulumi.monitoring
 
 from tb_pulumi.constants import CLOUDWATCH_METRIC_ALARM_DEFAULTS
+
+# Resources related to CloudWatch Logs
+
+
+class LogDestination(tb_pulumi.ThunderbirdComponentResource):
+    """**Pulumi Type:** ``tb:cloudwatch:LogDestination``
+
+    Configures a CloudWatch log group to ship logs to and related resources. The default configuration is compatible
+    with `Thunderbird logging guidelines
+    <https://github.com/thunderbird/observability/blob/main/docs/rfc/application_logging/application_logging_guidelines.md>`_.
+
+    Produces the following ``resources``:
+
+        - *key_alias* - `aws.kms.Alias <https://www.pulumi.com/registry/packages/aws/api-docs/kms/alias/>`_ used to name
+          the ``kms_key`` resource.
+        - *kms_key* - `aws.kms.Key
+          <https://www.pulumi.com/registry/packages/aws/api-docs/kms/key/>`_ used for encrypting all data in the log
+          group.
+        - *log_group* - `aws.cloudwatch.LogGroup
+          <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/loggroup/>`_ where logs can be sent and
+          stored.
+        - *log_streams* - Dict of `aws.cloudwatch.LogStreams
+          <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/logstream/>`_ created by this module.
+        - *iam_policies* - Dict of `aws.iam.Policy
+          <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/logstream/>`_ resources granting various
+          levels of access to these streams. There are two entries here, ``read`` and ``write``.
+
+    :param name: The name of the ``CloudWatchMonitoringGroup`` resource.
+    :type name: str
+
+    :param project: The ``ThunderbirdPulumiProject`` to build monitoring resources for.
+    :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param log_group: Dict of inputs to an `aws.cloudwatch.LogGroup
+        <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/loggroup/#inputs>`_. This class assumes some
+        deviations from defaults, intended to comply with Thunderbird Pro Services internal logging guidelines. Inputs
+        set here will be merged with our custom defaults, allowing you to override specific settings. This class sets
+        custom default values for the following inputs: ``log_group_class`` (``STANDARD``); ``name`` (determined from
+        other inputs); ``retention_in_days`` (``3``). We also specify the ``kms_key_id`` created by this class. Defaults
+        to {}.
+    :type log_group: dict, optional
+
+    :param log_streams: Dict where the keys are labels for the streams and the values are the names of the log streams
+        to create. Defaults to {}.
+    :type log_streams: dict, optional
+
+    :param org_name: An optional term used when determining the log group name. If you do not supply an ``org_name``,
+        the log group will be called ``/{stack}/{project_name}``. If you do supply a value, that will be prefixed by
+        ``/{org_name}``. Defaults to None.
+    :type org_name: str, optional
+
+    :param key: Dict of inputs to an `aws.kms.Key
+        <https://www.pulumi.com/registry/packages/aws/api-docs/kms/key/#inputs>`_ resource. This class makes several
+        assumptions about this key, which you can override with this parameter. For example, the default configuration
+        enables key rotation every 90 days. It also defines a key policy that allows IAM policies to control management
+        access to the key, and allows only this log group to use it for encryption purposes. Defaults to {}.
+    :type key: dict, optional
+
+    :param key_alias: If supplied, the KMS Key will be associated with an Alias, allowing users to quickly identify the
+        key. Without this, the key has no "name" so to speak. Supplying this parameter will result in the ``key_alias``
+        resource being created. Defaults to None.
+    :type key_alias: str, optional
+
+    :param opts: Additional ``pulumi.ResourceOptions`` to apply to this resource. Defaults to None.
+    :type opts: pulumi.ResourceOptions, optional
+
+    :param tags: Key/value pairs to merge with the default tags which get applied to all resources in this group.
+        Defaults to {}.
+    :type tags: dict, optional
+    """
+
+    def __init__(
+        self,
+        name: str,
+        project: tb_pulumi.ThunderbirdPulumiProject,
+        log_group: dict = {},
+        log_streams: dict = {},
+        org_name: str = None,
+        key: dict = {},
+        key_alias: str = None,
+        opts: pulumi.ResourceOptions = None,
+        tags: dict = {},
+    ):
+        super().__init__(
+            pulumi_type='tb:cloudwatch:LogDestination',
+            name=name,
+            project=project,
+            opts=opts,
+            tags=tags,
+        )
+
+        # Determine the log group's name before doing anything else; we need it for the key
+        __log_group_name = (
+            f'/{org_name}/{self.project.stack}/{self.project.project}'
+            if org_name
+            else f'/{self.project.stack}/{self.project.project}'
+        )
+
+        # KMS Keys need policies to describe who can manage the keys and who can use them for encryption operations.
+        __kms_key_policy = json.dumps(
+            {
+                'Version': '2012-10-17',
+                'Id': 'key-default-1',
+                'Statement': [
+                    # The account's root user can manage this. So can users with IAM Policies allowing it.
+                    {
+                        'Sid': 'Enable IAM User Permissions',
+                        'Effect': 'Allow',
+                        'Principal': {'AWS': f'arn:aws:iam::{self.project.aws_account_id}:root'},
+                        'Action': 'kms:*',
+                        'Resource': '*',
+                    },
+                    # We have to allow the Logs platform these actions or it can't use the key
+                    {
+                        'Effect': 'Allow',
+                        'Principal': {'Service': f'logs.{self.project.aws_region}.amazonaws.com'},
+                        'Action': [
+                            'kms:Encrypt',
+                            'kms:Decrypt',
+                            'kms:ReEncrypt*',
+                            'kms:GenerateDataKey*',
+                            'kms:Describe*',
+                        ],
+                        'Resource': '*',
+                        'Condition': {
+                            'ArnLike': {
+                                'kms:EncryptionContext:aws:logs:arn': (
+                                    f'arn:aws:logs:{self.project.aws_region}:{self.project.aws_account_id}:'
+                                    f'log-group:{__log_group_name}'
+                                )
+                            }
+                        },
+                    },
+                ],
+            }
+        )
+
+        # Set up the KMS Key, allowing users to override the defaults
+        __key_config = {
+            'enable_key_rotation': True,
+            'policy': __kms_key_policy,
+            'rotation_period_in_days': 90,
+            'tags': self.tags,
+        }
+        __key_config.update(key)
+        __kms_key = aws.kms.Key(
+            f'{self.project.name_prefix}-key',
+            **__key_config,
+            opts=pulumi.ResourceOptions(parent=self),
+        )
+
+        # Optionally, create an Alias for the Key so it's labeled and easy to find in the console.
+        # KMS Alias names *must* begin with "alias/" so we cover our bases here.
+        if key_alias and not key_alias.startswith('alias/'):
+            key_alias = f'alias/{key_alias}'
+
+        __alias = (
+            aws.kms.Alias(
+                f'{self.project.name_prefix}-alias',
+                target_key_id=__kms_key.id,
+                name=key_alias,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[__kms_key]),
+            )
+            if key_alias
+            else None
+        )
+
+        # Create the log group and any streams we've been told to create
+        __log_group_config = {
+            'kms_key_id': __kms_key.arn,  # Yes, this must be the ARN, and never the ID, else the API 400s at you
+            'log_group_class': 'STANDARD',
+            'name': __log_group_name,
+            'retention_in_days': 3,
+            'tags': self.tags,
+        }
+        __log_group_config.update(log_group)
+        __log_group = aws.cloudwatch.LogGroup(
+            f'{self.project.name_prefix}-loggroup',
+            **__log_group_config,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[__kms_key]),
+        )
+
+        __log_streams = {
+            stream_id: aws.cloudwatch.LogStream(
+                f'{self.project.name_prefix}-logstream-{stream_name}',
+                log_group_name=__log_group.name,
+                name=stream_name,
+                opts=pulumi.ResourceOptions(parent=self, depends_on=[__log_group]),
+            )
+            for stream_id, stream_name in log_streams.items()
+        }
+
+        # Build an IAM Policy for each of several levels of access
+        __iam_policy_group_read_doc = __log_group.arn.apply(
+            lambda log_group_arn: json.dumps(
+                {
+                    'Version': '2012-10-17',
+                    'Statement': [
+                        {
+                            'Sid': 'LogGroupRead',
+                            'Effect': 'Allow',
+                            'Action': [
+                                'logs:DescribeLogStreams',
+                                'logs:FilterLogEvents',
+                                'logs:GetLogEvents',
+                                'logs:GetLogFields',
+                                'logs:GetLogRecord',
+                                'logs:GetQueryResults',
+                                'logs:ListLogGroupsForQuery',
+                                'logs:ListTagsForResource',
+                                'logs:ListTagsLogGroup',
+                                'logs:PutQueryDefinition',
+                                'logs:StartLiveTail',
+                                'logs:StartQuery',
+                                'logs:StopLiveTail',
+                                'logs:StopQuery',
+                            ],
+                            'Resource': [log_group_arn],
+                        }
+                    ],
+                }
+            )
+        )
+
+        __iam_policy_group_write_doc = __log_group.arn.apply(
+            lambda log_group_arn: json.dumps(
+                {
+                    'Version': '2012-10-17',
+                    'Statement': [
+                        {
+                            'Sid': 'LogGroupWrite',
+                            'Effect': 'Allow',
+                            'Action': ['logs:CreateLogStream', 'logs:PutLogEvents'],
+                            'Resource': [log_group_arn],
+                        }
+                    ],
+                }
+            )
+        )
+
+        __read_policy_description = __log_group.name.apply(
+            lambda log_group_name: f'Grants the ability to read, filter, and query logs for log group {log_group_name}'
+        )
+
+        __iam_policy_group_read = aws.iam.Policy(
+            f'{self.project.name_prefix}-policy-read',
+            name=f'{self.project.name_prefix}-cloudwatch-group-read-access',
+            description=__read_policy_description,
+            path='/',
+            policy=__iam_policy_group_read_doc,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[__log_group]),
+        )
+
+        __write_policy_description = __log_group.name.apply(
+            lambda log_group_name: f'Grants the ability to write events to log group {log_group_name}'
+        )
+        __iam_policy_group_write = aws.iam.Policy(
+            f'{self.project.name_prefix}-policy-write',
+            name=f'{self.project.name_prefix}-cloudwatch-group-write-access',
+            description=__write_policy_description,
+            path='/',
+            policy=__iam_policy_group_write_doc,
+            opts=pulumi.ResourceOptions(parent=self, depends_on=[__log_group]),
+        )
+
+        # Separate module for building metric alarms around CloudTrail events, create one here for log reads
+
+        self.finish(
+            resources={
+                # 'cloud_trail': _cloud_trail,
+                # 'cloud_trail_alarm': _cloud_trail_alarm,
+                'iam_policies': {
+                    'read': __iam_policy_group_read,
+                    'write': __iam_policy_group_write,
+                },
+                'key_alias': __alias,
+                'kms_key': __kms_key,
+                'log_group': __log_group,
+                'log_streams': __log_streams,
+            }
+        )
 
 
 class CloudWatchMonitoringGroup(tb_pulumi.monitoring.MonitoringGroup):
