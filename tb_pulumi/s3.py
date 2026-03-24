@@ -42,8 +42,10 @@ class S3Bucket(tb_pulumi.ThunderbirdComponentResource):
     :param enable_versioning: Enables versioning on bucket object. Defaults to False.
     :type enable_versioning: bool, optional
 
-    :param object_dir: The path to a directory containing files which should be uploaded to the bucket. **These files
-        will all be publicly accessible. Do not ever indicate files which contain sensitive data.** Defaults to None.
+    :param object_dir: The path to a directory containing files which should be uploaded to the bucket. *These objects
+        are subject to IAM and S3 Bucket Policies as well as bucket ACLs. Be cautious when using this option not to
+        indicate files which should not be published to the audience defined by your security configuration.* Defaults
+        to None.
     :type str: str, optional
 
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
