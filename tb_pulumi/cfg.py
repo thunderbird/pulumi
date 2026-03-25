@@ -136,14 +136,6 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(depends_on=[self]),
         )
 
-        # enable the recorder
-        recorder_status = aws.cfg.RecorderStatus(
-            f'{project.project}-{project.stack}-config-recorder-status',
-            name=recorder.name,
-            is_enabled=True,
-            opts=pulumi.ResourceOptions(parent=recorder),
-        )
-
         # create delivery channel SNS topic
         delivery_channel_sns_topic = (
             aws.sns.Topic(
@@ -178,6 +170,17 @@ class AwsConfigAccount(tb_pulumi.ThunderbirdComponentResource):
             opts=pulumi.ResourceOptions(
                 parent=recorder,
                 depends_on=[delivery_bucket, delivery_bucket_policy, recorder],
+            ),
+        )
+
+        # enable the recorder (must wait for delivery channel to exist)
+        recorder_status = aws.cfg.RecorderStatus(
+            f'{project.project}-{project.stack}-config-recorder-status',
+            name=recorder.name,
+            is_enabled=True,
+            opts=pulumi.ResourceOptions(
+                parent=recorder,
+                depends_on=[delivery_channel],
             ),
         )
 
