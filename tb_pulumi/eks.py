@@ -316,9 +316,9 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
         :returns: The IAM role for the EBS CSI driver.
         """
         oidc_arn = cluster.oidc_provider_arn
-        oidc_url = cluster.oidc_provider_url
+        oidc_issuer = cluster.oidc_issuer  # URL without https:// prefix, for IAM condition keys
 
-        assume_role_policy = pulumi.Output.all(oidc_arn, oidc_url).apply(
+        assume_role_policy = pulumi.Output.all(oidc_arn, oidc_issuer).apply(
             lambda args: json.dumps(
                 {
                     'Version': '2012-10-17',
