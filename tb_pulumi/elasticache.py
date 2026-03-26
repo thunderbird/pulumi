@@ -183,7 +183,6 @@ class ElastiCacheReplicationGroup(tb_pulumi.ThunderbirdComponentResource):
 
         replication_group = aws.elasticache.ReplicationGroup(
             f'{name}-replication-group',
-            auth_token_update_strategy='auth_token',
             description=description,
             engine=engine,
             engine_version=engine_version,
