@@ -92,7 +92,9 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
     :raises ValueError: When no subnet IDs are provided.
     """
 
-    DEFAULT_ADDONS = ['vpc-cni', 'kube-proxy', 'coredns', 'aws-ebs-csi-driver']
+    # vpc-cni and kube-proxy are managed by pulumi_eks.Cluster internally;
+    # only include addons not already handled by the cluster provider.
+    DEFAULT_ADDONS = ['coredns', 'aws-ebs-csi-driver']
     DEFAULT_LOG_TYPES = ['api', 'audit', 'authenticator']
 
     def __init__(
