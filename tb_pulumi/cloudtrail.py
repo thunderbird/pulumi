@@ -6,7 +6,7 @@ import tb_pulumi.cloudwatch
 
 class EventMonitor(tb_pulumi.ThunderbirdComponentResource):
     """**Pulumi Type: tb:cloudtrail:EventMonitor**
-    
+
     Creates a CloudTrail Trail, then uses a Metric Filter as a basis for alerting when certain
     events occur within AWS. This pattern is largely based on the process described in AWS's article
     `Creating CloudWatch alarms for CloudTrail events: examples
@@ -14,7 +14,7 @@ class EventMonitor(tb_pulumi.ThunderbirdComponentResource):
 
     Each CloudTrail Trail requires an S3 bucket for storing event data (even if you intend to use CloudWatch Logs to
     surface events). We provide the :py:class:`tb_pulumi.s3.S3Bucket` pattern if you need to build one.
-    
+
     Produces the following ``resources``:
 
         - *whatever* - blah blah
@@ -60,12 +60,6 @@ class EventMonitor(tb_pulumi.ThunderbirdComponentResource):
             exclude_from_project=True,
         )
 
-        __trail = aws.cloudtrail.Trail(
-            f'{name}-trail',
-            s3_bucket_name
-        )
+        __trail = aws.cloudtrail.Trail(f'{name}-trail', s3_bucket_name)
 
-        self.finish(
-            resources={
-            }
-        )
+        self.finish(resources={})
