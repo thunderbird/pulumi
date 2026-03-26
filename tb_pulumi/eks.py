@@ -124,6 +124,10 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
             cluster_logging = self.DEFAULT_LOG_TYPES
         if public_access_cidrs is None:
             public_access_cidrs = ['0.0.0.0/0']
+        # pulumi_eks.Cluster treats subnet_ids and private/public_subnet_ids as
+        # mutually exclusive. Use the split approach when either is provided;
+        # fall back to subnet_ids only when neither is given.
+        use_split_subnets = private_subnet_ids is not None or public_subnet_ids is not None
         if private_subnet_ids is None:
             private_subnet_ids = subnet_ids
         if public_subnet_ids is None:
@@ -154,13 +158,16 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
         # role and create the EBS CSI role post-cluster.
 
         # --- EKS Cluster via pulumi_eks ---
+        cluster_subnet_kwargs = (
+            {'private_subnet_ids': private_subnet_ids, 'public_subnet_ids': public_subnet_ids}
+            if use_split_subnets
+            else {'subnet_ids': subnet_ids}
+        )
         cluster = eks.Cluster(
             f'{name}-cluster',
             name=name,
             vpc_id=vpc_id,
-            subnet_ids=subnet_ids,
-            private_subnet_ids=private_subnet_ids,
-            public_subnet_ids=public_subnet_ids,
+            **cluster_subnet_kwargs,
             version=kubernetes_version,
             enabled_cluster_log_types=cluster_logging,
             endpoint_private_access=endpoint_private_access,
