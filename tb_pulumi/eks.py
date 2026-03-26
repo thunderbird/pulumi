@@ -185,6 +185,38 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
         if addons is None or 'aws-ebs-csi-driver' in (addons or {}):
             ebs_csi_role = self._create_ebs_csi_irsa_role(name, cluster)
 
+        # --- Shared IAM role for managed node groups ---
+        node_role = aws.iam.Role(
+            f'{name}-node-role',
+            name=f'{name}-node',
+            assume_role_policy=json.dumps(
+                {
+                    'Version': '2012-10-17',
+                    'Statement': [
+                        {
+                            'Effect': 'Allow',
+                            'Principal': {'Service': 'ec2.amazonaws.com'},
+                            'Action': 'sts:AssumeRole',
+                        }
+                    ],
+                }
+            ),
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self),
+        )
+        for policy_arn in [
+            'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy',
+            'arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy',
+            'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly',
+        ]:
+            policy_name = policy_arn.rsplit('/', 1)[-1]
+            aws.iam.RolePolicyAttachment(
+                f'{name}-node-{policy_name}',
+                role=node_role.name,
+                policy_arn=policy_arn,
+                opts=pulumi.ResourceOptions(parent=self),
+            )
+
         # --- Managed Node Groups ---
         managed_node_groups = {}
         for ng_name, ng_config in node_groups.items():
@@ -219,6 +251,7 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-ng-{ng_name}',
                 cluster=cluster,
                 node_group_name=f'{name}-{ng_name}',
+                node_role=node_role,
                 instance_types=instance_types,
                 ami_type=ami_type,
                 disk_size=disk_size,
@@ -308,6 +341,7 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
                 'kms_key': kms_key,
                 'gp3_storage_class': gp3_storage_class,
                 'ebs_csi_role': ebs_csi_role,
+                'node_role': node_role,
             }
         )
 
