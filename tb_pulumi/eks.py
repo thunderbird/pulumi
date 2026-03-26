@@ -92,9 +92,7 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
     :raises ValueError: When no subnet IDs are provided.
     """
 
-    # vpc-cni, kube-proxy, and coredns are managed by pulumi_eks.Cluster
-    # internally; only include addons not already handled by the cluster provider.
-    DEFAULT_ADDONS = ['aws-ebs-csi-driver']
+    DEFAULT_ADDONS = ['vpc-cni', 'kube-proxy', 'coredns', 'aws-ebs-csi-driver']
     DEFAULT_LOG_TYPES = ['api', 'audit', 'authenticator']
 
     def __init__(
@@ -126,10 +124,6 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
             cluster_logging = self.DEFAULT_LOG_TYPES
         if public_access_cidrs is None:
             public_access_cidrs = ['0.0.0.0/0']
-        # pulumi_eks.Cluster treats subnet_ids and private/public_subnet_ids as
-        # mutually exclusive. Use the split approach when either is provided;
-        # fall back to subnet_ids only when neither is given.
-        use_split_subnets = private_subnet_ids is not None or public_subnet_ids is not None
         if private_subnet_ids is None:
             private_subnet_ids = subnet_ids
         if public_subnet_ids is None:
@@ -154,52 +148,19 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
             )
             encryption_config_key_arn = kms_key.arn
 
-        # --- Shared IAM role for managed node groups ---
-        # Created before the cluster so it can be registered in instanceRoles
-        # (required by pulumi_eks for aws-auth ConfigMap mapping).
-        node_role = aws.iam.Role(
-            f'{name}-node-role',
-            name=f'{name}-node',
-            assume_role_policy=json.dumps(
-                {
-                    'Version': '2012-10-17',
-                    'Statement': [
-                        {
-                            'Effect': 'Allow',
-                            'Principal': {'Service': 'ec2.amazonaws.com'},
-                            'Action': 'sts:AssumeRole',
-                        }
-                    ],
-                }
-            ),
-            tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self),
-        )
-        for policy_arn in [
-            'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy',
-            'arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy',
-            'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly',
-        ]:
-            policy_name = policy_arn.rsplit('/', 1)[-1]
-            aws.iam.RolePolicyAttachment(
-                f'{name}-node-{policy_name}',
-                role=node_role.name,
-                policy_arn=policy_arn,
-                opts=pulumi.ResourceOptions(parent=self),
-            )
+        # --- EBS CSI driver IAM role ---
+        # The EBS CSI driver needs its own IAM role for IRSA; we create it after the cluster
+        # so we can reference the OIDC provider. For now, we let pulumi_eks handle the service
+        # role and create the EBS CSI role post-cluster.
 
         # --- EKS Cluster via pulumi_eks ---
-        cluster_subnet_kwargs = (
-            {'private_subnet_ids': private_subnet_ids, 'public_subnet_ids': public_subnet_ids}
-            if use_split_subnets
-            else {'subnet_ids': subnet_ids}
-        )
         cluster = eks.Cluster(
             f'{name}-cluster',
             name=name,
             vpc_id=vpc_id,
-            **cluster_subnet_kwargs,
-            instance_roles=[node_role],
+            subnet_ids=subnet_ids,
+            private_subnet_ids=private_subnet_ids,
+            public_subnet_ids=public_subnet_ids,
             version=kubernetes_version,
             enabled_cluster_log_types=cluster_logging,
             endpoint_private_access=endpoint_private_access,
@@ -251,7 +212,6 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-ng-{ng_name}',
                 cluster=cluster,
                 node_group_name=f'{name}-{ng_name}',
-                node_role=node_role,
                 instance_types=instance_types,
                 ami_type=ami_type,
                 disk_size=disk_size,
@@ -341,7 +301,6 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
                 'kms_key': kms_key,
                 'gp3_storage_class': gp3_storage_class,
                 'ebs_csi_role': ebs_csi_role,
-                'node_role': node_role,
             }
         )
 
