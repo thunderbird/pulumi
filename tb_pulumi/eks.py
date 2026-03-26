@@ -154,40 +154,9 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
             )
             encryption_config_key_arn = kms_key.arn
 
-        # --- EBS CSI driver IAM role ---
-        # The EBS CSI driver needs its own IAM role for IRSA; we create it after the cluster
-        # so we can reference the OIDC provider. For now, we let pulumi_eks handle the service
-        # role and create the EBS CSI role post-cluster.
-
-        # --- EKS Cluster via pulumi_eks ---
-        cluster_subnet_kwargs = (
-            {'private_subnet_ids': private_subnet_ids, 'public_subnet_ids': public_subnet_ids}
-            if use_split_subnets
-            else {'subnet_ids': subnet_ids}
-        )
-        cluster = eks.Cluster(
-            f'{name}-cluster',
-            name=name,
-            vpc_id=vpc_id,
-            **cluster_subnet_kwargs,
-            version=kubernetes_version,
-            enabled_cluster_log_types=cluster_logging,
-            endpoint_private_access=endpoint_private_access,
-            endpoint_public_access=endpoint_public_access,
-            public_access_cidrs=public_access_cidrs,
-            encryption_config_key_arn=encryption_config_key_arn,
-            create_oidc_provider=True,
-            skip_default_node_group=True,
-            tags=self.tags,
-            opts=pulumi.ResourceOptions(parent=self),
-        )
-
-        # --- IAM role for EBS CSI driver (IRSA) ---
-        ebs_csi_role = None
-        if addons is None or 'aws-ebs-csi-driver' in (addons or {}):
-            ebs_csi_role = self._create_ebs_csi_irsa_role(name, cluster)
-
         # --- Shared IAM role for managed node groups ---
+        # Created before the cluster so it can be registered in instanceRoles
+        # (required by pulumi_eks for aws-auth ConfigMap mapping).
         node_role = aws.iam.Role(
             f'{name}-node-role',
             name=f'{name}-node',
@@ -218,6 +187,35 @@ class EksCluster(tb_pulumi.ThunderbirdComponentResource):
                 policy_arn=policy_arn,
                 opts=pulumi.ResourceOptions(parent=self),
             )
+
+        # --- EKS Cluster via pulumi_eks ---
+        cluster_subnet_kwargs = (
+            {'private_subnet_ids': private_subnet_ids, 'public_subnet_ids': public_subnet_ids}
+            if use_split_subnets
+            else {'subnet_ids': subnet_ids}
+        )
+        cluster = eks.Cluster(
+            f'{name}-cluster',
+            name=name,
+            vpc_id=vpc_id,
+            **cluster_subnet_kwargs,
+            instance_roles=[node_role],
+            version=kubernetes_version,
+            enabled_cluster_log_types=cluster_logging,
+            endpoint_private_access=endpoint_private_access,
+            endpoint_public_access=endpoint_public_access,
+            public_access_cidrs=public_access_cidrs,
+            encryption_config_key_arn=encryption_config_key_arn,
+            create_oidc_provider=True,
+            skip_default_node_group=True,
+            tags=self.tags,
+            opts=pulumi.ResourceOptions(parent=self),
+        )
+
+        # --- IAM role for EBS CSI driver (IRSA) ---
+        ebs_csi_role = None
+        if addons is None or 'aws-ebs-csi-driver' in (addons or {}):
+            ebs_csi_role = self._create_ebs_csi_irsa_role(name, cluster)
 
         # --- Managed Node Groups ---
         managed_node_groups = {}
