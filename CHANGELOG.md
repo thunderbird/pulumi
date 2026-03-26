@@ -1,6 +1,25 @@
 # tb_pulumi Changelog
 
 
+## v0.0.17
+
+### Breaking Changes
+
+None this time!
+
+
+### Improvements
+
+- Added the [tb_pulumi.fargate.AutoscalingFargateCluster class](https://thunderbird.github.io/pulumi/fargate.html#tb_pulumi.fargate.AutoscalingFargateCluster),
+  which improves upon the existing `FargateClusterWithLogging` pattern in a variety of ways. It is recommended that
+  projects using the `FargateClusterWithLogging` class migrate to using the new `AutoscalingFargateClusterClass`, as the
+  older model will eventually be removed.
+- Improvements to AWS Config setup.
+- A variety of documentation improvements for clarity and accuracy.
+- ECS tasks now inherit their tags from their parent service.
+- Minor automation/dev-life improvements.
+
+
 ## v0.0.16
 
 ### Breaking Changes
