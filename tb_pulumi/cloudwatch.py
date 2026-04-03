@@ -261,7 +261,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
 
         __iam_policy_group_read = aws.iam.Policy(
             f'{self.project.name_prefix}-policy-read',
-            name=f'{self.project.name_prefix}-cloudwatch-group-read-access',
+            name=f'{self.project.name_prefix}-{app_name}-logs-read-access',
             description=__read_policy_description,
             path='/',
             policy=__iam_policy_group_read_doc,
@@ -273,7 +273,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
         )
         __iam_policy_group_write = aws.iam.Policy(
             f'{self.project.name_prefix}-policy-write',
-            name=f'{self.project.name_prefix}-cloudwatch-group-write-access',
+            name=f'{self.project.name_prefix}-{app_name}-logs-write-access',
             description=__write_policy_description,
             path='/',
             policy=__iam_policy_group_write_doc,
