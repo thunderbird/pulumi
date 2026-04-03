@@ -91,6 +91,10 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
       the only valid source. Defaults to {}.
     :type container_security_groups: _type_, optional
 
+    :param exec_role_policies: A dict where the keys are the names of services and the values are lists of ARNs of IAM
+      Policies that service should operate with. These should provide permissions above and beyond what is provided by
+      using the ``registries``, ``secrets``, and ``ssm_params`` parameters.
+
     :param listeners: A nested dict describing your load balancers' listeners and which targets they point to. At the
       top level, the keys are names of load balancers and the values are other dicts. Those dicts' keys are the names of
       targets, and their values are inputs to an `aws.lb.Listener
@@ -169,6 +173,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         cluster: dict = {},
         cluster_name: str = None,
         container_security_groups: dict[str:dict] = {},
+        exec_role_policies: dict[str:list] = {},
         listeners: dict[str, dict] = {},
         load_balancer_security_groups: dict[str, dict] = {},
         load_balancers: dict = {},
@@ -267,6 +272,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-execrolepolicy-{service}',
                 name=f'{name}-{service}',
                 description=f'Grants permissions needed to launch the {service} service for {self.project.name_prefix}',
+                managed_policy_arns=exec_role_policies.get(service),
                 policy=exec_role_policy_docs[service],
                 opts=pulumi.ResourceOptions(parent=self),
                 tags=self.tags,
