@@ -280,15 +280,13 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         }
 
         # Build the execution roles using the policies from above, if they exist
-        _universal_managed_policy_arns = [
-            # This AWS managed policy allows access to ECR and log streams
-            'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
-        ]
-
         exec_roles = {}
 
         for service in services.keys():
-            _managed_policy_arns = _universal_managed_policy_arns.copy()
+            _managed_policy_arns = [
+                # This AWS managed policy allows access to ECR and log streams
+                'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
+            ]
             _managed_policy_arns += [
                 item
                 for item in [
