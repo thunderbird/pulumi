@@ -303,7 +303,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
                 name=f'{name}-{service}',
                 description=f'Task execution role for running the {service} service for {self.project.name_prefix}',
                 assume_role_policy=arp,
-                managed_policy_arns=_universal_managed_policy_arns + exec_role_policies.get('service', []),
+                managed_policy_arns=_managed_policy_arns,
                 tags=self.tags,
                 opts=pulumi.ResourceOptions(
                     parent=self,
