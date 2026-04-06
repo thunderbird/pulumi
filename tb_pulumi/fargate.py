@@ -91,6 +91,10 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
       the only valid source. Defaults to {}.
     :type container_security_groups: _type_, optional
 
+    :param extra_policies: A dict where the keys are the names of services and the values are lists of ARNs of IAM
+      Policies that service should operate with in addition to what is provided by using the ``registries``,
+      ``secrets``, and ``ssm_params`` parameters.
+
     :param listeners: A nested dict describing your load balancers' listeners and which targets they point to. At the
       top level, the keys are names of load balancers and the values are other dicts. Those dicts' keys are the names of
       targets, and their values are inputs to an `aws.lb.Listener
@@ -169,6 +173,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         cluster: dict = {},
         cluster_name: str = None,
         container_security_groups: dict[str:dict] = {},
+        extra_policies: dict[str:list] = {},
         listeners: dict[str, dict] = {},
         load_balancer_security_groups: dict[str, dict] = {},
         load_balancers: dict = {},
@@ -275,21 +280,28 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         }
 
         # Build the execution roles using the policies from above, if they exist
-        exec_roles = {
-            service: aws.iam.Role(
+        exec_roles = {}
+
+        for service in services.keys():
+            _managed_policy_arns = [
+                # This AWS managed policy allows access to ECR and log streams
+                'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
+            ]
+            _managed_policy_arns += [
+                item
+                for item in [
+                    exec_role_policies[service] if service in exec_role_policies else None,
+                ]
+                if item is not None
+            ]
+            _managed_policy_arns += extra_policies.get(service, [])
+
+            exec_roles[service] = aws.iam.Role(
                 f'{name}-execrole-{service}',
                 name=f'{name}-{service}',
                 description=f'Task execution role for running the {service} service for {self.project.name_prefix}',
                 assume_role_policy=arp,
-                managed_policy_arns=[
-                    item
-                    for item in [
-                        # This AWS managed policy allows access to ECR and log streams
-                        'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
-                        exec_role_policies[service] if service in exec_role_policies else None,
-                    ]
-                    if item is not None
-                ],
+                managed_policy_arns=_managed_policy_arns,
                 tags=self.tags,
                 opts=pulumi.ResourceOptions(
                     parent=self,
@@ -300,8 +312,6 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
                     ],
                 ),
             )
-            for service in services.keys()
-        }
 
         # First we build out task definitions. Later, we can refer to them by name. Since task definitions are
         # one-to-one with cluster services, the task_name here is assumed to match with a service name.

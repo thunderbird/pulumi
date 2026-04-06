@@ -18,6 +18,9 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
     with `Thunderbird logging guidelines
     <https://github.com/thunderbird/observability/blob/main/docs/rfc/application_logging/application_logging_guidelines.md>`_.
 
+    The name of the log group is constructed in the following way: ``/{org_name}/{stack_name}/{app_name}``. The first
+    segment will be left off if no org_name is provided.
+
     Produces the following ``resources``:
 
         - *key_alias* - `aws.kms.Alias <https://www.pulumi.com/registry/packages/aws/api-docs/kms/alias/>`_ used to name
@@ -39,6 +42,9 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
 
     :param project: The ``ThunderbirdPulumiProject`` to build monitoring resources for.
     :type project: tb_pulumi.ThunderbirdPulumiProject
+
+    :param app_name: Final part of the name of the log group. If no app_name is provided, the name of the project will
+        be used.
 
     :param log_group: Dict of inputs to an `aws.cloudwatch.LogGroup
         <https://www.pulumi.com/registry/packages/aws/api-docs/cloudwatch/loggroup/#inputs>`_. This class assumes some
@@ -82,6 +88,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
         self,
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
+        app_name: str = None,
         log_group: dict = {},
         log_streams: dict = {},
         org_name: str = None,
@@ -98,11 +105,12 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
             tags=tags,
         )
 
+        if not app_name:
+            app_name = self.project.project
+
         # Determine the log group's name before doing anything else; we need it for the key
         __log_group_name = (
-            f'/{org_name}/{self.project.stack}/{self.project.project}'
-            if org_name
-            else f'/{self.project.stack}/{self.project.project}'
+            f'/{org_name}/{self.project.stack}/{app_name}' if org_name else f'/{self.project.stack}/{app_name}'
         )
 
         # KMS Keys need policies to describe who can manage the keys and who can use them for encryption operations.
@@ -253,7 +261,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
 
         __iam_policy_group_read = aws.iam.Policy(
             f'{self.project.name_prefix}-policy-read',
-            name=f'{self.project.name_prefix}-cloudwatch-group-read-access',
+            name=f'{self.project.name_prefix}-{app_name}-logs-read-access',
             description=__read_policy_description,
             path='/',
             policy=__iam_policy_group_read_doc,
@@ -265,7 +273,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
         )
         __iam_policy_group_write = aws.iam.Policy(
             f'{self.project.name_prefix}-policy-write',
-            name=f'{self.project.name_prefix}-cloudwatch-group-write-access',
+            name=f'{self.project.name_prefix}-{app_name}-logs-write-access',
             description=__write_policy_description,
             path='/',
             policy=__iam_policy_group_write_doc,
