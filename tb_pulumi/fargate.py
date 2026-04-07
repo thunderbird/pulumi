@@ -142,21 +142,25 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
     :type services: dict, optional
 
     :param ssm_params: A dict where the keys are names of services and the values are lists of AWS Systems Manager
-        parameter ARNs. These are the SSM parameters which are required for launching the service's task. If your
-        service's task definition defines a container with an SSM-based "secret" environment variable, then you will
-        need to list the ARN or an IAM-compatible ARN pattern here to grant that access to ECS at launch time.
-        Defaults to {}.
+      parameter ARNs. These are the SSM parameters which are required for launching the service's task. If your
+      service's task definition defines a container with an SSM-based "secret" environment variable, then you will
+      need to list the ARN or an IAM-compatible ARN pattern here to grant that access to ECS at launch time.
+      Defaults to {}.
     :type ssm_params: dict[str, list], optional
 
     :param task_definitions: A dict where the keys are names of services (each service has exactly one task
-        definition) and the keys are inputs to an `aws.ecs.TaskDefinition
-        <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/taskdefinition/>`_ resource. Defaults to {}.
+      definition) and the keys are inputs to an `aws.ecs.TaskDefinition
+      <https://www.pulumi.com/registry/packages/aws/api-docs/ecs/taskdefinition/>`_ resource. Defaults to {}.
     :type task_definitions: dict, optional
 
-    :param targets: A dict where the keys are the names for target groups (as they will be referenced throughout
-        this configuration) and the values are inputs to an `aws.ecs.TargetGroup
-        <https://www.pulumi.com/registry/packages/aws/api-docs/lb/targetgroup/>`_ resource. Defaults to {}.
-    :type targets: dict, optional
+    :param targets: A list of dicts where each dict has the structure indicated here:
+      ::
+
+          services:
+            targets:
+                - container_name: name of a container in a task definition that can handle this service's traffic
+                  container_port: port on that container to send the traffic to
+                  target_name: name of the target that you've defined in the `targets` portion of this config
 
     :param opts: Additional pulumi.ResourceOptions to apply to these resources. Defaults to None.
     :type opts: pulumi.ResourceOptions, optional
@@ -182,7 +186,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
         services: dict = {},
         ssm_params: dict[str, list] = {},
         task_definitions: dict = {},
-        targets: dict = {str, dict},
+        targets: list[dict] = [],
         opts: pulumi.ResourceOptions = None,
     ):
         if len(subnets) < 1:
@@ -408,20 +412,18 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
 
         # Finally, build out the service, which brings together all of the pieces of this puzzle
         svcs = {}
+
         for service_name, service_config in services.items():
-            lb_config = (
-                target_groups[service_config['target']].arn.apply(
-                    lambda arn: [
-                        {
-                            'container_name': service_config['container_name'],
-                            'container_port': service_config['container_port'],
-                            'target_group_arn': arn,
-                        }
-                    ]
+            # Set up the load balancer config
+            _lb_target_configs = []
+            for target in service_config.get('targets', []):
+                _lb_target_configs.append(
+                    {
+                        'container_name': target['container_name'],
+                        'container_port': target['container_port'],
+                        'target_group_arn': target_groups[target['target_name']].arn.apply(lambda arn: arn),
+                    }
                 )
-                if service_config.get('load_balancer', None)
-                else []
-            )
 
             # Set up dependencies. Start with dependencies common to all services.
             depends_on = [
@@ -444,7 +446,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
                     depends_on.append(lb_sgs[service_config['load_balancer']])
 
             # The service depends on a target group if we have a config defined for it
-            if service_config['target'] in target_groups:
+            if service_config.get('target_name') in target_groups:
                 depends_on.append(target_groups[service_config['target']])
 
             # Build the service
@@ -452,7 +454,7 @@ class AutoscalingFargateCluster(tb_pulumi.ThunderbirdComponentResource):
                 f'{name}-svc-{service_name}',
                 cluster=ecs_cluster.arn,
                 launch_type='FARGATE',
-                load_balancers=lb_config,
+                load_balancers=_lb_target_configs,
                 name=f'{name}-{service_name}',
                 network_configuration={
                     'assign_public_ip': service_config.get('assign_public_ip', False),
