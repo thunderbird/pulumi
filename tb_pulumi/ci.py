@@ -40,6 +40,17 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
     :param user_name: The name to give the IAM user. Defaults to ``{name}-ci``.
     :type user_name: str
 
+    :param access_keys: Dict where the keys are arbitrary names for access keys to create for this user and the values
+        are booleans indicating the key should be "Active" (True) or "Inactive" (False). To rotate an access key, first
+        create a new key set to True. Then update the credentials wherever your implementation requires. Then deactivate
+        the old key by setting its entry to False. If something unexpected breaks, you can still enable it again (set to
+        True). When you're ready, delete the access key by removing its entry. Here's an example configuration where a
+        new key ("green") has been created and an old key ("blue") is deactivated but not deleted:
+
+        access_keys:
+            blue: False
+            green: True
+
     :param additional_policies: List of ARNs of IAM policies to additionally attach to the user. Defaults to [].
     :type additional_policies: list[str], optional
 
@@ -51,6 +62,12 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
     :param ecr_repositories: When ``enabled_ecr_image_push`` is True, permission will be granted to push images to
         these ECR repositories. Defaults to None.
     :type ecr_repositories: list[str], optional
+
+    :param enable_legacy_access_key: If ``True``, this will create an access key that is tracked outside of the dict of
+        ``access_keys``. This is the way this module used to work, and it will be removed in a future version since it
+        does not allow for cautious key rotation. Use it to migrate off of this feature, and afterward it should be set
+        to False. Defaults to False.
+    :type enable_legacy_access_key: bool
 
     :param enable_fargate_deployments: When True, attaches a policy which allows new task definitions to be deployed
         to Fargate services. Use this when your CI pipeline needs to deploy new images to Fargate services. Defaults
@@ -96,13 +113,15 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
         name: str,
         project: tb_pulumi.ThunderbirdPulumiProject,
         user_name: str = None,
+        access_keys: dict = {},
         additional_policies: list[str] = [],
-        enable_ecr_image_push: bool = False,
         ecr_repositories: list[str] = None,
+        enable_ecr_image_push: bool = False,
         enable_fargate_deployments: str = False,
+        enable_full_s3_access: bool = False,
+        enable_legacy_access_key: bool = False,
         fargate_clusters: list[str] = None,
         fargate_task_role_arns: list[str] = None,
-        enable_full_s3_access: bool = False,
         s3_full_access_buckets: list = [],
         enable_s3_bucket_upload: bool = False,
         s3_upload_buckets: list[str] = [],
@@ -282,6 +301,8 @@ class AwsAutomationUser(tb_pulumi.ThunderbirdComponentResource):
         user = tb_pulumi.iam.UserWithAccessKey(
             f'{name}-iamuser',
             project=self.project,
+            access_keys=access_keys,
+            enable_legacy_access_key=enable_legacy_access_key,
             exclude_from_project=True,
             user_name=user_name,
             policies=policies,
