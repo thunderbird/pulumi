@@ -232,7 +232,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
                                 'logs:StopLiveTail',
                                 'logs:StopQuery',
                             ],
-                            'Resource': [log_group_arn],
+                            'Resource': [f'{log_group_arn}*'],
                         }
                     ],
                 }
@@ -248,7 +248,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
                             'Sid': 'LogGroupWrite',
                             'Effect': 'Allow',
                             'Action': ['logs:CreateLogStream', 'logs:PutLogEvents'],
-                            'Resource': [log_group_arn],
+                            'Resource': [f'{log_group_arn}*'],
                         }
                     ],
                 }
