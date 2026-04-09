@@ -161,7 +161,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
         }
         __key_config.update(key)
         __kms_key = aws.kms.Key(
-            f'{self.project.name_prefix}-key',
+            f'{self.project.name_prefix}-key-{app_name}',
             **__key_config,
             opts=pulumi.ResourceOptions(parent=self),
         )
@@ -192,7 +192,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
         }
         __log_group_config.update(log_group)
         __log_group = aws.cloudwatch.LogGroup(
-            f'{self.project.name_prefix}-loggroup',
+            f'{self.project.name_prefix}-loggroup-{app_name}',
             **__log_group_config,
             opts=pulumi.ResourceOptions(parent=self, depends_on=[__kms_key]),
         )
@@ -260,7 +260,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
         )
 
         __iam_policy_group_read = aws.iam.Policy(
-            f'{self.project.name_prefix}-policy-read',
+            f'{self.project.name_prefix}-policy-read-{app_name}',
             name=f'{self.project.name_prefix}-{app_name}-logs-read-access',
             description=__read_policy_description,
             path='/',
@@ -272,7 +272,7 @@ class LogDestination(tb_pulumi.ThunderbirdComponentResource):
             lambda log_group_name: f'Grants the ability to write events to log group {log_group_name}'
         )
         __iam_policy_group_write = aws.iam.Policy(
-            f'{self.project.name_prefix}-policy-write',
+            f'{self.project.name_prefix}-policy-write-{app_name}',
             name=f'{self.project.name_prefix}-{app_name}-logs-write-access',
             description=__write_policy_description,
             path='/',
