@@ -1,6 +1,33 @@
 # tb_pulumi Changelog
 
 
+## v0.0.18
+
+### Breaking Changes
+
+- `AutoscalingFargateCluster`s have had a change to the `services` parameter. It no longer may contain a field named
+  `target` and instead must use `targets`. The
+  [documentation](https://thunderbird.github.io/pulumi/fargate.html#tb_pulumi.fargate.AutoscalingFargateCluster) now
+  describes the configuration change, which allows for users to have multiple service targets within a single container.
+
+
+### Improvements
+
+Related to `fargate.AutoscalingFargateCluster`:
+
+- Added an `extra_policies` parameter to `fargate.AutoscalingFargateCluster`
+
+Pertaining to `cloudwatch.LogDestination`:
+
+- Log group names can be more deliberately managed through the new `app_name` parameter.
+- Fixed a bug where multiple log groups would get the same URN.
+
+And one change to `ci.AwsAutomationUser`:
+
+- Exposed the access key rotation features of `iam.UserWithAccessKeys` to `AwsAutomationUser` so you can now manage
+  those keys in the same way.
+
+
 ## v0.0.17
 
 ### Breaking Changes
