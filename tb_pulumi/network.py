@@ -712,7 +712,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                     routes=[
                         {
                             'cidr_block': '0.0.0.0/0',
-                            'gateway_id': nat_gateway.id,
+                            'nat_gateway_id': nat_gateway.id,
                         }
                     ],
                     tags={'Name': f'{name}-private-rt', **self.tags},
