@@ -646,7 +646,8 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                         {
                             'cidr_block': '0.0.0.0/0',
                             'gateway_id': internet_gateway.id,
-                        }
+                        },
+                        *additional_routes.get('public', []),
                     ],
                     tags={'Name': f'{name}-public-rt', **self.tags},
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, internet_gateway]),
@@ -704,7 +705,7 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                 opts=pulumi.ResourceOptions(parent=self, depends_on=[nat_eip, public_subnet_rs[0]]),
             )
 
-            # Create a rotue table for the private subnets
+            # Create a route table for the private subnets
             private_route_table = (
                 aws.ec2.RouteTable(
                     f'{name}-private-rt',
@@ -713,7 +714,8 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                         {
                             'cidr_block': '0.0.0.0/0',
                             'nat_gateway_id': nat_gateway.id,
-                        }
+                        },
+                        *additional_routes.get('private', []),
                     ],
                     tags={'Name': f'{name}-private-rt', **self.tags},
                     opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc, nat_gateway]),
@@ -853,34 +855,12 @@ class MultiTierVpc(tb_pulumi.ThunderbirdComponentResource):
                 for idx, cidr in enumerate(peered_cidrs)
             ]
 
-        # Build any additional private and public routes
-        additional_private_routes = [
-            aws.ec2.Route(
-                f'{name}-route-{idx}',
-                route_table_id=private_route_table.id,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
-                **route,
-            )
-            for idx, route in enumerate(additional_routes.get('private', []))
-        ]
-        additional_public_routes = [
-            aws.ec2.Route(
-                f'{name}-route-{idx}',
-                route_table_id=public_route_table.id,
-                opts=pulumi.ResourceOptions(parent=self, depends_on=[vpc]),
-                **route,
-            )
-            for idx, route in enumerate(additional_routes.get('public', []))
-        ]
-
         # Combine all routes we've created into one list; remove any optional routes which are disabled/None
         routes = [
             route
             for route in [
                 *peer_conn_routes.values(),
                 *peer_acc_routes.values(),
-                *additional_private_routes,
-                *additional_public_routes,
             ]
             if route is not None
         ]
