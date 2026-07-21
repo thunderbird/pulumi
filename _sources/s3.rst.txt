@@ -1,0 +1,8 @@
+tb\_pulumi.s3
+=============
+
+.. automodule:: tb_pulumi.s3
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
